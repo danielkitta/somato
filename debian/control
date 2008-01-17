@@ -1,0 +1,37 @@
+Source: somato
+Section: x11
+Priority: optional
+Maintainer: Daniel Elstner <daniel.kitta@gmail.com>
+Build-Depends: debhelper (>= 5), cdbs (>= 0.4.17), autotools-dev, libcairo2-dev (>= 1.2.0), libgtkglext1-dev (>= 1.0.0), libgtkmm-2.4-dev (>= 2.6.0), libglademm-2.4-dev (>= 2.6.0)
+Standards-Version: 3.7.2
+
+Package: somato
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Soma cube animation
+ Somato solves and animates Piet Hein's Soma puzzle.
+ .
+ The Soma cube is a solid dissection puzzle invented by Piet Hein during
+ a lecture on quantum mechanics conducted by Werner Heisenberg. Seven
+ pieces made out of unit cubes must be assembled into a 3x3x3 cube. The
+ pieces of the Soma cube consist of all possible combinations of four or
+ fewer unit cubes, excluding all regular shapes.
+
+Package: somato-sse
+Architecture: i386
+Conflicts: somato
+Replaces: somato
+Provides: somato
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Soma cube animation [SSE]
+ Somato solves and animates Piet Hein's Soma puzzle.
+ .
+ The Soma cube is a solid dissection puzzle invented by Piet Hein during
+ a lecture on quantum mechanics conducted by Werner Heisenberg. Seven
+ pieces made out of unit cubes must be assembled into a 3x3x3 cube. The
+ pieces of the Soma cube consist of all possible combinations of four or
+ fewer unit cubes, excluding all regular shapes.
+ .
+ This package is optimized for the Intel Pentium III processor with SSE
+ (Streaming SIMD Extensions) and will not run on subarchitectures that
+ don't support the features enabled by the Pentium III.

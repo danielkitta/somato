@@ -1,0 +1,1 @@
+?package(somato): needs="X11" section="Apps/Education" title="Somato" command="somato"

@@ -1,0 +1,42 @@
+# vim: set filetype=gtkrc :
+#
+# Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+#
+# This file is part of Somato.
+
+style "somato_cube_scene_style"
+{
+  bg_pixmap[NORMAL] = "<none>"
+  bg_pixmap[ACTIVE] = "<none>"
+  bg_pixmap[PRELIGHT] = "<none>"
+  bg_pixmap[SELECTED] = "<none>"
+  bg_pixmap[INSENSITIVE] = "<none>"
+
+  fg[NORMAL] = "#D3D3D3"
+  fg[ACTIVE] = "#D3D3D3"
+  fg[PRELIGHT] = "#EEEEEE"
+  fg[SELECTED] = "#D3D3D3"
+  fg[INSENSITIVE] = "#BEBEBE"
+
+  bg[NORMAL] = "#000000"
+  bg[ACTIVE] = "#000000"
+  bg[PRELIGHT] = "#000000"
+  bg[SELECTED] = "#191970"
+  bg[INSENSITIVE] = "#000000"
+
+  text[NORMAL] = "#D3D3D3"
+  text[ACTIVE] = "#D3D3D3"
+  text[PRELIGHT] = "#EEEEEE"
+  text[SELECTED] = "#D3D3D3"
+  text[INSENSITIVE] = "#BEBEBE"
+
+  base[NORMAL] = "#000000"
+  base[ACTIVE] = "#000000"
+  base[PRELIGHT] = "#000000"
+  base[SELECTED] = "#191970"
+  base[INSENSITIVE] = "#000000"
+
+  font_name = "Sans 12"
+}
+
+widget "*.cube_scene" style "somato_cube_scene_style"

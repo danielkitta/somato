@@ -1,0 +1,68 @@
+#! /usr/bin/make -f
+
+# This Debian package uses a VPATH setup to build each subarchitecture
+# package in its own subdirectory of the source tree.  Unfortunately the
+# support in CDBS for multiple subarchitecture builds is currently very
+# limited.  Specifically, this means that the makefile.mk class and
+# everything building on top of it cannot be used.
+
+#DEB_VERBOSE_ALL = yes
+export DH_COMPAT = 5
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/langcore.mk
+
+# Define the build directory variable for each package,
+# as required for multiple VPATH builds with CDBS.
+$(foreach pkg,$(DEB_ARCH_PACKAGES),$(eval DEB_BUILDDIR_$(pkg) = build/$(pkg)))
+
+# For this package, -O3 actually produces a smaller executable than -O2
+# on at least the i386 and amd64 architectures.  The assembler output
+# looks reasonable, too, so let's enable it by default.
+DEB_OPT_FLAG := $(DEB_OPT_FLAG:-O2=-O3)
+
+# Define additional per-package flags as necessary.
+CFLAGS_somato-sse = -march=pentium3 -mtune=generic -mfpmath=sse
+DEB_CONFIGURE_EXTRA_FLAGS_somato-sse = --enable-vector-simd=sse
+
+LDFLAGS ?= -Wl,-z,defs,-O1,--as-needed
+
+# Configure a subarchitecture build with additional per-package flags.
+# Avoid specifying --host if build and host architecture are the same.
+# Nowadays Autoconf unconditionally enters cross-compile mode if --host
+# is used at all.
+$(DEB_ARCH_PACKAGES:%=build/%/config.status):build/%/config.status:
+	cd "build/$*" && "$(CURDIR)/configure" \
+		--srcdir="$(CURDIR)" \
+		--build="$(DEB_BUILD_GNU_TYPE)" $(subst \
+		--host="$(DEB_BUILD_GNU_TYPE)",,--host="$(DEB_HOST_GNU_TYPE)") \
+		--prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+		--libexecdir='$${libdir}/$(DEB_SOURCE_PACKAGE)' \
+		--disable-dependency-tracking $(DEB_CONFIGURE_EXTRA_FLAGS_$*) \
+		CC="$(CC)" CXX="$(CXX)" \
+		CPPFLAGS="$(CPPFLAGS)" \
+		CFLAGS="$(strip $(CFLAGS) $(CFLAGS_$*))" \
+		CXXFLAGS="$(strip $(CXXFLAGS) $(CFLAGS_$*))" \
+		LDFLAGS="$(LDFLAGS)"
+
+# Simply use the compiled executable as the rule target
+# to avoid the need for a stamp file.
+$(DEB_ARCH_PACKAGES:%=build/%/src/somato):build/%/src/somato:
+	+$(MAKE) -C "build/$*"
+
+# Append to the double-colon rule hooks provided by CDBS.
+
+$(addprefix configure/,$(DEB_ARCH_PACKAGES))::configure/%: build/%/config.status
+
+$(addprefix build/,$(DEB_ARCH_PACKAGES))::build/%: build/%/src/somato
+
+$(addprefix install/,$(DEB_ARCH_PACKAGES))::install/%:
+	+$(MAKE) -C "build/$*" DESTDIR="$(CURDIR)/debian/$*" install
+
+$(addprefix binary-install/,$(DEB_ARCH_PACKAGES))::binary-install/%:
+	dh_desktop -p"$*" $(DEB_DH_DESKTOP_ARGS)
+	dh_iconcache -p"$*" $(DEB_DH_ICONCACHE_ARGS)
+
+# Cleanup is a no-brainer thanks to the VPATH setup.
+cleanbuilddir::
+	-rm -rf build

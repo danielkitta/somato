@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Somato
+Comment=Animation of the Soma cube puzzle
+Exec=somato
+Icon=somato
+StartupNotify=true
+Categories=GTK;Education;
