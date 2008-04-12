@@ -42,6 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)windows&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;"
 				StringPooling="true"
 				MinimalRebuild="true"
@@ -119,6 +120,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="3"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)windows&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -325,10 +327,42 @@
 			<File
 				RelativePath=".\src\vector_classic.cc"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\vector_sse.cc"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\vectormath.cc"
