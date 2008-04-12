@@ -183,6 +183,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\windows\config.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\cube.h"
 				>
 			</File>
