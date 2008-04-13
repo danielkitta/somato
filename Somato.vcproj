@@ -21,8 +21,7 @@
 			OutputDirectory="Debug"
 			IntermediateDirectory="Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(GTKMM_BASEPATH)\MSVC\gtkmm-2.4d.vsprops"
-			EnableManagedIncrementalBuild="0"
+			InheritedPropertySheets=".\windows\gtkmm-2.4d.vsprops;.\windows\wincruft.vsprops"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -42,18 +41,18 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="&quot;$(ProjectDir)windows&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;"
-				StringPooling="true"
+				PreprocessorDefinitions="WIN32;_WINDOWS"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				EnableEnhancedInstructionSet="1"
+				EnableFunctionLevelLinking="true"
+				EnableEnhancedInstructionSet="2"
 				UsePrecompiledHeader="0"
 				BrowseInformation="1"
-				WarningLevel="3"
+				WarningLevel="4"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4250"
+				DisableSpecificWarnings="4127;4244;4250;4305;4512"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -66,9 +65,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				LinkIncremental="2"
+				IgnoreImportLibrary="true"
+				LinkLibraryDependencies="false"
+				AdditionalDependencies="gtkglext.lib gdkglext.lib glu32.lib opengl32.lib gthread-2.0.lib"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
+				EntryPointSymbol="mainCRTStartup"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -98,9 +101,8 @@
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(GTKMM_BASEPATH)\MSVC\gtkmm-2.4.vsprops"
+			InheritedPropertySheets=".\windows\gtkmm-2.4.vsprops;.\windows\wincruft.vsprops"
 			WholeProgramOptimization="1"
-			EnableManagedIncrementalBuild="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -120,16 +122,17 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="3"
+				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="&quot;$(ProjectDir)windows&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="false"
-				EnableEnhancedInstructionSet="1"
+				EnableEnhancedInstructionSet="2"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="4"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4250"
+				DisableSpecificWarnings="4127;4244;4250;4305;4512"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -142,11 +145,18 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				IgnoreImportLibrary="true"
+				LinkLibraryDependencies="false"
+				AdditionalDependencies="gtkglext.lib gdkglext.lib glu32.lib opengl32.lib gthread-2.0.lib"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
+				StripPrivateSymbols=""
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				LinkTimeCodeGeneration="1"
+				EntryPointSymbol="mainCRTStartup"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -333,6 +343,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						BrowseInformation="0"
 					/>
 				</FileConfiguration>
 				<FileConfiguration

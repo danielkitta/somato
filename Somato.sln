@@ -3,6 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Somato", "Somato.vcproj", "{AE00E55F-C099-4179-B451-F8A7D9CD0676}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1FC91578-20E4-47A1-B3F6-B4916CC33D82}"
+	ProjectSection(SolutionItems) = preProject
+		windows\gtkmm-2.4.vsprops = windows\gtkmm-2.4.vsprops
+		windows\gtkmm-2.4d.vsprops = windows\gtkmm-2.4d.vsprops
+		windows\wincruft.vsprops = windows\wincruft.vsprops
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
