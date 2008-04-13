@@ -21,3 +21,15 @@
 #define PACKAGE_NAME "Somato"
 #define PACKAGE_TARNAME "somato"
 #define PACKAGE_VERSION "0.6"
+// XXX: temporary
+#define SOMATO_PKGDATADIR "C:\\Users\\Daniel\\Documents\\Visual Studio 2008\\Projects\\Somato\\ui"
+
+#if (_M_IX86_FP >= 1) || defined(_M_X64)
+# define SOMATO_VECTOR_USE_SSE 1
+#endif
+#if (_M_IX86_FP >= 2) || defined(_M_X64)
+# define SOMATO_VECTOR_USE_SSE2 1
+#endif
+
+#undef SOMATO_HAVE_POSIX_MEMALIGN
+#undef SOMATO_HAVE_SINCOSF
