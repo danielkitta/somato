@@ -31,6 +31,10 @@
 #include <glibmm.h>
 #include <gdkmm.h>
 #include <gtkmm/accelgroup.h>
+
+#ifdef GDK_WINDOWING_WIN32
+# include <windows.h>
+#endif
 #include <GL/gl.h>
 #include <GL/glu.h>
 
@@ -725,8 +729,8 @@ void CubeScene::gl_reset_state()
 
   if (gl_ext()->have_vertex_buffer_object)
   {
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
   }
 
   glDisable(GL_TEXTURE_2D);
@@ -1454,14 +1458,14 @@ void CubeScene::gl_create_wireframe()
 
     GL::Error::throw_if_fail(wireframe_buffers_[0] != 0 && wireframe_buffers_[1] != 0);
 
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
-    gl_ext()->BufferData(GL_ARRAY_BUFFER, vertices.bytes(), &vertices[0], GL_STATIC_DRAW);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, wireframe_buffers_[0]);
+    gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, vertices.bytes(), &vertices[0], GL_STATIC_DRAW_ARB);
 
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
-    gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER, indices.bytes(), &indices[0], GL_STATIC_DRAW);
+    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, wireframe_buffers_[1]);
+    gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.bytes(), &indices[0], GL_STATIC_DRAW_ARB);
 
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
   }
   else
   {
@@ -1530,18 +1534,18 @@ void CubeScene::gl_draw_wireframe()
   {
     if (wireframe_buffers_[0] && wireframe_buffers_[1])
     {
-      gl_ext()->BindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
+      gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, wireframe_buffers_[0]);
       glVertexPointer(3, GL_FLOAT, 0, GL::buffer_offset(0));
       glEnableClientState(GL_VERTEX_ARRAY);
 
-      gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
+      gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, wireframe_buffers_[1]);
 
       gl_draw_wireframe_elements(GL::buffer_offset(0));
 
-      gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+      gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 
       glDisableClientState(GL_VERTEX_ARRAY);
-      gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+      gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
     }
   }
   else
@@ -1648,10 +1652,10 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
 
   if (piece_buffers_[0] && piece_buffers_[1])
   {
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, piece_buffers_[0]);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, piece_buffers_[0]);
     glInterleavedArrays(CUBE_ELEMENT_TYPE, 0, GL::buffer_offset(0));
 
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, piece_buffers_[1]);
+    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, piece_buffers_[1]);
 
     int last_fixed = last;
 
@@ -1683,13 +1687,13 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
       gl_draw_piece_elements(data);
     }
 
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
   }
 
   return triangle_count;
@@ -1925,18 +1929,18 @@ void CubeScene::gl_create_piece_buffers()
 
   GL::Error::throw_if_fail(piece_buffers_[0] != 0 && piece_buffers_[1] != 0);
 
-  gl_ext()->BindBuffer(GL_ARRAY_BUFFER, piece_buffers_[0]);
-  gl_ext()->BufferData(GL_ARRAY_BUFFER,
+  gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, piece_buffers_[0]);
+  gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB,
                        element_array.size() * sizeof(CubeElement),
-                       &element_array[0], GL_STATIC_DRAW);
+                       &element_array[0], GL_STATIC_DRAW_ARB);
 
-  gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, piece_buffers_[1]);
-  gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER,
+  gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, piece_buffers_[1]);
+  gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER_ARB,
                        index_array.size() * sizeof(CubeIndex),
-                       &index_array[0], GL_STATIC_DRAW);
+                       &index_array[0], GL_STATIC_DRAW_ARB);
 
-  gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+  gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+  gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
 
   GL::Error::check();
 }

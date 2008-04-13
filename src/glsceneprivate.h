@@ -27,14 +27,19 @@
 #include <gdk/gdk.h>
 #include <pangomm/context.h>
 #include <pangomm/layout.h>
+
+#ifdef GDK_WINDOWING_WIN32
+# include <windows.h>
+#endif
 #include <GL/gl.h>
+#ifdef GDK_WINDOWING_WIN32
+# include <gdk/glext/glext.h>
+# include <gdk/glext/wglext.h>
+#endif
 
 #ifdef GDK_WINDOWING_X11
 // Avoid including glx.h as that would pull in the macro-jammed X headers.
 extern "C" { typedef int (*PFNGLXSWAPINTERVALSGIPROC)(int); }
-#endif
-#ifdef GDK_WINDOWING_WIN32
-extern "C" { typedef BOOL (WINAPI *PFNWGLSWAPINTERVALEXTPROC)(int); }
 #endif
 
 namespace GL
@@ -69,10 +74,10 @@ public:
   PFNGLACTIVETEXTUREPROC        ActiveTexture;
   PFNGLCLIENTACTIVETEXTUREPROC  ClientActiveTexture;
 
-  PFNGLGENBUFFERSPROC           GenBuffers;
-  PFNGLDELETEBUFFERSPROC        DeleteBuffers;
-  PFNGLBINDBUFFERPROC           BindBuffer;
-  PFNGLBUFFERDATAPROC           BufferData;
+  PFNGLGENBUFFERSARBPROC        GenBuffers;
+  PFNGLDELETEBUFFERSARBPROC     DeleteBuffers;
+  PFNGLBINDBUFFERARBPROC        BindBuffer;
+  PFNGLBUFFERDATAARBPROC        BufferData;
 
   Extensions() : extensions_ (0), version_ (0) { query(); }
   virtual ~Extensions();

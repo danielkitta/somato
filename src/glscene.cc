@@ -609,10 +609,10 @@ void Scene::gl_update_ui()
       GL::Error::throw_if_fail(ui_buffer_ != 0);
     }
 
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
-    gl_ext()->BufferData(GL_ARRAY_BUFFER, ui_geometry_.size() * sizeof(UIVertex),
-                         &ui_geometry_[0], GL_DYNAMIC_DRAW);
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
+    gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, ui_geometry_.size() * sizeof(UIVertex),
+                         &ui_geometry_[0], GL_DYNAMIC_DRAW_ARB);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
 
     GL::Error::check();
   }
@@ -664,7 +664,7 @@ void Scene::gl_cleanup()
 void Scene::gl_reset_state()
 {
   if (gl_ext()->have_vertex_buffer_object)
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
 
   glDisableClientState(GL_VERTEX_ARRAY);
 
@@ -679,7 +679,7 @@ void Scene::gl_reset_state()
       glDisable(GL_TEXTURE_2D);
 
       if (gl_ext()->have_texture_rectangle)
-        glDisable(GL_TEXTURE_RECTANGLE_ARB);
+        glDisable(GL_TEXTURE_RECTANGLE_NV);
     }
 
     gl_ext()->ClientActiveTexture(GL_TEXTURE0);
@@ -692,7 +692,7 @@ void Scene::gl_reset_state()
   glDisable(GL_TEXTURE_2D);
 
   if (gl_ext()->have_texture_rectangle)
-    glDisable(GL_TEXTURE_RECTANGLE_ARB);
+    glDisable(GL_TEXTURE_RECTANGLE_NV);
 
   glDisable(GL_BLEND);
   glDisable(GL_ALPHA_TEST);
@@ -746,11 +746,11 @@ int Scene::gl_render()
     {
       if (ui_buffer_)
       {
-        gl_ext()->BindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
+        gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
 
         triangle_count = gl_render_ui(GL::buffer_offset(0));
 
-        gl_ext()->BindBuffer(GL_ARRAY_BUFFER, 0);
+        gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
       }
     }
     else
@@ -811,7 +811,7 @@ int Scene::gl_render_layouts() const
     GLenum target = GL_TEXTURE_2D;
 
     if (gl_ext()->have_texture_rectangle)
-      target = GL_TEXTURE_RECTANGLE_ARB;
+      target = GL_TEXTURE_RECTANGLE_NV;
 
     if (use_multitexture_)
       triangle_count = gl_render_layouts_multitexture(target, first);
@@ -1163,7 +1163,7 @@ void Scene::gl_update_layouts()
   int     img_border = 0;
 
   if (gl_ext()->have_texture_rectangle)
-    target = GL_TEXTURE_RECTANGLE_ARB;
+    target = GL_TEXTURE_RECTANGLE_NV;
 
   // Unconditionally enable border clamping whenever available, so that
   // out-of-bounds texture coordinates always reference the border color.
