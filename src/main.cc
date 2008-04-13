@@ -33,11 +33,16 @@
 
 #include <config.h>
 
+#ifdef G_OS_WIN32
+# include <windows.h>
+# include <crtdbg.h>
+#endif
+
 namespace
 {
 
 static
-const char *const cubescene_rc_filename = SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "cubescene.rc";
+const char *const cubescene_rc_filename = SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "cubescene.gtkrc";
 
 static
 void init_locale()
@@ -82,10 +87,60 @@ void trap_gl_error()
   }
 }
 
+#if defined(G_OS_WIN32) && defined(_DEBUG)
+extern "C"
+{
+/*
+ * Because Windows applications are simply too sophisticated for plain old
+ * stderr file stream output, we have to install a custom g_log handler to
+ * make at least Visual Studio aware of what's going on. Without nagging
+ * unsuspecting users with dialogs full of gibberish and hexadecimal error
+ * numbers, that is.
+ *
+ * About the _DEBUG conditional:  Actually I'd prefer to have basic logging
+ * functionality available in release builds too, but the CRT library won't
+ * let me.
+ */
+static
+void win32_message_log(const char* log_domain, GLogLevelFlags log_level,
+                       const char* message, void*)
+{
+  int report_type = _CRT_WARN;
+
+  if ((log_level & G_LOG_LEVEL_CRITICAL) != 0)
+    report_type = _CRT_ERROR;
+  if ((log_level & G_LOG_LEVEL_ERROR) != 0)
+    report_type = _CRT_ASSERT;
+
+  // This is ugly, but it's better to avoid free allocations at this point.
+  // Also, MultiByteToWideChar() is suitably lenient with invalid UTF-8.
+  WCHAR modulebuf[64];
+  modulebuf[0] = 0;
+  if (log_domain)
+    MultiByteToWideChar(CP_UTF8, 0, log_domain, -1, modulebuf, G_N_ELEMENTS(modulebuf));
+  modulebuf[G_N_ELEMENTS(modulebuf) - 1] = 0;
+
+  WCHAR messagebuf[768];
+  messagebuf[0] = 0;
+  if (message)
+    MultiByteToWideChar(CP_UTF8, 0, message, -1, messagebuf, G_N_ELEMENTS(messagebuf));
+  messagebuf[G_N_ELEMENTS(messagebuf) - 1] = 0;
+
+  _CrtDbgReportW(report_type, 0, 0, modulebuf, L"%s\n", messagebuf);
+}
+} // extern "C"
+#endif /* G_OS_WIN32 && _DEBUG */
+
 } // anonymous namespace
 
 int main(int argc, char** argv)
 {
+#if defined(G_OS_WIN32) && defined(_DEBUG)
+  g_log_set_default_handler(&win32_message_log, 0);
+  _CrtSetReportMode(_CRT_WARN,   _CRTDBG_MODE_DEBUG);
+  _CrtSetReportMode(_CRT_ERROR,  _CRTDBG_MODE_DEBUG);
+  _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+#endif
   try
   {
     Glib::thread_init();
@@ -96,7 +151,9 @@ int main(int argc, char** argv)
     init_locale();
 
     Glib::set_application_name(PACKAGE_NAME);
+#ifndef G_OS_WIN32
     gtk_window_set_default_icon_name(PACKAGE_TARNAME);
+#endif
     Glib::add_exception_handler(&trap_gl_error);
 
     Somato::MainWindow window;
