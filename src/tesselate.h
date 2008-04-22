@@ -24,6 +24,11 @@
 #include "cube.h"
 #include "vectormath.h"
 
+// GL/gl.h requires windows.h so we have to include it here, even though
+// we only need a few trivial type and constant definitions from OpenGL.
+#ifdef _WIN32
+# include <windows.h>
+#endif
 #include <GL/gl.h>
 #include <vector>
 

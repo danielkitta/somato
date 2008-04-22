@@ -27,15 +27,15 @@
 #include <gtk/gtkwidget.h>
 #include <glibmm/convert.h>
 #include <gtkmm/widget.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
 #include <cstring>
 
+#ifdef GDK_WINDOWING_WIN32
+# include <gdk/win32/gdkglwin32.h>
+#endif
+#include <GL/gl.h>
+#include <GL/glu.h>
 #ifdef GDK_WINDOWING_X11
 # include <gdk/x11/gdkglx.h> /* include last as it pulls in whacky X headers */
-#endif
-#ifdef GDK_WINDOWING_WIN32
-# include <gdk/x11/gdkglwin32.h>
 #endif
 
 namespace
