@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="Target MSVC 2005"
+	>
+	<Tool
+		Name="VCCLCompilerTool"
+		DisableSpecificWarnings="4510;4610"
+	/>
+	<UserMacro
+		Name="VC80Base"
+		Value="$(VS80COMNTOOLS)..\..\VC"
+	/>
+	<UserMacro
+		Name="INCLUDE"
+		Value="$(WindowsSdkDir)include;$(VC80Base)\atlmfc\include;$(VC80Base)\include"
+		PerformEnvironmentSet="true"
+	/>
+	<UserMacro
+		Name="LIB"
+		Value="$(WindowsSdkDir)lib;$(VC80Base)\atlmfc\lib;$(VC80Base)\lib"
+		PerformEnvironmentSet="true"
+	/>
+</VisualStudioPropertySheet>
