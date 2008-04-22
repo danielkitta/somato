@@ -18,18 +18,26 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#pragma once
+
 #define PACKAGE_NAME "Somato"
 #define PACKAGE_TARNAME "somato"
 #define PACKAGE_VERSION "0.6"
 // XXX: temporary
 #define SOMATO_PKGDATADIR "C:\\Users\\Daniel\\Documents\\Visual Studio 2008\\Projects\\Somato\\ui"
 
-#if (_M_IX86_FP >= 1) || defined(_M_X64)
-# define SOMATO_VECTOR_USE_SSE 1
-#endif
-#if (_M_IX86_FP >= 2) || defined(_M_X64)
-# define SOMATO_VECTOR_USE_SSE2 1
-#endif
+#if _MSC_VER >= 1500
 
-#undef SOMATO_HAVE_POSIX_MEMALIGN
-#undef SOMATO_HAVE_SINCOSF
+# if (_M_IX86_FP >= 1) || defined(_M_X64)
+#  define SOMATO_VECTOR_USE_SSE 1
+#  define SOMATO_HAVE__MM_CVTSS_F32 1
+# endif
+
+# if (_M_IX86_FP >= 2) || defined(_M_X64)
+#  define SOMATO_VECTOR_USE_SSE2 1
+# endif
+
+#endif /* _MSC_VER >= 1500 */
+
+/* #undef SOMATO_HAVE_POSIX_MEMALIGN */
+/* #undef SOMATO_HAVE_SINCOSF */
