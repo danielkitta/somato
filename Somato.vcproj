@@ -21,7 +21,7 @@
 			OutputDirectory="Debug"
 			IntermediateDirectory="Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\windows\gtkmm-2.4d.vsprops;.\windows\wincruft.vsprops"
+			InheritedPropertySheets=".\windows\gtkmm-2.4d.vsprops;.\windows\wincruft.vsprops;.\windows\deprecations.vsprops;.\windows\vc80target.vsprops"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -52,7 +52,7 @@
 				BrowseInformation="1"
 				WarningLevel="4"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4127;4244;4250;4305;4512"
+				DisableSpecificWarnings="4127;4244;4250;4305;4505;4512"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -67,7 +67,7 @@
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="true"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="gtkglext.lib gdkglext.lib glu32.lib opengl32.lib gthread-2.0.lib"
+				AdditionalDependencies="gtkglext-win32-1.0.lib gdkglext-win32-1.0.lib glu32.lib opengl32.lib gthread-2.0.lib"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -101,7 +101,7 @@
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\windows\gtkmm-2.4.vsprops;.\windows\wincruft.vsprops"
+			InheritedPropertySheets=".\windows\gtkmm-2.4.vsprops;.\windows\wincruft.vsprops;.\windows\deprecations.vsprops;.\windows\vc80target.vsprops"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -132,7 +132,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="4"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4127;4244;4250;4305;4512"
+				DisableSpecificWarnings="4127;4244;4250;4305;4505;4512"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -147,7 +147,7 @@
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="true"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="gtkglext.lib gdkglext.lib glu32.lib opengl32.lib gthread-2.0.lib"
+				AdditionalDependencies="gtkglext-win32-1.0.lib gdkglext-win32-1.0.lib glu32.lib opengl32.lib gthread-2.0.lib"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
@@ -258,7 +258,6 @@
 			>
 			<File
 				RelativePath=".\ui\cubescene.gtkrc"
-				DeploymentContent="true"
 				FileType="5"
 				>
 			</File>
@@ -352,6 +351,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						BrowseInformation="0"
 					/>
 				</FileConfiguration>
 			</File>
