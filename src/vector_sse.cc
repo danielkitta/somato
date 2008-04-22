@@ -139,6 +139,12 @@ void v4_align_free(void* p) throw()
  */
 #if SOMATO_CUSTOM_ALLOC
 
+// MSVC is broken and wants to tell us about it.  No shame.
+# ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4290)
+# endif
+
 void* operator new(std::size_t size) throw(std::bad_alloc)
 {
   if (void *const p = v4_align_alloc(size))
@@ -154,6 +160,10 @@ void* operator new[](std::size_t size) throw(std::bad_alloc)
   else
     throw std::bad_alloc();
 }
+
+# ifdef _MSC_VER
+#  pragma warning(pop)
+# endif
 
 void operator delete(void* p) throw()
 {

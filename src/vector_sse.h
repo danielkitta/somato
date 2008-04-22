@@ -36,6 +36,14 @@ static inline float __attribute__((__always_inline__))
 _mm_cvtss_f32(__m128 v) { return __builtin_ia32_vec_ext_v4sf(v, 0); }
 #endif
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1500)
+// HACK: Allow build with old CRT headers but more capable compiler
+extern "C" float _mm_cvtss_f32(__m128 _A);
+# if SOMATO_VECTOR_USE_SSE2
+extern "C" __m128 _mm_castsi128_ps(__m128i);
+# endif
+#endif
+
 namespace Math
 {
 
@@ -395,11 +403,33 @@ inline void Quat::renormalize(Quat::value_type epsilon)
 inline Quat operator*(const Quat& a, const Quat& b)
   { return Quat(Quat::mul_(a.data(), b.data())); }
 
-
+/*
+ * Vector233 encapsulates one float vector with two elements plus two float
+ * vectors with three elements each in a compact 32-byte structure.  This is
+ * the SSE implementation, thus the internal representation is an array of
+ * two 128-bit vectors.
+ *
+ * Unfortunately, the std::vector<> implementation of Microsoft Visual C++ 9
+ * defines the default value parameter to std::vector<T>::replace(n, value)
+ * as by-value parameter instead of a const reference.  As a result, trying to
+ * instantiate std::vector<Vector233> produces an error message because the
+ * by-value parameter cannot be 128-bit aligned.
+ *
+ * Now, I'm pretty certain that aggregate types, or at least those exceeding
+ * machine register size, are internally passed by reference anyway, thus the
+ * ABI constraint shouldn't apply here.  Unfortunately I wasn't able to
+ * convince the compiler of this, and thus had to adapt the implementation of
+ * Vector233 for MSVC targets to avoid the alignment constraint.  Naturally,
+ * this will impact performance, but I couldn't be bothered to reimplement the
+ * whole of std::vector<> just for MSVC.
+ */
 struct Vector233
 {
+#ifdef _MSC_VER
+  Vector4::value_type data[8];
+#else
   Vector4::array_type data[2];
-
+#endif
   inline void set(Vector4::array_type a, Vector4::array_type b, Vector4::array_type c);
 
   inline Vector233();
@@ -412,17 +442,25 @@ inline void Vector233::set(Vector4::array_type a, Vector4::array_type b, Vector4
 {
   const __m128 v = _mm_movelh_ps(a, b);
   const __m128 u = _mm_shuffle_ps(_mm_move_ss(b, c), c, _MM_SHUFFLE(2,1,0,2));
-
+#ifdef _MSC_VER
+  _mm_storeu_ps(&data[0], v);
+  _mm_storeu_ps(&data[4], u);
+#else
   data[0] = v;
   data[1] = u;
+#endif /* !_MSC_VER */
 }
 
 inline Vector233::Vector233()
 {
   const __m128 zero = _mm_setzero_ps();
-
+#ifdef _MSC_VER
+  _mm_storeu_ps(&data[0], zero);
+  _mm_storeu_ps(&data[4], zero);
+#else
   data[0] = zero;
   data[1] = zero;
+#endif /* !_MSC_VER */
 }
 
 inline
@@ -434,31 +472,50 @@ Vector233::Vector233(const Vector4& a, const Vector4& b, const Vector4& c)
 inline
 Vector233::Vector233(const Vector233& b)
 {
+#ifdef _MSC_VER
+  const __m128 v = _mm_loadu_ps(&b.data[0]);
+  const __m128 u = _mm_loadu_ps(&b.data[4]);
+
+  _mm_storeu_ps(&data[0], v);
+  _mm_storeu_ps(&data[4], u);
+#else
   const __m128 v = b.data[0];
   const __m128 u = b.data[1];
 
   data[0] = v;
   data[1] = u;
+#endif /* !_MSC_VER */
 }
 
 inline
 Vector233& Vector233::operator=(const Vector233& b)
 {
+#ifdef _MSC_VER
+  const __m128 v = _mm_loadu_ps(&b.data[0]);
+  const __m128 u = _mm_loadu_ps(&b.data[4]);
+
+  _mm_storeu_ps(&data[0], v);
+  _mm_storeu_ps(&data[4], u);
+#else
   const __m128 v = b.data[0];
   const __m128 u = b.data[1];
 
   data[0] = v;
   data[1] = u;
-
+#endif /* !_MSC_VER */
   return *this;
 }
 
 inline
 bool operator==(const Vector233& a, const Vector233& b)
 {
+#ifdef _MSC_VER
+  const __m128 m0 = _mm_cmpneq_ps(_mm_loadu_ps(&a.data[0]), _mm_loadu_ps(&b.data[0]));
+  const __m128 m1 = _mm_cmpneq_ps(_mm_loadu_ps(&a.data[4]), _mm_loadu_ps(&b.data[4]));
+#else
   const __m128 m0 = _mm_cmpneq_ps(a.data[0], b.data[0]);
   const __m128 m1 = _mm_cmpneq_ps(a.data[1], b.data[1]);
-
+#endif
   return (_mm_movemask_ps(_mm_or_ps(m0, m1)) == 0);
 }
 
