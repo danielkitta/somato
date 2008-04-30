@@ -146,17 +146,50 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
   GtkWidget *const widget = target.gobj();
   GdkScreen *const screen = gtk_widget_get_screen(widget);
 
+  // Sigh... Looks like gdkglext's win32 implementation is completety
+  // broken.  The setup logic always opts for the biggest and baddest
+  // framebuffer layout available.  Like 64 bits accumulation buffer,
+  // four auxiliary buffers, and of course stencil...  Yup, the whole
+  // package.  Yikes.  Well, it seems I found the cause of the screen
+  // update stalls on Vista...
+#ifdef GDK_WINDOWING_WIN32
+  GdkGLConfig* config = 0;
+  {
+    PIXELFORMATDESCRIPTOR pfd;
+    std::memset(&pfd, 0, sizeof(pfd));
+
+    pfd.nSize = sizeof(pfd);
+    pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+    pfd.cColorBits = 24;
+
+    if ((mode & GDK_GL_MODE_DEPTH) != 0)
+      pfd.cDepthBits = 24;
+
+    GdkWindow *const rootwindow = gdk_screen_get_root_window(screen);
+    HWND windowhandle = reinterpret_cast<HWND>(GDK_WINDOW_HWND(rootwindow));
+
+    if (HDC devicecontext = GetDC(windowhandle))
+    {
+      const int pixelformat = ChoosePixelFormat(devicecontext, &pfd);
+      ReleaseDC(windowhandle, devicecontext);
+
+      if (pixelformat > 0)
+        config = gdk_win32_gl_config_new_from_pixel_format(pixelformat);
+    }
+  }
+#else /* !GDK_WINDOWING_WIN32 */
   GdkGLConfig* config = gdk_gl_config_new_by_mode_for_screen(screen, GdkGLConfigMode(mode));
 
   // If no double-buffered visual is available, try a single-buffered one.
   if (!config && (mode & GDK_GL_MODE_DOUBLE) != 0)
     config = gdk_gl_config_new_by_mode_for_screen(screen, GdkGLConfigMode(mode & ~GDK_GL_MODE_DOUBLE));
+#endif /* !GDK_WINDOWING_WIN32 */
 
   if (!config)
     throw GL::Error("could not find OpenGL-capable visual");
 
   const int type = ((mode & GDK_GL_MODE_INDEX) != 0) ? GDK_GL_COLOR_INDEX_TYPE : GDK_GL_RGBA_TYPE;
-
   const gboolean success = gtk_widget_set_gl_capability(widget, config, 0, TRUE, type);
 
   g_object_unref(config);
