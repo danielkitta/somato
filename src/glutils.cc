@@ -41,6 +41,8 @@
 namespace
 {
 
+extern "C" { typedef HRESULT (WINAPI* DwmIsCompositionEnabledFunc)(BOOL*); }
+
 static
 Glib::ustring error_message_from_code(unsigned int error_code)
 {
@@ -160,8 +162,20 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 
     pfd.nSize = sizeof(pfd);
     pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
     pfd.cColorBits = 24;
+
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+
+    if (HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
+    {
+      DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
+        reinterpret_cast<DwmIsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
+      BOOL compositing = FALSE;
+      if (dwmIsCompositionEnabled && (*dwmIsCompositionEnabled)(&compositing) == S_OK && compositing)
+        pfd.dwFlags ^= PFD_DOUBLEBUFFER | PFD_SUPPORT_COMPOSITION;
+
+      FreeLibrary(dwmapi);
+    }
 
     if ((mode & GDK_GL_MODE_DEPTH) != 0)
       pfd.cDepthBits = 24;
