@@ -164,15 +164,20 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
     pfd.nVersion = 1;
     pfd.cColorBits = 24;
 
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+
+    if ((mode & GDK_GL_MODE_DOUBLE) != 0)
+      pfd.dwFlags |= PFD_DOUBLEBUFFER;
 
     if (HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
     {
       DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
         reinterpret_cast<DwmIsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
       BOOL compositing = FALSE;
+      // Disable double buffering on Vista if composition is enabled -- drawing
+      // directly into the composite buffer works much smoother.
       if (dwmIsCompositionEnabled && (*dwmIsCompositionEnabled)(&compositing) == S_OK && compositing)
-        pfd.dwFlags ^= PFD_DOUBLEBUFFER | PFD_SUPPORT_COMPOSITION;
+        pfd.dwFlags = pfd.dwFlags & ~DWORD(PFD_DOUBLEBUFFER) | PFD_SUPPORT_COMPOSITION;
 
       FreeLibrary(dwmapi);
     }
