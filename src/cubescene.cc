@@ -232,6 +232,7 @@ public:
   bool have_generate_mipmap;
   bool have_draw_range_elements;
   bool have_multi_draw_arrays;
+  bool have_depth_clamp;
 
   PFNGLDRAWRANGEELEMENTSPROC  DrawRangeElements;
   PFNGLMULTIDRAWARRAYSPROC    MultiDrawArrays;
@@ -249,6 +250,7 @@ void CubeScene::Extensions::query()
   have_generate_mipmap         = false;
   have_draw_range_elements     = false;
   have_multi_draw_arrays       = false;
+  have_depth_clamp             = false;
 
   DrawRangeElements = 0;
   MultiDrawArrays   = 0;
@@ -279,6 +281,11 @@ void CubeScene::Extensions::query()
   {
     if (GL::get_proc_address(MultiDrawArrays, "glMultiDrawArraysEXT"))
       have_multi_draw_arrays = true;
+  }
+
+  if (have_extension("GL_NV_depth_clamp"))
+  {
+    have_depth_clamp = true;
   }
 }
 
@@ -666,6 +673,12 @@ void CubeScene::gl_initialize()
     glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
   glEnable(GL_CULL_FACE);
+
+  // Trade viewspace clipping for depth clamping to avoid highly visible
+  // volume clipping artifacts.  The clamping could potentially produce some
+  // artifacts of its own, but so far it appears to play along nicely.
+  if (gl_ext()->have_depth_clamp)
+    glEnable(GL_DEPTH_CLAMP_NV);
 
   // Set up lighting parameters for the cube pieces.  If supported, enable
   // the separate specular color, so that the specular term of the lighting
