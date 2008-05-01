@@ -72,9 +72,9 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
   if ((mode & GDK_GL_MODE_DOUBLE) != 0)
     pfd.dwFlags |= PFD_DOUBLEBUFFER;
 
-  if (HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
+  if (const HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
   {
-    DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
+    const DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
       reinterpret_cast<DwmIsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
     BOOL compositing = FALSE;
     // Disable double buffering on Vista if composition is enabled -- drawing
@@ -85,7 +85,7 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
 
       // While we're at it, let's enable multimedia class scheduling as well,
       // so that we get to enjoy more accurate timeouts and shorter intervals.
-      if (DwmEnableMMCSSFunc dwmEnableMMCSS =
+      if (const DwmEnableMMCSSFunc dwmEnableMMCSS =
             reinterpret_cast<DwmEnableMMCSSFunc>(GetProcAddress(dwmapi, "DwmEnableMMCSS")))
       {
         (*dwmEnableMMCSS)(TRUE);
@@ -205,18 +205,21 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
   // Sigh... Looks like gdkglext's win32 implementation is completety
   // broken.  The setup logic always opts for the biggest and baddest
   // framebuffer layout available.  Like 64 bits accumulation buffer,
-  // four auxiliary buffers, and of course stencil...  Yup, the whole
-  // package.  Yikes.  Well, it seems I found the cause of the screen
-  // update stalls on Vista...
+  // four auxiliary buffers, and of course stencil...  Yep, the whole
+  // package.  Yikes.
+  // Well, it seems I found the cause of the screen update stalls on Vista.
+  // Nonwithstanding these superfluous extras, the actual culprit appears
+  // to be plain old double buffering.  See the init_win32_pixel_format()
+  // helper for more.
   GdkGLConfig* config = 0;
   {
     PIXELFORMATDESCRIPTOR pfd;
     init_win32_pixel_format(pfd, mode);
 
     GdkWindow *const rootwindow = gdk_screen_get_root_window(screen);
-    HWND windowhandle = reinterpret_cast<HWND>(GDK_WINDOW_HWND(rootwindow));
+    const HWND windowhandle = reinterpret_cast<HWND>(GDK_WINDOW_HWND(rootwindow));
 
-    if (HDC devicecontext = GetDC(windowhandle))
+    if (const HDC devicecontext = GetDC(windowhandle))
     {
       const int pixelformat = ChoosePixelFormat(devicecontext, &pfd);
       ReleaseDC(windowhandle, devicecontext);
