@@ -41,7 +41,60 @@
 namespace
 {
 
-extern "C" { typedef HRESULT (WINAPI* DwmIsCompositionEnabledFunc)(BOOL*); }
+#ifdef GDK_WINDOWING_WIN32
+extern "C"
+{
+// These are Vista-specific, so we will look them up at runtime.
+typedef HRESULT (WINAPI* DwmIsCompositionEnabledFunc)(BOOL*);
+typedef HRESULT (WINAPI* DwmEnableMMCSSFunc)(BOOL);
+}
+
+/*
+ * Helper function of GL::configure_widget().  Set up a win32 pixel
+ * format descriptor with a configuration matching the mode argument.
+ * Also do a bit of special magic to get it all working nicely on
+ * Windows Vista, too.
+ */
+static
+void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
+{
+  std::memset(&pfd, 0, sizeof(pfd));
+
+  pfd.nSize = sizeof(pfd);
+  pfd.nVersion = 1;
+  pfd.cColorBits = 24;
+
+  if ((mode & GDK_GL_MODE_DEPTH) != 0)
+    pfd.cDepthBits = 24;
+
+  pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+
+  if ((mode & GDK_GL_MODE_DOUBLE) != 0)
+    pfd.dwFlags |= PFD_DOUBLEBUFFER;
+
+  if (HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
+  {
+    DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
+      reinterpret_cast<DwmIsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
+    BOOL compositing = FALSE;
+    // Disable double buffering on Vista if composition is enabled -- drawing
+    // directly into the composite buffer works much smoother.
+    if (dwmIsCompositionEnabled && (*dwmIsCompositionEnabled)(&compositing) == S_OK && compositing)
+    {
+      pfd.dwFlags = pfd.dwFlags & ~DWORD(PFD_DOUBLEBUFFER) | PFD_SUPPORT_COMPOSITION;
+
+      // While we're at it, let's enable multimedia class scheduling as well,
+      // so that we get to enjoy more accurate timeouts and shorter intervals.
+      if (DwmEnableMMCSSFunc dwmEnableMMCSS =
+            reinterpret_cast<DwmEnableMMCSSFunc>(GetProcAddress(dwmapi, "DwmEnableMMCSS")))
+      {
+        (*dwmEnableMMCSS)(TRUE);
+      }
+    }
+    FreeLibrary(dwmapi);
+  }
+}
+#endif /* GDK_WINDOWING_WIN32 */
 
 static
 Glib::ustring error_message_from_code(unsigned int error_code)
@@ -148,42 +201,17 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
   GtkWidget *const widget = target.gobj();
   GdkScreen *const screen = gtk_widget_get_screen(widget);
 
+#ifdef GDK_WINDOWING_WIN32
   // Sigh... Looks like gdkglext's win32 implementation is completety
   // broken.  The setup logic always opts for the biggest and baddest
   // framebuffer layout available.  Like 64 bits accumulation buffer,
   // four auxiliary buffers, and of course stencil...  Yup, the whole
   // package.  Yikes.  Well, it seems I found the cause of the screen
   // update stalls on Vista...
-#ifdef GDK_WINDOWING_WIN32
   GdkGLConfig* config = 0;
   {
     PIXELFORMATDESCRIPTOR pfd;
-    std::memset(&pfd, 0, sizeof(pfd));
-
-    pfd.nSize = sizeof(pfd);
-    pfd.nVersion = 1;
-    pfd.cColorBits = 24;
-
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
-
-    if ((mode & GDK_GL_MODE_DOUBLE) != 0)
-      pfd.dwFlags |= PFD_DOUBLEBUFFER;
-
-    if (HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
-    {
-      DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
-        reinterpret_cast<DwmIsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
-      BOOL compositing = FALSE;
-      // Disable double buffering on Vista if composition is enabled -- drawing
-      // directly into the composite buffer works much smoother.
-      if (dwmIsCompositionEnabled && (*dwmIsCompositionEnabled)(&compositing) == S_OK && compositing)
-        pfd.dwFlags = pfd.dwFlags & ~DWORD(PFD_DOUBLEBUFFER) | PFD_SUPPORT_COMPOSITION;
-
-      FreeLibrary(dwmapi);
-    }
-
-    if ((mode & GDK_GL_MODE_DEPTH) != 0)
-      pfd.cDepthBits = 24;
+    init_win32_pixel_format(pfd, mode);
 
     GdkWindow *const rootwindow = gdk_screen_get_root_window(screen);
     HWND windowhandle = reinterpret_cast<HWND>(GDK_WINDOW_HWND(rootwindow));
