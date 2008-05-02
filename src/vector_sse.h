@@ -145,7 +145,7 @@ inline Vector4 Vector4::sign(const Vector4& v)
   const __m128 n = _mm_cmplt_ps(u, zero);
   const __m128 p = _mm_cmplt_ps(zero, u);
 
-  const __m128 neg1 = _mm_set1_ps(-1.0f);
+  static const __m128 neg1 = { -1.0f, -1.0f, -1.0f, -1.0f };
 
   // a - b calculated as (-b) - (-a) to avoid a register move.
   const __m128 s = _mm_sub_ps(_mm_and_ps(n, neg1), _mm_and_ps(p, neg1));
@@ -195,7 +195,10 @@ inline Vector4 operator+(const Vector4& v)
   { return Vector4(v.data());  }
 
 inline Vector4 operator-(const Vector4& v)
-  { return Vector4(_mm_xor_ps(v.data(), _mm_set1_ps(-0.0f))); }
+{
+  static const __m128 signmask = { -0.0f, -0.0f, -0.0f, -0.0f };
+  return Vector4(_mm_xor_ps(v.data(), signmask));
+}
 
 inline Vector4 operator+(const Vector4& a, const Vector4& b)
   { return Vector4(_mm_add_ps(a.data(), b.data())); }
@@ -361,7 +364,10 @@ public:
 // static
 inline __m128 Quat::mask_xyz_()
 {
-#if SOMATO_VECTOR_USE_SSE2
+#if defined(_MSC_VER)
+  static const union { int i[4]; __m128 v; } mask = { { -1, -1, -1, 0 } };
+  return mask.v;
+#elif SOMATO_VECTOR_USE_SSE2
   return _mm_castsi128_ps(_mm_setr_epi32(-1, -1, -1, 0));
 #else
   // Even with this, ICC will defer the OR to runtime.  Well duh.
@@ -371,7 +377,7 @@ inline __m128 Quat::mask_xyz_()
 }
 
 inline Quat::Quat()
-  : v_ (_mm_setr_ps(0.0f, 0.0f, 0.0f, 1.0f)) {}
+  : v_ (Matrix4::identity[3]) {}
 
 inline Quat::Quat(Quat::value_type x_, Quat::value_type y_,
                   Quat::value_type z_, Quat::value_type w_)
