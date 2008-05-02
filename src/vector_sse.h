@@ -26,7 +26,7 @@
 
 #if SOMATO_VECTOR_USE_SSE2
 # include <emmintrin.h>
-#else
+#elif !defined(_MSC_VER)
 # include <cfloat> /* see Math::Quat::mask_xyz_() */
 #endif
 
@@ -41,11 +41,6 @@ _mm_cvtss_f32(__m128 v) { return __builtin_ia32_vec_ext_v4sf(v, 0); }
 __if_not_exists(_mm_cvtss_f32) {
   extern "C" float _mm_cvtss_f32(__m128 _A);
 }
-# if SOMATO_VECTOR_USE_SSE2
-__if_not_exists(_mm_castsi128_ps) {
-  extern "C" __m128 _mm_castsi128_ps(__m128i);
-}
-# endif
 #endif /* _MSC_VER && _MSC_VER >= 1500 */
 
 namespace Math
