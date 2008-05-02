@@ -36,12 +36,17 @@ static inline float __attribute__((__always_inline__))
 _mm_cvtss_f32(__m128 v) { return __builtin_ia32_vec_ext_v4sf(v, 0); }
 #endif
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1500)
+#ifdef _MSC_VER
 // HACK: Allow build with old CRT headers but more capable compiler
-__if_not_exists(_mm_cvtss_f32) {
-  extern "C" float _mm_cvtss_f32(__m128 _A);
+__if_not_exists(_mm_cvtss_f32)
+{
+# if (_MSC_VER >= 1500)
+  extern "C" float _mm_cvtss_f32(__m128);
+# else
+#  define _mm_cvtss_f32(v) ((v).m128_f32[0])
+# endif
 }
-#endif /* _MSC_VER && _MSC_VER >= 1500 */
+#endif /* _MSC_VER */
 
 namespace Math
 {
