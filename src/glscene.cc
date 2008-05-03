@@ -513,7 +513,7 @@ void Scene::set_use_back_buffer(bool use_back_buffer)
   {
     use_back_buffer_ = use_back_buffer;
 
-    if (is_realized() && has_back_buffer_)
+    if (has_back_buffer_ && is_realized())
     {
       ScopeContext context (*this);
 
