@@ -45,8 +45,8 @@ namespace
 extern "C"
 {
 // These are Vista-specific, so we will look them up at runtime.
-typedef HRESULT (WINAPI* DwmIsCompositionEnabledFunc)(BOOL*);
-typedef HRESULT (WINAPI* DwmEnableMMCSSFunc)(BOOL);
+typedef HRESULT (WINAPI* IsCompositionEnabledFunc)(BOOL*);
+typedef HRESULT (WINAPI* EnableMMCSSFunc)(BOOL);
 }
 
 /*
@@ -74,21 +74,21 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
 
   if (const HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
   {
-    const DwmIsCompositionEnabledFunc dwmIsCompositionEnabled =
-      reinterpret_cast<DwmIsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
+    const IsCompositionEnabledFunc IsCompositionEnabled =
+      reinterpret_cast<IsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
     BOOL compositing = FALSE;
     // Disable double buffering on Vista if composition is enabled -- drawing
     // directly into the composite buffer works much smoother.
-    if (dwmIsCompositionEnabled && (*dwmIsCompositionEnabled)(&compositing) == S_OK && compositing)
+    if (IsCompositionEnabled && (*IsCompositionEnabled)(&compositing) == S_OK && compositing)
     {
       pfd.dwFlags = pfd.dwFlags & ~DWORD(PFD_DOUBLEBUFFER) | PFD_SUPPORT_COMPOSITION;
 
       // While we're at it, let's enable multimedia class scheduling as well,
       // so that we get to enjoy more accurate timeouts and shorter intervals.
-      if (const DwmEnableMMCSSFunc dwmEnableMMCSS =
-            reinterpret_cast<DwmEnableMMCSSFunc>(GetProcAddress(dwmapi, "DwmEnableMMCSS")))
+      if (const EnableMMCSSFunc EnableMMCSS =
+            reinterpret_cast<EnableMMCSSFunc>(GetProcAddress(dwmapi, "DwmEnableMMCSS")))
       {
-        (*dwmEnableMMCSS)(TRUE);
+        (*EnableMMCSS)(TRUE);
       }
     }
     FreeLibrary(dwmapi);
