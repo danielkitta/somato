@@ -387,7 +387,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
   if (sub_image)
   {
     glTexSubImage2D(target, 0, 0, 0, img_width, img_height,
-                    GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_image[0]);
+                    GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
     GL::Error::check();
   }
   else
@@ -401,7 +401,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     }
 
     glTexImage2D(target, 0, GL_INTENSITY8, img_width, img_height, 0,
-                 GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_image[0]);
+                 GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
     GL::Error::check();
 
     tex_width_  = img_width;

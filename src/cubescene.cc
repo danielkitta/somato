@@ -1806,12 +1806,12 @@ void CubeScene::gl_init_cube_texture()
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, WIDTH, HEIGHT, 0,
-                 GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+                 GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
   }
   else
   {
     const int result = gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, WIDTH, HEIGHT,
-                                         GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+                                         GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
     if (result != GL_NO_ERROR)
       throw GL::Error(result);
   }
