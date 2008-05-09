@@ -78,7 +78,6 @@ public:
   PFNGLDELETEBUFFERSARBPROC     DeleteBuffers;
   PFNGLBINDBUFFERARBPROC        BindBuffer;
   PFNGLBUFFERDATAARBPROC        BufferData;
-  PFNGLBUFFERSUBDATAARBPROC     BufferSubData;
 
   Extensions() : extensions_ (0), version_ (0) { query(); }
   virtual ~Extensions();

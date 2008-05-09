@@ -146,7 +146,6 @@ void Extensions::query()
   DeleteBuffers       = 0;
   BindBuffer          = 0;
   BufferData          = 0;
-  BufferSubData       = 0;
 
   version_    = GL::get_gl_version();
   extensions_ = glGetString(GL_EXTENSIONS);
@@ -211,8 +210,7 @@ void Extensions::query()
     if (GL::get_proc_address(GenBuffers,    "glGenBuffers")    &&
         GL::get_proc_address(DeleteBuffers, "glDeleteBuffers") &&
         GL::get_proc_address(BindBuffer,    "glBindBuffer")    &&
-        GL::get_proc_address(BufferData,    "glBufferData")    &&
-        GL::get_proc_address(BufferSubData, "glBufferSubData"))
+        GL::get_proc_address(BufferData,    "glBufferData"))
     {
       have_vertex_buffer_object = true;
     }
@@ -222,8 +220,7 @@ void Extensions::query()
     if (GL::get_proc_address(GenBuffers,    "glGenBuffersARB")    &&
         GL::get_proc_address(DeleteBuffers, "glDeleteBuffersARB") &&
         GL::get_proc_address(BindBuffer,    "glBindBufferARB")    &&
-        GL::get_proc_address(BufferData,    "glBufferDataARB")    &&
-        GL::get_proc_address(BufferSubData, "glBufferSubDataARB"))
+        GL::get_proc_address(BufferData,    "glBufferDataARB"))
     {
       have_vertex_buffer_object = true;
     }
@@ -605,24 +602,18 @@ void Scene::gl_update_ui()
 
   if (!ui_geometry_.empty() && gl_ext()->have_vertex_buffer_object)
   {
-    if (ui_buffer_)
-    {
-      gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
-      gl_ext()->BufferSubData(GL_ARRAY_BUFFER_ARB, 0, ui_geometry_.size() * sizeof(UIVertex),
-                              &ui_geometry_[0]);
-    }
-    else
+    if (!ui_buffer_)
     {
       gl_ext()->GenBuffers(1, &ui_buffer_);
 
       GL::Error::throw_if_fail(ui_buffer_ != 0);
-
-      gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
-      gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, ui_geometry_.size() * sizeof(UIVertex),
-                           &ui_geometry_[0], GL_DYNAMIC_DRAW_ARB);
     }
 
+    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
+    gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, ui_geometry_.size() * sizeof(UIVertex),
+                         &ui_geometry_[0], GL_DYNAMIC_DRAW_ARB);
     gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+
     GL::Error::check();
   }
 }
