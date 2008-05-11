@@ -83,6 +83,13 @@ IDR_UIMANAGER_MAINWINDOW UIMANAGER               "mainwindow-ui.xml"
 //
 
 IDR_GLADE_MAINWINDOW    GLADE                   "mainwindow.glade"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_CUBETEXTURE         BITMAP                  "cubetexture.bmp"
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
