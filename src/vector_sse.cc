@@ -154,7 +154,7 @@ void v4_align_free(void* p) throw()
  */
 #if SOMATO_CUSTOM_ALLOC
 
-// MSVC is broken and wants to tell us about it.  No shame.
+// MSVC++ is broken and wants to tell us about it.  No shame.
 # ifdef _MSC_VER
 #  pragma warning(push)
 #  pragma warning(disable: 4290)
@@ -228,7 +228,6 @@ __m128 Vector4::dot_(__m128 a, __m128 b)
 }
 
 #if !SOMATO_VECTOR_USE_SSE2
-
 // static
 __m128 Vector4::rint_(__m128 v)
 {
@@ -247,7 +246,6 @@ __m128 Vector4::rint_(__m128 v)
 
   return v;
 }
-
 #endif /* !SOMATO_VECTOR_USE_SSE2 */
 
 const Matrix4::array_type Matrix4::identity =
