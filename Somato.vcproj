@@ -18,16 +18,18 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
+			OutputDirectory="bin\$(ConfigurationName).$(PlatformName)"
+			IntermediateDirectory="bin\$(ConfigurationName).$(PlatformName)"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\windows\gtkmm-2.4d.vsprops;.\windows\wincruft.vsprops;.\windows\deprecations.vsprops;.\windows\vc80target.vsprops"
+			InheritedPropertySheets=".\windows\gtkmm-2.4d.vsprops;.\windows\vc80target.vsprops"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				AdditionalDependencies=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -40,38 +42,36 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
-				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="windows"
 				PreprocessorDefinitions="WIN32;_WINDOWS"
-				MinimalRebuild="true"
 				RuntimeLibrary="3"
 				EnableFunctionLevelLinking="true"
-				EnableEnhancedInstructionSet="2"
+				EnableEnhancedInstructionSet="1"
 				FloatingPointModel="2"
-				UsePrecompiledHeader="0"
-				BrowseInformation="1"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="stdafx.h"
 				WarningLevel="4"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4127;4244;4250;4305;4505;4512"
+				ForcedIncludeFiles="stdafx.h"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)ui&quot;"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				IgnoreImportLibrary="true"
 				LinkLibraryDependencies="false"
 				AdditionalDependencies="gtkglext-win32-1.0.lib gdkglext-win32-1.0.lib glu32.lib opengl32.lib gthread-2.0.lib"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
+				OptimizeForWindows98="1"
 				EntryPointSymbol="mainCRTStartup"
 				TargetMachine="1"
 			/>
@@ -99,10 +99,11 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
+			OutputDirectory="bin\$(ConfigurationName).$(PlatformName)"
+			IntermediateDirectory="bin\$(ConfigurationName).$(PlatformName)"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\windows\gtkmm-2.4.vsprops;.\windows\wincruft.vsprops;.\windows\deprecations.vsprops;.\windows\vc80target.vsprops"
+			InheritedPropertySheets=".\windows\gtkmm-2.4.vsprops;.\windows\vc80target.vsprops"
+			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -110,6 +111,7 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				AdditionalDependencies=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -122,33 +124,36 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="3"
-				EnableIntrinsicFunctions="true"
+				AdditionalOptions="/MP"
+				Optimization="2"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="windows"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="false"
-				EnableEnhancedInstructionSet="2"
+				EnableFunctionLevelLinking="true"
+				EnableEnhancedInstructionSet="1"
 				FloatingPointModel="2"
-				UsePrecompiledHeader="0"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="stdafx.h"
+				AssemblerOutput="1"
 				WarningLevel="4"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4127;4244;4250;4305;4505;4512"
+				ForcedIncludeFiles="stdafx.h"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)ui&quot;"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				IgnoreImportLibrary="true"
 				LinkLibraryDependencies="false"
 				AdditionalDependencies="gtkglext-win32-1.0.lib gdkglext-win32-1.0.lib glu32.lib opengl32.lib gthread-2.0.lib"
 				LinkIncremental="1"
@@ -158,6 +163,7 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				OptimizeForWindows98="1"
 				LinkTimeCodeGeneration="1"
 				EntryPointSymbol="mainCRTStartup"
 				TargetMachine="1"
@@ -234,8 +240,35 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ui\resource.h"
+				RelativePath=".\windows\rawvector.h"
 				>
+			</File>
+			<File
+				RelativePath=".\windows\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\windows\stdafx.h"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+						ForcedIncludeFiles=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+						AssemblerOutput="0"
+						ForcedIncludeFiles=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\tesselate.h"
@@ -265,6 +298,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ui\cubetexture.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\ui\cubetexture.png"
 				>
 			</File>
@@ -291,7 +328,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ui\somato.rc"
+				RelativePath=".\windows\somato.rc"
 				>
 			</File>
 		</Filter>
