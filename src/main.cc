@@ -117,14 +117,14 @@ void win32_message_log(const char* log_domain, GLogLevelFlags log_level,
   WCHAR modulebuf[64];
   modulebuf[0] = L'\0';
   if (log_domain)
-    MultiByteToWideChar(CP_UTF8, 0, log_domain, -1, modulebuf, G_N_ELEMENTS(modulebuf));
-  modulebuf[G_N_ELEMENTS(modulebuf) - 1] = L'\0';
+    MultiByteToWideChar(CP_UTF8, 0, log_domain, -1, modulebuf, _countof(modulebuf));
+  modulebuf[_countof(modulebuf) - 1] = L'\0';
 
   WCHAR messagebuf[768];
   messagebuf[0] = L'\0';
   if (message)
-    MultiByteToWideChar(CP_UTF8, 0, message, -1, messagebuf, G_N_ELEMENTS(messagebuf));
-  messagebuf[G_N_ELEMENTS(messagebuf) - 1] = L'\0';
+    MultiByteToWideChar(CP_UTF8, 0, message, -1, messagebuf, _countof(messagebuf));
+  messagebuf[_countof(messagebuf) - 1] = L'\0';
 
   _CrtDbgReportW(report_type, 0, 0, modulebuf, L"%s\n", messagebuf);
 }

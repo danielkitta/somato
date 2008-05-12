@@ -491,7 +491,7 @@ void MainWindow::on_application_about()
     dialog->set_version(PACKAGE_VERSION);
     dialog->set_logo_icon_name(PACKAGE_TARNAME);
     dialog->set_comments("The best Soma puzzle solver ever. For real.");
-    dialog->set_copyright("Copyright \302\251 2004-2007 Daniel Elstner");
+    dialog->set_copyright("Copyright \302\251 2004-2008 Daniel Elstner");
     dialog->set_website("http://danielkitta.org/projects/somato");
 
     dialog->set_authors(program_authors);
