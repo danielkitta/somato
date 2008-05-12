@@ -24,24 +24,30 @@
 #include "cube.h"
 #include "vectormath.h"
 
-// GL/gl.h requires windows.h so we have to include it here, even though
-// we only need a few trivial type and constant definitions from OpenGL.
-#ifdef _WIN32
-# include <windows.h>
-#endif
-#include <GL/gl.h>
 #include <vector>
+#include <config.h>
+
+// We only need a few trivial type and constant definitions from OpenGL.
+// The tesselator only generates the geometry, but doesn't render it.
+#include <GL/gl.h>
 
 namespace Somato
 {
 
-typedef Math::Vector233           CubeElement;
-typedef GLushort                  CubeIndex;
+typedef Math::Vector233               CubeElement;
+typedef GLushort                      CubeIndex;
 
-typedef std::vector<CubeElement>  CubeElementArray;
-typedef std::vector<CubeIndex>    CubeIndexArray;
-typedef std::vector<GLint>        RangeStartArray;
-typedef std::vector<GLsizei>      RangeCountArray;
+#if SOMATO_USE_RAWVECTOR
+typedef Util::RawVector<CubeElement>  CubeElementArray;
+typedef Util::RawVector<CubeIndex>    CubeIndexArray;
+typedef Util::RawVector<GLint>        RangeStartArray;
+typedef Util::RawVector<GLsizei>      RangeCountArray;
+#else
+typedef std::vector<CubeElement>      CubeElementArray;
+typedef std::vector<CubeIndex>        CubeIndexArray;
+typedef std::vector<GLint>            RangeStartArray;
+typedef std::vector<GLsizei>          RangeCountArray;
+#endif /* !SOMATO_USE_RAWVECTOR */
 
 enum
 {

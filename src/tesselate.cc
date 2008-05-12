@@ -77,8 +77,17 @@ struct EdgePosition
 
 struct EdgeCorner;
 
-typedef std::vector<EdgePosition> EdgeStore;
-typedef std::vector<EdgeCorner*>  CornerStore;
+#if SOMATO_USE_RAWVECTOR
+typedef Util::RawVector<int>          IndexStore;
+typedef Util::RawVector<CubePosition> FaceStore;
+typedef Util::RawVector<EdgePosition> EdgeStore;
+typedef Util::RawVector<EdgeCorner*>  CornerStore;
+#else
+typedef std::vector<int>              IndexStore;
+typedef std::vector<CubePosition>     FaceStore;
+typedef std::vector<EdgePosition>     EdgeStore;
+typedef std::vector<EdgeCorner*>      CornerStore;
+#endif
 
 struct EdgeCorner
 {
@@ -464,19 +473,19 @@ private:
   void build_plane();
   void build_polygon(const CubePosition& start);
 
-  bool find_top_vertex_pair(const CubePosition& pos, std::vector<int>& indices) const;
-  bool find_left_vertex_pair(const CubePosition& pos, std::vector<int>& indices) const;
+  bool find_top_vertex_pair(const CubePosition& pos, IndexStore& indices) const;
+  bool find_left_vertex_pair(const CubePosition& pos, IndexStore& indices) const;
 
-  void build_contour_strip2(const std::vector<CubePosition>& vertices,
-                            const std::vector<int>& indices);
+  void build_contour_strip2(const FaceStore& vertices,
+                            const IndexStore& indices);
 #if 0
   void build_quad_contour();
   void build_hexagon_contour();
   void build_octagon_contour();
 #endif
-  void compute_contour_vertices(std::vector<CubePosition>& vertices, std::vector<int>& inward);
+  void compute_contour_vertices(FaceStore& vertices, IndexStore& inward);
 #if 0
-  void build_contour_strip(const std::vector<CubePosition>& vertices,
+  void build_contour_strip(const FaceStore& vertices,
                            const unsigned char* order, int count, int offset);
 #endif
   void check_new_edge(const CubePosition& pos, const CubePosition& ivertex,
@@ -875,8 +884,8 @@ void CubeTesselator::Impl::build_polygon(const CubePosition& start)
   trace_contour(start);
 
 #if 0
-  std::vector<CubePosition> vertices;
-  std::vector<int>          inward;
+  FaceStore   vertices;
+  IndexStore  inward;
 
   compute_contour_vertices(vertices, inward);
 
@@ -899,8 +908,8 @@ void CubeTesselator::Impl::build_polygon(const CubePosition& start)
 
   g_return_if_fail(stair_count <= 1);
 
-  std::vector<CubePosition> vertices;
-  std::vector<int>          inward;
+  FaceStore   vertices;
+  IndexStore  inward;
 
   compute_contour_vertices(vertices, inward);
 
@@ -932,7 +941,7 @@ void CubeTesselator::Impl::build_polygon(const CubePosition& start)
       {
         CubePosition pos = edgestore_[i].pos;
 
-        std::vector<int> indices;
+        IndexStore indices;
 
         bool foo = false;
         if (i + 1 < edgestore_.size()
@@ -986,7 +995,7 @@ void CubeTesselator::Impl::build_polygon(const CubePosition& start)
       {
         CubePosition pos = edgestore_[i].pos;
 
-        std::vector<int> indices;
+        IndexStore indices;
 
         bool foo = false;
         if (i + 1 < edgestore_.size()
@@ -1035,7 +1044,7 @@ void CubeTesselator::Impl::build_polygon(const CubePosition& start)
   }
 }
 
-bool CubeTesselator::Impl::find_top_vertex_pair(const CubePosition& pos, std::vector<int>& indices) const
+bool CubeTesselator::Impl::find_top_vertex_pair(const CubePosition& pos, IndexStore& indices) const
 {
   static const signed char d_left [4][2] = { {0, 1}, {-1, 1}, {-1, 0}, {0, 0} };
   static const signed char d_right[4][2] = { {1, 1}, { 0, 1}, { 0, 0}, {1, 0} };
@@ -1081,7 +1090,7 @@ bool CubeTesselator::Impl::find_top_vertex_pair(const CubePosition& pos, std::ve
   return false;
 }
 
-bool CubeTesselator::Impl::find_left_vertex_pair(const CubePosition& pos, std::vector<int>& indices) const
+bool CubeTesselator::Impl::find_left_vertex_pair(const CubePosition& pos, IndexStore& indices) const
 {
   static const signed char d_bottom[4][2] = { {0, 0}, {-1, 0}, {-1, -1}, {0, -1} };
   static const signed char d_top   [4][2] = { {0, 1}, {-1, 1}, {-1,  0}, {0,  0} };
@@ -1127,8 +1136,8 @@ bool CubeTesselator::Impl::find_left_vertex_pair(const CubePosition& pos, std::v
   return false;
 }
 
-void CubeTesselator::Impl::build_contour_strip2(const std::vector<CubePosition>& vertices,
-                                                const std::vector<int>& indices)
+void CubeTesselator::Impl::build_contour_strip2(const FaceStore& vertices,
+                                                const IndexStore& indices)
 {
   const int count = indices.size();
 
@@ -1165,8 +1174,8 @@ void CubeTesselator::Impl::build_quad_contour()
 {
   static const unsigned char indices[4] = { 1, 2, 0, 3 };
 
-  std::vector<CubePosition> vertices;
-  std::vector<int>          inward;
+  FaceStore   vertices;
+  IndexStore  inward;
 
   compute_contour_vertices(vertices, inward);
 
@@ -1179,8 +1188,8 @@ void CubeTesselator::Impl::build_hexagon_contour()
 {
   static const unsigned char indices[6] = { 1, 2, 0, 3, 5, 4 };
 
-  std::vector<CubePosition> vertices;
-  std::vector<int>          inward;
+  FaceStore   vertices;
+  IndexStore  inward;
 
   compute_contour_vertices(vertices, inward);
 
@@ -1196,8 +1205,8 @@ void CubeTesselator::Impl::build_octagon_contour()
   static const unsigned char indicesT1[6] = { 1, 2, 0, 3, 5, 4 };
   static const unsigned char indicesT2[4] = { 5, 6, 0, 7 };
 
-  std::vector<CubePosition> vertices;
-  std::vector<int>          inward;
+  FaceStore   vertices;
+  IndexStore  inward;
 
   compute_contour_vertices(vertices, inward);
 
@@ -1237,8 +1246,8 @@ void CubeTesselator::Impl::build_octagon_contour()
 }
 #endif
 
-void CubeTesselator::Impl::compute_contour_vertices(std::vector<CubePosition>& vertices,
-                                                    std::vector<int>& inward)
+void CubeTesselator::Impl::compute_contour_vertices(FaceStore& vertices,
+                                                    IndexStore& inward)
 {
   enum { ORIGIN = Cube::N * EDGE_SCALE / 2 };
   static const signed char corneroffset[4][2] = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
@@ -1281,7 +1290,7 @@ void CubeTesselator::Impl::compute_contour_vertices(std::vector<CubePosition>& v
 }
 
 #if 0
-void CubeTesselator::Impl::build_contour_strip(const std::vector<CubePosition>& vertices,
+void CubeTesselator::Impl::build_contour_strip(const FaceStore& vertices,
                                                const unsigned char* order, int count, int offset)
 {
   const int n_vertices = vertices.size();
