@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -22,6 +22,7 @@
 #define SOMATO_ARRAY_H_INCLUDED
 
 #include <cstddef>
+#include <algorithm>
 #include <iterator>
 
 namespace Util
@@ -89,12 +90,12 @@ public:
   typedef std::ptrdiff_t                        difference_type;
 
   explicit MemChunk(size_type s)
-  :
-    size_ (s),
-    data_ (static_cast<T*>(operator new(sizeof(T) * s)))
-  {}
-
+    : size_ (s), data_ (static_cast<T*>(operator new(sizeof(T) * s))) {}
+  MemChunk() : size_ (0), data_ (0) {}
   ~MemChunk() { operator delete(data_); }
+
+  void swap(MemChunk<T>& b)
+    { std::swap(size_, b.size_); std::swap(data_, b.data_); }
 
   size_type bytes() const { return size_ * sizeof(T); }
   size_type size()  const { return size_; }
@@ -118,6 +119,9 @@ public:
   reverse_iterator       rend()         { return reverse_iterator(data_); }
   const_reverse_iterator rend()   const { return const_reverse_iterator(data_); }
 };
+
+template <class T> inline
+void swap(MemChunk<T>& a, MemChunk<T>& b) { a.swap(b); }
 
 template <class T>
 class Delete
