@@ -27,17 +27,25 @@
 #include <functional>
 #include <numeric>
 
+#include <config.h>
+
 namespace
 {
 
 using Somato::Cube;
 
-typedef std::vector<Cube> PieceStore;
+#if SOMATO_USE_RAWVECTOR
+typedef Util::RawVector<Cube>       PieceStore;
+typedef Util::RawVector<PieceStore> ColumnStore;
+#else
+typedef std::vector<Cube>           PieceStore;
+typedef std::vector<PieceStore>     ColumnStore;
+#endif
 
 class PuzzleSolver
 {
 private:
-  std::vector<PieceStore>       columns_;
+  ColumnStore                   columns_;
   std::vector<Somato::Solution> solutions_;
   Somato::Solution              state_;
 
@@ -214,6 +222,9 @@ void PuzzleSolver::execute()
 
 void PuzzleSolver::recurse(int col, Cube cube)
 {
+#ifdef _MSC_VER
+  __assume(col < Somato::CUBE_PIECE_COUNT);
+#endif
   PieceStore::const_iterator row = columns_[col].begin();
 
   for (;;)
