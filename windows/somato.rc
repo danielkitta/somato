@@ -75,14 +75,14 @@ IDI_APPICON             ICON                    "somato.ico"
 // UIMANAGER
 //
 
-IDR_UIMANAGER_MAINWINDOW UIMANAGER               "mainwindow-ui.xml"
+IDR_UIMANAGER_MAINWINDOW UTF8TEXT               "mainwindow-ui.xml"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // GLADE
 //
 
-IDR_GLADE_MAINWINDOW    GLADE                   "mainwindow.glade"
+IDR_GLADE_MAINWINDOW    UTF8TEXT                "mainwindow.glade"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -90,6 +90,13 @@ IDR_GLADE_MAINWINDOW    GLADE                   "mainwindow.glade"
 //
 
 IDB_CUBETEXTURE         BITMAP                  "cubetexture.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// GTKRC
+//
+
+IDR_GTKRC_CUBESCENE     UTF8TEXT                "cubescene.gtkrc"
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 

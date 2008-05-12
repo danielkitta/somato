@@ -36,6 +36,7 @@
 #ifdef G_OS_WIN32
 # include <windows.h>
 # include <crtdbg.h>
+# include "resource.h"
 #endif
 
 namespace
