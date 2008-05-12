@@ -39,7 +39,7 @@ bool Cube::get(int x, int y, int z) const
 {
   const int index = N*N*x + N*y + z;
 
-  return ((data_ & (Bits(1) << index)) != 0);
+  return ((data_ >> index) & Bits(1));
 }
 
 bool Cube::getsafe(int x, int y, int z) const
@@ -48,7 +48,7 @@ bool Cube::getsafe(int x, int y, int z) const
   {
     const int index = N*N*x + N*y + z;
 
-    return ((data_ & (Bits(1) << index)) != 0);
+    return ((data_ >> index) & Bits(1));
   }
   return false;
 }
