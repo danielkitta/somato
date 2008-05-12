@@ -72,7 +72,7 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
   if ((mode & GDK_GL_MODE_DOUBLE) != 0)
     pfd.dwFlags |= PFD_DOUBLEBUFFER;
 
-  if (const HMODULE dwmapi = LoadLibraryW(L"dwmapi"))
+  if (const HMODULE dwmapi = LoadLibrary(TEXT("dwmapi")))
   {
     const IsCompositionEnabledFunc IsCompositionEnabled =
       reinterpret_cast<IsCompositionEnabledFunc>(GetProcAddress(dwmapi, "DwmIsCompositionEnabled"));
@@ -153,6 +153,15 @@ GL::Error::Error(const Glib::ustring& message)
 GL::Error::~Error() throw()
 {}
 
+/*
+ * Inlining these expensive error checking functions is more than just
+ * pointless -- in fact it will hurt performance due to the reduction in
+ * code locality, and by preventing the inliner from expanding other and
+ * likely more rewarding code paths.
+ */
+#ifdef _MSC_VER
+__declspec(noinline)
+#endif
 // static
 void GL::Error::check()
 {
@@ -162,6 +171,9 @@ void GL::Error::check()
     throw GL::Error(error_code);
 }
 
+#ifdef _MSC_VER
+__declspec(noinline)
+#endif
 // static
 void GL::Error::fail()
 {
