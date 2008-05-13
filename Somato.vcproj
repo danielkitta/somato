@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="Somato"
+	Name="somato"
 	ProjectGUID="{AE00E55F-C099-4179-B451-F8A7D9CD0676}"
 	RootNamespace="Somato"
 	Keyword="Win32Proj"
@@ -29,7 +29,6 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				AdditionalDependencies=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -43,7 +42,6 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="windows"
-				PreprocessorDefinitions="WIN32;_WINDOWS"
 				RuntimeLibrary="3"
 				EnableFunctionLevelLinking="true"
 				EnableEnhancedInstructionSet="1"
@@ -59,7 +57,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)ui&quot;"
+				ResourceOutputFileName="$(IntDir)\$(InputName).res"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -110,7 +108,6 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				AdditionalDependencies=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -127,7 +124,6 @@
 				Optimization="2"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="windows"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="false"
@@ -146,7 +142,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)ui&quot;"
+				ResourceOutputFileName="$(IntDir)\$(InputName).res"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -296,10 +292,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ui\cubetexture.bmp"
-				>
-			</File>
-			<File
 				RelativePath=".\ui\cubetexture.png"
 				>
 			</File>
@@ -318,7 +310,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ui\somato.ico"
+				RelativePath=".\windows\somato.ico"
 				>
 			</File>
 			<File
