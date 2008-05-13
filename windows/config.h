@@ -27,7 +27,7 @@
 #define PACKAGE_BUGREPORT "daniel.kitta@gmail.com"
 
 // XXX: temporary HACK
-#define SOMATO_PKGDATADIR "C:\\Users\\Daniel\\Documents\\Visual Studio 2008\\Projects\\Somato\\ui"
+#define SOMATO_PKGDATADIR "ui"
 
 #if _MSC_VER >= 1400
 // Indicate support for SSE if enabled in the build configuration.
