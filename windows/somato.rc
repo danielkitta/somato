@@ -46,12 +46,12 @@ BEGIN
             VALUE "Comments", "Redistributable under the terms of the GNU General Public License"
             VALUE "CompanyName", "Free Software Foundation"
             VALUE "FileDescription", "Soma cube solver and animation"
-            VALUE "FileVersion", "0, 6, 0, 0"
+            VALUE "FileVersion", "0.6.0.0"
             VALUE "InternalName", "somato"
-            VALUE "LegalCopyright", "Copyright © 2004-2008 Daniel Elstner <daniel.kitta@gmail.com>"
+            VALUE "LegalCopyright", "© 2004-2008 Daniel Elstner <daniel.kitta@gmail.com>"
             VALUE "OriginalFilename", "somato.exe"
             VALUE "ProductName", "Somato"
-            VALUE "ProductVersion", "0, 6, 0, 0"
+            VALUE "ProductVersion", "0.6"
         END
     END
     BLOCK "VarFileInfo"
@@ -69,34 +69,6 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_APPICON             ICON                    "somato.ico"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// UIMANAGER
-//
-
-IDR_UIMANAGER_MAINWINDOW UTF8TEXT               "mainwindow-ui.xml"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// GLADE
-//
-
-IDR_GLADE_MAINWINDOW    UTF8TEXT                "mainwindow.glade"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_CUBETEXTURE         BITMAP                  "cubetexture.bmp"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// GTKRC
-//
-
-IDR_GTKRC_CUBESCENE     UTF8TEXT                "cubescene.gtkrc"
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
