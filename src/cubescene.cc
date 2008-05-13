@@ -34,7 +34,6 @@
 
 #ifdef GDK_WINDOWING_WIN32
 # include <windows.h>
-# include "resource.h"
 #endif
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -51,10 +50,8 @@ namespace
 
 using Somato::Cube;
 
-#ifndef GDK_WINDOWING_WIN32
 static
 const char *const cube_texture_filename = SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "cubetexture.png";
-#endif
 
 /*
  * The type of indices into the wireframe vertex array.
@@ -1759,42 +1756,14 @@ void CubeScene::gl_init_cube_texture()
 {
   g_return_if_fail(cube_texture_ == 0);
 
-  enum { WIDTH = 128, HEIGHT = 128 };
-
-#ifdef GDK_WINDOWING_WIN32
-  // This pointer directly references the resource data in the executing
-  // image and will stay valid until the current process exits.
-  static const BITMAPINFOHEADER* bitmap = 0;
-
-  if (!bitmap)
-  {
-    if (const HRSRC resinfo = FindResource(0, MAKEINTRESOURCE(IDB_CUBETEXTURE), RT_BITMAP))
-    {
-      // Make sure we got us something of reasonable size.
-      if (SizeofResource(0, resinfo) >= sizeof(BITMAPINFOHEADER) + WIDTH * HEIGHT)
-        bitmap = static_cast<BITMAPINFOHEADER*>(LockResource(LoadResource(0, resinfo)));
-    }
-    if (!bitmap)
-      throw GL::Error("Failed to locate resource bitmap for texture initialization");
-  }
-
-  // Verify that the bitmap format matches our expectations.
-  if (bitmap->biSize < sizeof(BITMAPINFOHEADER) || bitmap->biSize > sizeof(BITMAPV5HEADER)
-      || bitmap->biWidth != WIDTH || bitmap->biHeight != HEIGHT
-      || bitmap->biPlanes != 1 || bitmap->biBitCount != 8
-      || bitmap->biCompression != BI_RGB || bitmap->biClrUsed > 256)
-  {
-    throw GL::Error("Unsupported or invalid resource bitmap format");
-  }
-
-  const guint8 *const tex_pixels = reinterpret_cast<const guint8*>(bitmap)
-                                 + bitmap->biSize + bitmap->biClrUsed * sizeof(RGBQUAD);
-#else /* !GDK_WINDOWING_WIN32 */
   // No matter what the real dimensions of the input image are, scale the
   // texture during load to the fixed size defined here.  Forcing a fixed
   // width and height actually enhances flexibility, as the user may drop
   // in whatever image file without wreaking havoc.  In essence, the size
   // of a texture is simply a quality setting unrelated to the input data.
+
+  enum { WIDTH = 128, HEIGHT = 128 };
+
   const Glib::RefPtr<Gdk::Pixbuf> pixbuf =
       Gdk::Pixbuf::create_from_file(cube_texture_filename, WIDTH, HEIGHT, false);
 
@@ -1822,7 +1791,6 @@ void CubeScene::gl_init_cube_texture()
       ptex += 1;
     }
   }
-#endif /* !GDK_WINDOWING_WIN32 */
 
   glGenTextures(1, &cube_texture_);
 
