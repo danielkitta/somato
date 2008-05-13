@@ -33,10 +33,9 @@
 
 #include <config.h>
 
-#ifdef G_OS_WIN32
+#if defined(_MSC_VER) && defined(_DEBUG)
 # include <windows.h>
 # include <crtdbg.h>
-# include "resource.h"
 #endif
 
 namespace
@@ -88,7 +87,7 @@ void trap_gl_error()
   }
 }
 
-#if defined(G_OS_WIN32) && defined(_DEBUG)
+#if defined(_MSC_VER) && defined(_DEBUG)
 extern "C"
 {
 /*
@@ -130,13 +129,13 @@ void win32_message_log(const char* log_domain, GLogLevelFlags log_level,
   _CrtDbgReportW(report_type, 0, 0, modulebuf, L"%s\n", messagebuf);
 }
 } // extern "C"
-#endif /* G_OS_WIN32 && _DEBUG */
+#endif /* _MSC_VER && _DEBUG */
 
 } // anonymous namespace
 
 int main(int argc, char** argv)
 {
-#if defined(G_OS_WIN32) && defined(_DEBUG)
+#if defined(_MSC_VER) && defined(_DEBUG)
   g_log_set_default_handler(&win32_message_log, 0);
   _CrtSetReportMode(_CRT_WARN,   _CRTDBG_MODE_DEBUG);
   _CrtSetReportMode(_CRT_ERROR,  _CRTDBG_MODE_DEBUG);
