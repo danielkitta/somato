@@ -28,19 +28,24 @@
 # define _WIN32_WINNT WINVER
 #endif
 #ifndef _WIN32_WINDOWS
-# define _WIN32_WINDOWS WINVER
+# define _WIN32_WINDOWS 0x0410
 #endif
 #ifndef _WIN32_IE
-# define _WIN32_IE WINVER
+# define _WIN32_IE 0x0501
 #endif
 
 // Enable strict type checking.  Also exclude some rarely-used definitions
 // and poorly namespaced macros from the Windows headers.
-#define STRICT
+#define STRICT 1
 #define WIN32_LEAN_AND_MEAN 1
 #define NOCOMM
+#define NOIME
 #define NOKANJI
+#define NOMCX
 #define NOMINMAX
+#define NORPC
+#define NOSERVICE
+#define NOSOUND
 
 // Hide deprecated API of the GTK+ libraries.  Note that this feature forces
 // a compile-time error when currently used API is deprecated in the future.
@@ -58,16 +63,18 @@
 #define PANGO_DISABLE_DEPRECATED
 #define RSVG_DISABLE_DEPRECATED
 
+// C4510: default constructor could not be generated (VC80 std::list)
+// C4520: multiple default constructors specified (Gtk::PaperSize bug)
+// C4610: object can never be instantiated (VC80 std::list)
+#pragma warning(push)
+#pragma warning(disable: 4510 4520 4610)
+
 #include <sigc++/sigc++.h>
 #include <glibmm.h>
 #include <pangomm.h>
 #include <atkmm.h>
 #include <gdkmm.h>
-// C4520: multiple default constructors specified (Gtk::PaperSize bug)
-#pragma warning(push)
-#pragma warning(disable: 4520)
 #include <gtkmm.h>
-#pragma warning(pop)
 #include <libglademm.h>
 
 #include <vector>
@@ -90,7 +97,10 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
-/*#include <iostream>*/
+// Note: <iostream> should never be included from another header file,
+// since it implies the instantiation of static global objects.
+
+#pragma warning(pop)
 
 #include <glib.h>
 #include <glib-object.h>

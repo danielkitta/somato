@@ -261,6 +261,12 @@ void PuzzleSolver::add_solution()
 namespace Somato
 {
 
+// MS Visual C++ complains about the use of 'this' in an initializer list.
+// However, it harmless in this case as only a base object will be accessed.
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable: 4355)
+#endif
 PuzzleThread::PuzzleThread()
 :
   solutions_    (),
@@ -269,6 +275,9 @@ PuzzleThread::PuzzleThread()
   thread_exit_  (signal_exit_.connect(sigc::mem_fun(*this, &PuzzleThread::on_thread_exit))),
   thread_       (0)
 {}
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
 
 PuzzleThread::~PuzzleThread()
 {
