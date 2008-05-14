@@ -23,31 +23,21 @@
 #include <glibmm.h>
 #include <glib.h>
 
-#ifdef G_OS_WIN32
-# include <windows.h>
-#endif
 #include <config.h>
 
-std::string Util::locate_data_file(const char* basename)
+std::string Util::locate_data_file(const std::string& basename)
 {
-  g_assert(basename != 0);
-  const std::string base = basename;
-
 #ifdef G_OS_WIN32
-  if (char *const exedir = g_win32_get_package_installation_directory_of_module(0))
+  const Glib::ScopedPtr<char> exedir (g_win32_get_package_installation_directory_of_module(0));
+  if (exedir.get())
   {
-    const std::string exepath = Glib::build_filename(Glib::ScopedPtr<char>(exedir).get(), base);
+    const std::string fullpath = Glib::build_filename(exedir.get(), basename);
 
-    if (Glib::file_test(exepath, Glib::FILE_TEST_IS_REGULAR))
-      return exepath;
-
-    const std::string pkgpath = Glib::build_filename(SOMATO_PKGDATADIR, base);
-
-    if (Glib::file_test(pkgpath, Glib::FILE_TEST_IS_REGULAR))
-      return pkgpath;
+    if (Glib::file_test(fullpath, Glib::FILE_TEST_IS_REGULAR))
+      return fullpath;
   }
-  return base;
+  return basename;
 #else
-  return Glib::build_filename(SOMATO_PKGDATADIR, base);
+  return Glib::build_filename(SOMATO_PKGDATADIR, basename);
 #endif
 }

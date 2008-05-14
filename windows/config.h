@@ -26,9 +26,6 @@
 #define PACKAGE_STRING    PACKAGE_NAME " " PACKAGE_VERSION
 #define PACKAGE_BUGREPORT "daniel.kitta@gmail.com"
 
-// XXX: temporary HACK
-#define SOMATO_PKGDATADIR "ui"
-
 #if _MSC_VER >= 1400
 // Indicate support for SSE if enabled in the build configuration.
 # if (_M_IX86_FP >= 1) || defined(_M_X64)

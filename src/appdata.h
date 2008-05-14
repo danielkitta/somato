@@ -26,7 +26,7 @@
 namespace Util
 {
 
-std::string locate_data_file(const char* basename);
+std::string locate_data_file(const std::string& basename);
 
 } // namespace Util
 
