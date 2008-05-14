@@ -238,38 +238,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\windows\resource.h"
-				>
-			</File>
-			<File
-				RelativePath=".\windows\stdafx.h"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-						ForcedIncludeFiles=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-						AssemblerOutput="0"
-						ForcedIncludeFiles=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\tesselate.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\vector_classic.h"
 				>
 			</File>
 			<File
@@ -285,6 +254,7 @@
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;png;resx;gtkrc;xml;glade;desktop"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			ParseFiles="false"
 			>
 			<File
 				RelativePath=".\ui\cubescene.gtkrc"
@@ -364,6 +334,63 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\vector_sse.cc"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\vectormath.cc"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Secondary Files"
+			UniqueIdentifier="{67C46D18-43A7-450d-93B0-00E1270FE230}"
+			ParseFiles="false"
+			>
+			<File
+				RelativePath=".\windows\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\windows\stdafx.h"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+						ForcedIncludeFiles=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+						AssemblerOutput="0"
+						ForcedIncludeFiles=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\vector_classic.cc"
 				>
 				<FileConfiguration
@@ -386,27 +413,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\vector_sse.cc"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\vectormath.cc"
+				RelativePath=".\src\vector_classic.h"
 				>
 			</File>
 		</Filter>
