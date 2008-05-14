@@ -262,19 +262,23 @@
 			>
 			<File
 				RelativePath=".\ui\cubescene.gtkrc"
+				DeploymentContent="true"
 				FileType="5"
 				>
 			</File>
 			<File
 				RelativePath=".\ui\cubetexture.png"
+				DeploymentContent="true"
 				>
 			</File>
 			<File
 				RelativePath=".\ui\mainwindow-ui.xml"
+				DeploymentContent="true"
 				>
 			</File>
 			<File
 				RelativePath=".\ui\mainwindow.glade"
+				DeploymentContent="true"
 				FileType="13"
 				>
 			</File>
