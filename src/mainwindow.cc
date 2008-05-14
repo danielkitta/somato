@@ -19,6 +19,7 @@
  */
 
 #include "mainwindow.h"
+#include "appdata.h"
 #include "cube.h"
 #include "cubescene.h"
 #include "glutils.h"
@@ -39,12 +40,6 @@
 
 namespace
 {
-
-static const char *const mainwindow_glade_filename =
-    SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "mainwindow.glade";
-
-static const char *const mainwindow_ui_filename =
-    SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "mainwindow-ui.xml";
 
 static const char *const program_license =
   "Somato is free software; you can redistribute it and/or modify it "
@@ -280,7 +275,8 @@ Glib::RefPtr<Gtk::ActionGroup> MainWindow::create_action_group()
 
 void MainWindow::load_ui()
 {
-  const Glib::RefPtr<Gnome::Glade::Xml> xml = Gnome::Glade::Xml::create(mainwindow_glade_filename);
+  const Glib::RefPtr<Gnome::Glade::Xml> xml =
+      Gnome::Glade::Xml::create(Util::locate_data_file("mainwindow.glade"));
 
   Gtk::Window* main_window = 0;
   window_.reset(xml->get_widget("main_window", main_window));
@@ -315,7 +311,7 @@ void MainWindow::load_ui()
   window_->add_accel_group(ui_manager_->get_accel_group());
 
   ui_manager_->signal_add_widget().connect(sigc::mem_fun(*this, &MainWindow::on_ui_add_widget));
-  ui_manager_->add_ui_from_file(mainwindow_ui_filename);
+  ui_manager_->add_ui_from_file(Util::locate_data_file("mainwindow-ui.xml"));
 
   ui_manager_->ensure_update();
 }

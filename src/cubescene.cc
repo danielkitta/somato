@@ -19,6 +19,7 @@
  */
 
 #include "cubescene.h"
+#include "appdata.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
 #include "mathutils.h"
@@ -49,9 +50,6 @@ namespace
 {
 
 using Somato::Cube;
-
-static
-const char *const cube_texture_filename = SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "cubetexture.png";
 
 /*
  * The type of indices into the wireframe vertex array.
@@ -1764,8 +1762,8 @@ void CubeScene::gl_init_cube_texture()
 
   enum { WIDTH = 128, HEIGHT = 128 };
 
-  const Glib::RefPtr<Gdk::Pixbuf> pixbuf =
-      Gdk::Pixbuf::create_from_file(cube_texture_filename, WIDTH, HEIGHT, false);
+  const Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::
+      create_from_file(Util::locate_data_file("cubetexture.png"), WIDTH, HEIGHT, false);
 
   g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
   g_return_if_fail(pixbuf->get_bits_per_sample() == 8);
@@ -1782,7 +1780,7 @@ void CubeScene::gl_init_cube_texture()
     const guint8* pbuf = &buf_pixels[(HEIGHT - 1 - row) * buf_rowstride];
     GLubyte*      ptex = &tex_pixels[row * WIDTH];
 
-    for (int col = WIDTH; col > 0; --col)
+    for (int col = WIDTH; col != 0; --col)
     {
       // Read only the first channel, assuming gray-scale.
       *ptex = *pbuf;

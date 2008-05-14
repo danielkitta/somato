@@ -19,6 +19,7 @@
  */
 
 #include "mainwindow.h"
+#include "appdata.h"
 #include "glutils.h"
 
 #include <glib.h>
@@ -40,9 +41,6 @@
 
 namespace
 {
-
-static
-const char *const cubescene_rc_filename = SOMATO_PKGDATADIR G_DIR_SEPARATOR_S "cubescene.gtkrc";
 
 static
 void init_locale()
@@ -144,7 +142,7 @@ int main(int argc, char** argv)
   try
   {
     Glib::thread_init();
-    Gtk::RC::add_default_file(cubescene_rc_filename);
+    Gtk::RC::add_default_file(Util::locate_data_file("cubescene.gtkrc"));
 
     Gtk::Main main_instance (argc, argv);
     gtk_gl_init(&argc, &argv);
