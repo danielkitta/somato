@@ -1,13 +1,9 @@
-<?xml version="1.0" encoding="Windows-1252"?>
+<?xml version="1.0" encoding="utf-8"?>
 <VisualStudioPropertySheet
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="Target MSVC 2005"
 	>
-	<Tool
-		Name="VCCLCompilerTool"
-		DisableSpecificWarnings="4510;4610"
-	/>
 	<UserMacro
 		Name="VC80Base"
 		Value="$(VS80COMNTOOLS)..\..\VC"
