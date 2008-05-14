@@ -222,9 +222,6 @@ void PuzzleSolver::execute()
 
 void PuzzleSolver::recurse(int col, Cube cube)
 {
-#ifdef _MSC_VER
-  __assume(col < Somato::CUBE_PIECE_COUNT);
-#endif
   PieceStore::const_iterator row = columns_[col].begin();
 
   for (;;)
