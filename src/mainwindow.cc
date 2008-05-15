@@ -191,7 +191,12 @@ MainWindow::MainWindow()
 }
 
 MainWindow::~MainWindow()
-{}
+{
+#if (GTKMM_MINOR_VERSION <= 10) /* FIXME: Gross HACK! */
+  if (aboutdialog_.get() && aboutdialog_->is_managed_())
+    gtk_object_destroy(aboutdialog_.release()->Gtk::Object::gobj());
+#endif
+}
 
 Gtk::Window* MainWindow::get_window()
 {
@@ -485,7 +490,9 @@ void MainWindow::on_application_about()
     std::auto_ptr<Gtk::AboutDialog> dialog (new Gtk::AboutDialog());
 
     dialog->set_version(PACKAGE_VERSION);
+#ifndef GDK_WINDOWING_WIN32
     dialog->set_logo_icon_name(PACKAGE_TARNAME);
+#endif
     dialog->set_comments("The best Soma puzzle solver ever. For real.");
     dialog->set_copyright("Copyright \302\251 2004-2008 Daniel Elstner");
     dialog->set_website("http://danielkitta.org/projects/somato");
@@ -504,6 +511,10 @@ void MainWindow::on_application_about()
 
 void MainWindow::on_aboutdialog_response(int)
 {
+#if (GTKMM_MINOR_VERSION <= 10) /* FIXME: Gross HACK! */
+  if (aboutdialog_.get() && aboutdialog_->is_managed_())
+    gtk_object_destroy(aboutdialog_.release()->Gtk::Object::gobj());
+#endif
   // Destroy by transferring ownership to local scope.
   const std::auto_ptr<Gtk::Window> dialog (aboutdialog_);
 }
