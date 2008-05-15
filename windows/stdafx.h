@@ -132,3 +132,10 @@
 # include <xmmintrin.h>
 # include <emmintrin.h>
 #endif
+
+// This macro may as well have been named SOMATO_STDAFX_H_INCLUDED.
+// However, the macro's sole purpose is to hack around bugs in the
+// IntelliSense code browsing feature of Microsoft Visual Studio.
+// In particular, it is used to hide foward declarations of external
+// class types.
+#define SOMATO_HIDE_FROM_INTELLISENSE 1

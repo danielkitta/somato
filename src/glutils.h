@@ -26,7 +26,9 @@
 #include <glibmm/ustring.h>
 #include <cstddef>
 
+#ifndef SOMATO_HIDE_FROM_INTELLISENSE
 namespace Gtk { class Widget; }
+#endif
 
 namespace GL
 {

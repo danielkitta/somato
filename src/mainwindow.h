@@ -31,6 +31,7 @@
 #include <memory>
 #include <vector>
 
+#ifndef SOMATO_HIDE_FROM_INTELLISENSE
 namespace Gtk
 {
 class ActionGroup;
@@ -42,6 +43,7 @@ class UIManager;
 class Widget;
 class Window;
 }
+#endif
 
 namespace Somato
 {

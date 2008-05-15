@@ -27,7 +27,9 @@
 #include <glibmm/dispatcher.h>
 #include <vector>
 
+#ifndef SOMATO_HIDE_FROM_INTELLISENSE
 namespace Glib { class Thread; }
+#endif
 
 namespace Somato
 {
