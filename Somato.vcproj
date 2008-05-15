@@ -132,7 +132,7 @@
 				FloatingPointModel="2"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="stdafx.h"
-				AssemblerOutput="1"
+				AssemblerOutput="4"
 				WarningLevel="4"
 				DebugInformationFormat="3"
 				ForcedIncludeFiles="stdafx.h"
