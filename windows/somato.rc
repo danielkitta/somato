@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include <winresrc.h>
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -45,7 +45,7 @@ BEGIN
         BEGIN
             VALUE "Comments", "Redistributable under the terms of the GNU General Public License"
             VALUE "CompanyName", "Free Software Foundation"
-            VALUE "FileDescription", "Soma cube solver and animation"
+            VALUE "FileDescription", "Solve and animate the Soma Cube puzzle"
             VALUE "FileVersion", "0.6.0.0"
             VALUE "InternalName", "somato"
             VALUE "LegalCopyright", "© 2004-2008 Daniel Elstner <daniel.kitta@gmail.com>"
@@ -95,7 +95,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""afxres.h""\r\n"
+    "#include <winresrc.h>\r\n"
     "\0"
 END
 
