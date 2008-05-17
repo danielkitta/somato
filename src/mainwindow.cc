@@ -28,7 +28,19 @@
 
 #include <glib.h>
 #include <glibmm.h>
-#include <gtkmm.h>
+#include <gtkmm/aboutdialog.h>
+#include <gtkmm/accelgroup.h>
+#include <gtkmm/accelkey.h>
+#include <gtkmm/box.h>
+#include <gtkmm/button.h>
+#include <gtkmm/frame.h>
+#include <gtkmm/menu.h>
+#include <gtkmm/scale.h>
+#include <gtkmm/statusbar.h>
+#include <gtkmm/toggleaction.h>
+#include <gtkmm/toolbar.h>
+#include <gtkmm/uimanager.h>
+#include <gtkmm/window.h>
 #include <libglademm/xml.h>
 
 #include <cmath>

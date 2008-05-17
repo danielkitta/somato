@@ -74,8 +74,27 @@
 #include <pangomm.h>
 #include <atkmm.h>
 #include <gdkmm.h>
-#include <gtkmm.h>
 #include <libglademm.h>
+// Normally I'd just include <gtkmm.h>, but the new <gtkmm/papersize.h>
+// header blows it *big time*.  Just have a look...  I guess it's time for
+// the C++ boot camp for the poor soul who is responsible for that one.
+#include <gtkmm/aboutdialog.h>
+#include <gtkmm/accelgroup.h>
+#include <gtkmm/accelkey.h>
+#include <gtkmm/box.h>
+#include <gtkmm/button.h>
+#include <gtkmm/drawingarea.h>
+#include <gtkmm/frame.h>
+#include <gtkmm/main.h>
+#include <gtkmm/menu.h>
+#include <gtkmm/rc.h>
+#include <gtkmm/scale.h>
+#include <gtkmm/statusbar.h>
+#include <gtkmm/style.h>
+#include <gtkmm/toggleaction.h>
+#include <gtkmm/toolbar.h>
+#include <gtkmm/uimanager.h>
+#include <gtkmm/window.h>
 
 #include <vector>
 #include <limits>
@@ -129,8 +148,8 @@
 // These should be safe to include even if we aren't actually building
 // with SSE or SSE2 enabled.
 #if defined(_M_X86) || defined(_M_X64)
-# include <xmmintrin.h>
 # include <emmintrin.h>
+# include <xmmintrin.h>
 #endif
 
 // This macro may as well have been named SOMATO_STDAFX_H_INCLUDED.
