@@ -81,6 +81,7 @@
 #include <gtkmm/aboutdialog.h>
 #include <gtkmm/accelgroup.h>
 #include <gtkmm/accelkey.h>
+#include <gtkmm/adjustment.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
 #include <gtkmm/drawingarea.h>
@@ -90,6 +91,7 @@
 #include <gtkmm/rc.h>
 #include <gtkmm/scale.h>
 #include <gtkmm/statusbar.h>
+#include <gtkmm/stock.h>
 #include <gtkmm/style.h>
 #include <gtkmm/toggleaction.h>
 #include <gtkmm/toolbar.h>
