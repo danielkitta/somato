@@ -18,8 +18,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef SOMATO_RAWVECTOR_H_INCLUDED
-#define SOMATO_RAWVECTOR_H_INCLUDED
+#pragma once
 
 #include "array.h"
 #include <memory>
@@ -30,7 +29,7 @@ namespace Util
 /*
  * Microsoft has decided to cripple the utility of the C++ STL for raw
  * computing applications and added fairly involved (and practically mandatory)
- *  runtime checks to all STL containers. Any code that makes extensive use of
+ * runtime checks to all STL containers. Any code that makes extensive use of
  * iterators in a manner similar to how plain pointers would be used, with the
  * reasonable assumption of virtually identical performance, will experience
  * significant penalties. The optimizer doesn't appear to have special
@@ -74,6 +73,7 @@ private:
   static const size_type chunkmask = 0x1F;
 
   static inline void destroy_backward_n_(typename MemChunk<T>::iterator pend, size_type count);
+  void expand_(size_type c);
 
 public:
   inline void swap(RawVector<T>& b);
@@ -178,31 +178,40 @@ RawVector<T>& RawVector<T>::operator=(const RawVector<T>& b)
   return *this;
 }
 
-template <class T>
+// Calls to expand_() are excellent points to stop inline expansion.
+// Apart from reducing code size, this will nudge the compiler to pursue
+// other, more rewarding inlining opportunities.
+template <class T> __declspec(noinline)
+void RawVector<T>::expand_(size_type c)
+{
+  Util::MemChunk<T> temp ((c + chunkmask) & ~chunkmask);
+
+  stdext::unchecked_uninitialized_copy(storage_.begin(), storage_.begin() + n_elements_,
+                                       temp.begin());
+  storage_.swap(temp);
+  destroy_backward_n_(temp.begin() + n_elements_, n_elements_);
+}
+
+template <class T> inline
 void RawVector<T>::reserve(size_type c)
 {
   if (c > storage_.size())
-  {
-    Util::MemChunk<T> temp ((c + chunkmask) & ~chunkmask);
-
-    stdext::unchecked_uninitialized_copy(storage_.begin(), storage_.begin() + n_elements_,
-                                         temp.begin());
-    storage_.swap(temp);
-    destroy_backward_n_(temp.begin() + n_elements_, n_elements_);
-  }
+    expand_(c);
 }
 
 template <class T> inline
 void RawVector<T>::resize(size_type s, const T& value = T())
 {
-  this->reserve(s);
-
   if (s > n_elements_)
-    stdext::unchecked_uninitialized_fill_n(storage_.begin() + n_elements_,
-                                           s - n_elements_, value);
-  else if (s < n_elements_)
+  {
+    if (c > storage_.size())
+      expand_(c);
+    stdext::unchecked_uninitialized_fill_n(storage_.begin() + n_elements_, s - n_elements_, value);
+  }
+  else
+  {
     destroy_backward_n_(storage_.begin() + n_elements_, n_elements_ - s);
-
+  }
   n_elements_ = s;
 }
 
@@ -210,7 +219,7 @@ template <class T> inline
 void RawVector<T>::push_back(const T& value)
 {
   if (n_elements_ == storage_.size())
-    this->reserve(n_elements_ / 2 * 3 + 2);
+    expand_(n_elements_ / 2 * 3 + 2);
 
   T *const dest = &storage_[n_elements_];
   __assume(dest != 0);
@@ -225,5 +234,3 @@ void swap(RawVector<T>& a, RawVector<T>& b)
 }
 
 } // namespace Util
-
-#endif /* SOMATO_RAWVECTOR_H_INCLUDED */
