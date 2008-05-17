@@ -1,21 +1,50 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioPropertySheet
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="Target MSVC 2005"
 	>
+	<Tool
+		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="&quot;$(WindowsSdkDir)include&quot;;&quot;$(VC80Base)\include&quot;;$(NOINHERIT)"
+		IgnoreStandardIncludePath="true"
+	/>
+	<Tool
+		Name="VCLibrarianTool"
+		AdditionalLibraryDirectories="&quot;$(WindowsSdkDir)lib&quot;;&quot;$(VC80Base)\lib&quot;;$(NOINHERIT)"
+	/>
+	<Tool
+		Name="VCLinkerTool"
+		AdditionalLibraryDirectories="&quot;$(WindowsSdkDir)lib&quot;;&quot;$(VC80Base)\lib&quot;;$(NOINHERIT)"
+		EntryPointSymbol="mainCRTStartup"
+	/>
+	<Tool
+		Name="VCMIDLTool"
+		AdditionalIncludeDirectories="&quot;$(WindowsSdkDir)include&quot;;&quot;$(VC80Base)\include&quot;;$(NOINHERIT)"
+	/>
+	<Tool
+		Name="VCResourceCompilerTool"
+		AdditionalIncludeDirectories="&quot;$(WindowsSdkDir)include&quot;;&quot;$(VC80Base)\include&quot;;$(NOINHERIT)"
+		IgnoreStandardIncludePath="true"
+		ResourceOutputFileName="$(IntDir)\$(InputName).res"
+	/>
 	<UserMacro
 		Name="VC80Base"
 		Value="$(VS80COMNTOOLS)..\..\VC"
 	/>
 	<UserMacro
 		Name="INCLUDE"
-		Value="$(WindowsSdkDir)include;$(VC80Base)\atlmfc\include;$(VC80Base)\include"
+		Value="$(WindowsSdkDir)include;$(VC80Base)\include"
 		PerformEnvironmentSet="true"
 	/>
 	<UserMacro
 		Name="LIB"
-		Value="$(WindowsSdkDir)lib;$(VC80Base)\atlmfc\lib;$(VC80Base)\lib"
+		Value="$(WindowsSdkDir)lib;$(VC80Base)\lib"
+		PerformEnvironmentSet="true"
+	/>
+	<UserMacro
+		Name="LIBPATH"
+		Value="$(WindowsSdkDir)lib;$(VC80Base)\lib"
 		PerformEnvironmentSet="true"
 	/>
 </VisualStudioPropertySheet>
