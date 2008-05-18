@@ -5,6 +5,10 @@
 	Name="somato"
 	ProjectGUID="{AE00E55F-C099-4179-B451-F8A7D9CD0676}"
 	RootNamespace="Somato"
+	SccProjectName="Svn"
+	SccAuxPath="Svn"
+	SccLocalPath="Svn"
+	SccProvider="SubversionScc"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="0"
 	>

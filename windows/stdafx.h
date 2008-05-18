@@ -63,6 +63,12 @@
 #define PANGO_DISABLE_DEPRECATED
 #define RSVG_DISABLE_DEPRECATED
 
+// Turns out MSVC++ 2005 and later in fact support variadic macros.  Also
+// define the ISO C99-style __func__ because GLib assumes its availability
+// if G_HAVE_ISO_VARARGS is defined.
+#define G_HAVE_ISO_VARARGS 1
+#define __func__ __FUNCTION__
+
 // C4510: default constructor could not be generated (VC80 std::list)
 // C4520: multiple default constructors specified (Gtk::PaperSize bug)
 // C4610: object can never be instantiated (VC80 std::list)
