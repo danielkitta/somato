@@ -440,7 +440,7 @@ Matrix4 compute_edge_rotation(const Vector4& a, const Vector4& b)
   const Vector4 dy = Vector4::sign(r + cross);
   const Vector4 dz = Vector4::sign(r - cross);
 
-  return Matrix4(dx, dy, dz, Vector4(0.0, 0.0, 0.0, 1.0));
+  return Matrix4(dx, dy, dz, Math::Matrix4::identity[3]);
 }
 
 } // anonymous namespace
