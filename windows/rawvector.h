@@ -88,7 +88,7 @@ public:
   size_type size()     const { return n_elements_; }
   bool      empty()    const { return (n_elements_ == 0); }
 
-  void reserve(size_type c);
+  inline void reserve(size_type c);
   inline void resize(size_type s, const T& value = T());
   inline void erase(iterator pbegin, iterator pend);
   inline void clear();
