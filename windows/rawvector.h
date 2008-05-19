@@ -204,8 +204,8 @@ void RawVector<T>::resize(size_type s, const T& value = T())
 {
   if (s > n_elements_)
   {
-    if (c > storage_.size())
-      expand_(c);
+    if (s > storage_.size())
+      expand_(s);
     stdext::unchecked_uninitialized_fill_n(storage_.begin() + n_elements_, s - n_elements_, value);
   }
   else
