@@ -28,6 +28,8 @@
 #include <memory>
 #include <vector>
 
+#include <config.h>
+
 namespace GL
 {
 
@@ -52,8 +54,13 @@ struct UIVertex
     { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); return *this; }
 };
 
+#if SOMATO_USE_RAWVECTOR
+typedef Util::RawVector<LayoutTexture*> LayoutVector;
+typedef Util::RawVector<UIVertex>       GeometryVector;
+#else
 typedef std::vector<LayoutTexture*> LayoutVector;
 typedef std::vector<UIVertex>       GeometryVector;
+#endif
 
 /*
  * Base GL widget class that implements all the generic stuff not specific

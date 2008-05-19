@@ -321,7 +321,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
   // Make the width a multiple of 8 to meet SGI's alignment recommendation.
   // This also avoids the padding bytes that would otherwise be necessary
   // in order to ensure row alignment.
-  int img_width  = (ink_width  + 2 * img_border + 7) / 8 * 8;
+  int img_width  = (ink_width  + 2 * img_border + 7) & ~7;
   int img_height =  ink_height + 2 * img_border;
 
   if (target == GL_TEXTURE_2D)
@@ -342,7 +342,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     // At this point, ink_width_ and ink_height_ are either valid, or there
     // is a bug somewhere.  But there is no need for extensive checks right
     // here, as glTexSubImage2D() would bail out later anyway.
-    img_width  = (Math::max(ink_width,  ink_width_)  + 2 * img_border + 7) / 8 * 8;
+    img_width  = (Math::max(ink_width,  ink_width_)  + 2 * img_border + 7) & ~7;
     img_height =  Math::max(ink_height, ink_height_) + 2 * img_border;
   }
 
@@ -585,7 +585,7 @@ LayoutTexture* Scene::create_layout_texture()
   std::auto_ptr<LayoutTexture> layout (new LayoutTexture());
 
   layout->array_offset_ = ui_geometry_.size();
-  ui_geometry_.insert(ui_geometry_.end(), LayoutTexture::VERTEX_COUNT, UIVertex());
+  ui_geometry_.resize(layout->array_offset_ + LayoutTexture::VERTEX_COUNT);
 
   ui_layouts_.push_back(layout.get());
 
@@ -1442,7 +1442,7 @@ void Scene::gl_init_stipple_texture()
   g_return_if_fail(stipple_texture_ == 0);
 
   // Generate the focus line pattern dynamically, with proper alignment.
-  Util::MemChunk<GLubyte> pattern ((FOCUS_PATTERN_LENGTH + 7) / 8 * 8);
+  Util::MemChunk<GLubyte> pattern ((FOCUS_PATTERN_LENGTH + 7) & ~7);
 
   for (Util::MemChunk<GLubyte>::size_type i = 0; i < pattern.size() / 2; ++i)
   {
