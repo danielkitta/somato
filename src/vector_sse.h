@@ -18,9 +18,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef SOMATO_VECTORMATH_H_INCLUDED
-# error "This header file should not be included directly"
-#endif
+#if defined(SOMATO_VECTORMATH_H_INCLUDED) && SOMATO_VECTOR_USE_SSE
 
 #include <xmmintrin.h>
 
@@ -32,22 +30,32 @@
 
 #if !SOMATO_HAVE__MM_CVTSS_F32
 # if defined(__GNUC__)
-  // Missing intrinsic: http://gcc.gnu.org/ml/gcc-patches/2006-01/msg01759.html
-  static inline float __attribute__((__always_inline__))
-  _mm_cvtss_f32(__m128 v) { return __builtin_ia32_vec_ext_v4sf(v, 0); }
-# elif defined(_MSC_VER)
-  __if_not_exists(_mm_cvtss_f32)
-  {
+
+// Missing intrinsic: http://gcc.gnu.org/ml/gcc-patches/2006-01/msg01759.html
+static inline float __attribute__((__always_inline__))
+_mm_cvtss_f32(__m128 v) { return __builtin_ia32_vec_ext_v4sf(v, 0); }
+
+# elif defined(_MSC_VER) && (_CPPLIB_VER < 500)
+
 #  if (_MSC_VER >= 1500)
-    // HACK: Fix build with MSVC++ 9.0 compiler and MSVC++ 8.0 headers
-    extern "C" float _mm_cvtss_f32(__m128);
+// HACK: Fix build with MSVC++ 9.0 compiler and MSVC++ 8.0 headers
+extern "C" float _mm_cvtss_f32(__m128);
+#   pragma intrinsic(_mm_cvtss_f32)
 #  else
-    // Just try to get it working at all, and let the compiler figure it out.
-    static __forceinline float _mm_cvtss_f32(__m128 v) { return v.m128_f32[0]; }
+// Just try to get it working at all, and let the compiler figure it out.
+#   define _mm_cvtss_f32(v) ((v).m128_f32[0])
 #  endif
-  }
-# endif /* _MSC_VER */
+
+# endif /* _MSC_VER && !_mm_cvtss_f32 && (_CPPLIB_VER < 500) */
 #endif /* !SOMATO_HAVE__MM_CVTSS_F32 */
+
+#ifdef _MSC_VER
+// MSVC generates horrible code for _mm_set*() with constant initializers.
+// On the other hand, explicit zero-expanding scalar load from memory is
+// supported.
+# pragma push_macro("_mm_set_ss")
+# define _mm_set_ss(f) _mm_load_ss(&static_cast<const float&>(f))
+#endif
 
 namespace Math
 {
@@ -110,10 +118,18 @@ public:
   value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
   const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
 
+#ifdef _MSC_VER
+  // MSVC messes up when single floats are extracted by value.
+  const value_type& x() const { return v_.m128_f32[0]; }
+  const value_type& y() const { return v_.m128_f32[1]; }
+  const value_type& z() const { return v_.m128_f32[2]; }
+  const value_type& w() const { return v_.m128_f32[3]; }
+#else
   value_type x() const { return _mm_cvtss_f32(v_); }
   value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
   value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
   value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
+#endif
 };
 
 /*
@@ -346,10 +362,18 @@ public:
   value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
   const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
 
+#ifdef _MSC_VER
+  // MSVC messes up when single floats are extracted by value.
+  const value_type& x() const { return v_.m128_f32[0]; }
+  const value_type& y() const { return v_.m128_f32[1]; }
+  const value_type& z() const { return v_.m128_f32[2]; }
+  const value_type& w() const { return v_.m128_f32[3]; }
+#else
   value_type x() const { return _mm_cvtss_f32(v_); }
   value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
   value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
   value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
+#endif
 };
 
 /*
@@ -493,3 +517,11 @@ bool operator!=(const Vector233& a, const Vector233& b)
 }
 
 } // namespace Math
+
+#ifdef _MSC_VER
+# pragma pop_macro("_mm_set_ss")
+#endif
+
+#else /* !SOMATO_VECTORMATH_H_INCLUDED || !SOMATO_VECTOR_USE_SSE */
+# error "This header file should not be included directly"
+#endif

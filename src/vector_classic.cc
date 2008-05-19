@@ -18,6 +18,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#if !SOMATO_VECTOR_USE_SSE
+
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -305,3 +307,5 @@ void Quat::renormalize(Quat::value_type epsilon)
 }
 
 } // namespace Math
+
+#endif /* !SOMATO_VECTOR_USE_SSE */

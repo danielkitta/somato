@@ -18,6 +18,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#if SOMATO_VECTOR_USE_SSE
+
 #include <glib.h>
 #include <cmath>
 #include <cstdlib>
@@ -29,21 +31,6 @@
 
 namespace
 {
-
-/*
- * MSVC generates horrible code for _mm_set*() with constant initializers.
- * On the other hand, explicit zero-expanding scalar load from memory is
- * supported.
- */
-static inline
-__m128 vector4_set_ss(const float& scalar)
-{
-#ifdef _MSC_VER
-  return _mm_load_ss(&scalar);
-#else
-  return _mm_set_ss(scalar);
-#endif
-}
 
 static inline
 __m128 vector4_dot(__m128 a, __m128 b)
@@ -328,7 +315,7 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
 // static
 __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 {
-  const float phi_2 = _mm_cvtss_f32(_mm_mul_ss(phi, vector4_set_ss(0.5f)));
+  const float phi_2 = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
   float sine, cosine;
 
 #if SOMATO_HAVE_SINCOSF
@@ -343,8 +330,8 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
   const __m128 mag = vector3_mag(u);
   u = _mm_div_ps(u, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
 
-  __m128 s = vector4_set_ss(sine);
-  __m128 c = vector4_set_ss(cosine);
+  __m128 s = _mm_set_ss(sine);
+  __m128 c = _mm_set_ss(cosine);
 
   s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(1,0,0,0));
   c = _mm_shuffle_ps(c, c, _MM_SHUFFLE(0,1,1,1));
@@ -414,7 +401,7 @@ __m128 Quat::renormalize_(__m128 quat, __m128 epsilon)
 #endif
 
   const __m128 norm  = vector4_dot(quat, quat);
-  const __m128 error = _mm_and_ps(_mm_sub_ss(vector4_set_ss(1.0f), norm), absmask);
+  const __m128 error = _mm_and_ps(_mm_sub_ss(_mm_set_ss(1.0f), norm), absmask);
 
   if (_mm_ucomige_ss(error, epsilon))
   {
@@ -464,3 +451,5 @@ __m128 Quat::mul_(__m128 a, __m128 b)
 }
 
 } // namespace Math
+
+#endif /* SOMATO_VECTOR_USE_SSE */

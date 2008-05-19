@@ -18,9 +18,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef SOMATO_VECTORMATH_H_INCLUDED
-# error "This header file should not be included directly"
-#endif
+#if defined(SOMATO_VECTORMATH_H_INCLUDED) && !SOMATO_VECTOR_USE_SSE
 
 namespace Math
 {
@@ -458,3 +456,7 @@ bool operator!=(const Vector233& a, const Vector233& b)
 }
 
 } // namespace Math
+
+#else /* !SOMATO_VECTORMATH_H_INCLUDED || SOMATO_VECTOR_USE_SSE */
+# error "This header file should not be included directly"
+#endif
