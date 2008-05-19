@@ -200,7 +200,7 @@ void RawVector<T>::reserve(size_type c)
 }
 
 template <class T> inline
-void RawVector<T>::resize(size_type s, const T& value = T())
+void RawVector<T>::resize(size_type s, const T& value)
 {
   if (s > n_elements_)
   {
@@ -221,7 +221,7 @@ void RawVector<T>::push_back(const T& value)
   if (n_elements_ == storage_.size())
     expand_(n_elements_ / 2 * 3 + 2);
 
-  T *const dest = &storage_[n_elements_];
+  void *const dest = &storage_[n_elements_];
   __assume(dest != 0);
   new(dest) T(value);
   ++n_elements_;

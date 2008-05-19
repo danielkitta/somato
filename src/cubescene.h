@@ -31,6 +31,8 @@
 #include <glibmm/ustring.h>
 #include <vector>
 
+#include <config.h>
+
 namespace Somato
 {
 
@@ -59,6 +61,12 @@ struct PieceCell
   PieceCell(const PieceCell& b) : piece (b.piece), cell (b.cell) {}
   PieceCell& operator=(const PieceCell& b) { piece = b.piece; cell = b.cell; return *this; }
 };
+
+#if SOMATO_USE_RAWVECTOR
+typedef Util::RawVector<PieceCell> PieceCellVector;
+#else
+typedef std::vector<PieceCell> PieceCellVector;
+#endif
 
 class CubeScene : public GL::Scene
 {
@@ -141,7 +149,7 @@ private:
 
   std::vector<Cube>           cube_pieces_;
   std::vector<AnimationData>  animation_data_;
-  std::vector<PieceCell>      piece_cells_;
+  PieceCellVector             piece_cells_;
   std::vector<int>            depth_order_;
 
   sigc::signal<void>          signal_cycle_finished_;

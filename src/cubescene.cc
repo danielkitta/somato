@@ -1131,7 +1131,7 @@ void CubeScene::update_depth_order()
 
   g_return_if_fail(pdepth != depth_order_.end());
 
-  for (std::vector<PieceCell>::iterator p = piece_cells_.begin(); p != piece_cells_.end(); ++p)
+  for (PieceCellVector::iterator p = piece_cells_.begin(); p != piece_cells_.end(); ++p)
   {
     if (p->piece < animation_data_.size())
     {
