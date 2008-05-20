@@ -288,7 +288,6 @@ void LayoutTexture::prepare_pango_context(const Glib::RefPtr<Pango::Context>& co
 
   cairo_surface_destroy(surface); // drop reference
 
-  cairo_set_antialias(cairo_context, CAIRO_ANTIALIAS_GRAY);
   cairo_scale(cairo_context, 1.0, -1.0);
   pango_cairo_update_context(cairo_context, context->gobj());
 
@@ -361,7 +360,6 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
 
     cairo_surface_destroy(surface); // drop reference
 
-    cairo_set_antialias(context, CAIRO_ANTIALIAS_GRAY);
     cairo_scale(context, 1.0, -1.0);
     cairo_move_to(context, img_border + PADDING - ink.get_x(),
                          -(img_border + PADDING + ink.get_y() + ink.get_height()));
