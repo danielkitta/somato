@@ -1101,7 +1101,9 @@ bool CubeTesselator::Impl::find_left_vertex_pair(const CubePosition& pos, IndexS
   for (EdgeStore::const_iterator p = edgestore_.begin(); p != edgestore_.end(); ++p)
   {
     const EdgeType type = p->type & ET_MASK;
-
+#ifdef _MSC_VER
+    __assume(type <= ET_MASK); // code analysis needs help
+#endif
     const int tx = pos[0] + d_top[type][0];
     const int ty = pos[1] + d_top[type][1];
 
