@@ -118,6 +118,25 @@ void generate_focus_rect(int width, int height, int padding, int line_width,
   geometry[9].set_vertex(x0, y0);
 }
 
+/*
+ * Make the texture image stride at least a multiple of 8 to meet SGI's
+ * alignment recommendation.  This also avoids the padding bytes that would
+ * otherwise be necessary in order to ensure row alignment.
+ *
+ * Note that cairo 1.6 made it mandatory to retrieve the stride to be used
+ * with an image surface at runtime.  Currently, the alignment requested by
+ * cairo is actually lower than our own, but that could change some day.
+ */
+static inline
+int aligned_stride(int width)
+{
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1,5,8)
+  return cairo_format_stride_for_width(CAIRO_FORMAT_A8, width + 7 & ~7);
+#else
+  return width + 7 & ~7;
+#endif
+}
+
 } // anonymous namespace
 
 namespace GL
@@ -317,11 +336,8 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
   const int ink_width  = Math::max(0, ink.get_width())  + 2 * PADDING;
   const int ink_height = Math::max(0, ink.get_height()) + 2 * PADDING;
 
-  // Make the width a multiple of 8 to meet SGI's alignment recommendation.
-  // This also avoids the padding bytes that would otherwise be necessary
-  // in order to ensure row alignment.
-  int img_width  = (ink_width  + 2 * img_border + 7) & ~7;
-  int img_height =  ink_height + 2 * img_border;
+  int img_height = ink_height + 2 * img_border;
+  int img_width  = aligned_stride(ink_width + 2 * img_border);
 
   if (target == GL_TEXTURE_2D)
   {
@@ -329,11 +345,9 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     img_width  = Math::round_pow2(img_width);
     img_height = Math::round_pow2(img_height);
   }
-
   // The dimensions of the new image are often identical with the previous
   // one's.  Exploit this by uploading only a sub-area of the texture image
   // which covers the union of the new ink rectangle and the previous one.
-
   const bool sub_image = (tex_name_ && tex_width_ == img_width && tex_height_ == img_height);
 
   if (sub_image && target == GL_TEXTURE_2D)
@@ -341,8 +355,8 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     // At this point, ink_width_ and ink_height_ are either valid, or there
     // is a bug somewhere.  But there is no need for extensive checks right
     // here, as glTexSubImage2D() would bail out later anyway.
-    img_width  = (Math::max(ink_width,  ink_width_)  + 2 * img_border + 7) & ~7;
-    img_height =  Math::max(ink_height, ink_height_) + 2 * img_border;
+    img_height = Math::max(ink_height, ink_height_) + 2 * img_border;
+    img_width  = aligned_stride(Math::max(ink_width,  ink_width_) + 2 * img_border);
   }
 
   Util::MemChunk<GLubyte> tex_image (img_height * img_width);
