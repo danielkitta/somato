@@ -179,7 +179,6 @@ private:
   float                       animation_delay_;
 
   float                       zoom_;
-  float                       rotation_angle_;
   float                       frames_per_sec_;
   float                       pieces_per_sec_;
 

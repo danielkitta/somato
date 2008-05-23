@@ -20,10 +20,10 @@
 
 #include "mathutils.h"
 
+#include <cfloat>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
-#include <limits>
 
 namespace
 {
@@ -48,9 +48,7 @@ Math::Vector4 project_to_sphere(float x, float y, float r)
 
 Math::Quat Math::trackball_motion(float x1, float y1, float x2, float y2, float trackballsize)
 {
-  const float epsilon = std::numeric_limits<float>::epsilon();
-
-  if (std::abs(x2 - x1) < epsilon && std::abs(y2 - y1) < epsilon)
+  if (std::abs(x2 - x1) < FLT_EPSILON && std::abs(y2 - y1) < FLT_EPSILON)
   {
     // Zero rotation
     return Math::Quat();

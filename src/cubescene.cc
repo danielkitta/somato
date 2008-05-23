@@ -39,11 +39,11 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include <cfloat>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
-#include <limits>
 #include <sstream>
 
 namespace
@@ -327,7 +327,6 @@ CubeScene::CubeScene()
   animation_delay_        (1.0 / 3.0),
 
   zoom_                   (1.0),
-  rotation_angle_         (0.0),
   frames_per_sec_         (60.0),
   pieces_per_sec_         (1.0),
 
@@ -456,10 +455,7 @@ float CubeScene::get_zoom() const
 void CubeScene::set_rotation(const Math::Quat& rotation)
 {
   rotation_ = rotation;
-  rotation_.renormalize(8.0f * std::numeric_limits<float>::epsilon());
-
-  // Precompute the angle for glRotatef()
-  rotation_angle_ = rotation_.angle() / radians_per_degree;
+  rotation_.renormalize(8.0f * FLT_EPSILON);
 
   depth_order_changed_ = true;
 
@@ -782,7 +778,8 @@ int CubeScene::gl_render()
     // According to the OpenGL Programming Guide, Appendix F, Rotation:
     // "The R matrix is always defined. If x=y=z=0, then R is the identity
     // matrix."  Thus it's safe not to special-case the identity rotation.
-    glRotatef(rotation_angle_, rotation_.x(), rotation_.y(), rotation_.z());
+    glRotatef(rotation_.angle() / radians_per_degree,
+              rotation_.x(), rotation_.y(), rotation_.z());
 
     glEnable(GL_DEPTH_TEST);
 
