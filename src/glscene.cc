@@ -1104,7 +1104,6 @@ void Scene::gl_update_viewport()
   const int height = Math::max(1, get_height());
 
   glViewport(0, 0, width, height);
-  GL::Error::check();
 }
 
 /*
@@ -1134,7 +1133,6 @@ void Scene::gl_update_color()
   const float blue  = float(bg.get_blue())  / G_MAXUINT16;
 
   glClearColor(red, green, blue, 0.0);
-  GL::Error::check();
 }
 
 void Scene::gl_update_vsync_state()
@@ -1410,9 +1408,7 @@ void Scene::on_signal_realize()
     if (gl_ext()->have_multitexture && gl_ext()->have_texture_env_combine)
     {
       GLint max_texture_units = 0;
-
       glGetIntegerv(GL_MAX_TEXTURE_UNITS, &max_texture_units);
-      GL::Error::check();
 
       use_multitexture_ = (max_texture_units >= 2);
     }

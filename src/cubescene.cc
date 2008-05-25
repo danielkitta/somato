@@ -48,6 +48,9 @@
 
 #include <config.h>
 
+#undef near /* WTF? */
+#undef far  /* Out, demon, out! */
+
 namespace
 {
 
@@ -88,11 +91,6 @@ static const float hide_cursor_delay = 5.0;
  * Side length of a cube cell in unzoomed model units.
  */
 static const float cube_cell_size = 1.0;
-
-/*
- * Field of view angle in the direction of the y-axis.
- */
-static const float field_of_view = 45.0;
 
 /*
  * View offset in the direction of the z-axis.
@@ -818,20 +816,21 @@ void CubeScene::gl_update_projection()
   const double width  = Math::max(1, get_width());
   const double height = Math::max(1, get_height());
 
-  // Place the far clipping plane so that the cube origin will be
-  // positioned halfway between the near and far clipping planes.
-  const double clip_near = 1.0;
-  const double clip_far  = -view_z_offset * 2.0 - clip_near;
+  // Set up a perspective projection with a field of view angle of 45 degrees
+  // in the y-direction.  Place the far clipping plane so that the cube origin
+  // will be positioned halfway between the near and far clipping planes.
+  const double near  = 1.0;
+  const double far   = -view_z_offset * 2.0 - near;
+  const double top   = G_SQRT2 - 1.0; // tan(pi/8) = near / cot(pi/8)
+  const double right = width / height * top;
 
-  gluPerspective(field_of_view, width / height, clip_near, clip_far);
+  glFrustum(-right, right, -top, top, near, far);
 
   // Thanks to the simple directional light model we use, the zoom operation
   // can be implemented by scaling the view distance and the projection matrix.
   // This way, we can avoid GL_NORMALIZE without having to recompute the whole
   // vertex data everytime after a zoom operation.
   glScalef(zoom_, zoom_, zoom_);
-
-  GL::Error::check();
 }
 
 void CubeScene::on_size_allocate(Gtk::Allocation& allocation)
