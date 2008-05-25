@@ -1,4 +1,4 @@
-## Copyright (c) 2004-2007  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of Somato.
 ##
@@ -28,6 +28,8 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 bin_PROGRAMS = src/somato
 
 src_somato_SOURCES =		\
+	src/appdata.cc		\
+	src/appdata.h		\
 	src/array.h		\
 	src/cube.cc		\
 	src/cube.h		\
@@ -54,16 +56,35 @@ EXTRA_src_somato_SOURCES =	\
 	src/vector_classic.cc	\
 	src/vector_classic.h	\
 	src/vector_sse.cc	\
-	src/vector_sse.h
+	src/vector_sse.h	\
+	windows/config.h	\
+	windows/rawvector.h     \
+	windows/resource.h      \
+	windows/stdafx.cc       \
+	windows/stdafx.h
 
-global_defs = -DSOMATO_PKGDATADIR=\""$(pkgdatadir)"\"
-AM_CPPFLAGS = $(global_defs) -I$(top_builddir) $(SOMATO_MODULES_CFLAGS) $(SOMATO_WARNING_FLAGS)
-src_somato_LDADD = $(SOMATO_MODULES_LIBS)
+dist_pkgdata_DATA =		\
+	ui/cubescene.gtkrc	\
+	ui/cubetexture.png	\
+	ui/mainwindow.glade	\
+	ui/mainwindow-ui.xml
 
-dist_noinst_SCRIPTS = autogen.sh debian/rules
-dist_noinst_DATA    = debian/changelog debian/control debian/copyright debian/menu
+dist_noinst_SCRIPTS =		\
+	debian/rules		\
+	autogen.sh
 
-dist_pkgdata_DATA = ui/cubescene.rc ui/cubetexture.png ui/mainwindow.glade ui/mainwindow-ui.xml
+dist_noinst_DATA =			\
+	debian/changelog		\
+	debian/control			\
+	debian/copyright		\
+	debian/menu			\
+	windows/gtkmm-2.4.vsprops	\
+	windows/gtkmm-2.4d.vsprops	\
+	windows/somato.ico		\
+	windows/somato.rc		\
+	windows/vc80target.vsprops	\
+	Somato.sln			\
+	Somato.vcproj
 
 iconthemedir      = $(datadir)/icons/hicolor
 appicondir        = $(iconthemedir)/48x48/apps
@@ -71,6 +92,10 @@ dist_appicon_DATA = ui/somato.png
 
 desktopdir        = $(datadir)/applications
 dist_desktop_DATA = ui/somato.desktop
+
+global_defs	  = -DSOMATO_PKGDATADIR=\""$(pkgdatadir)"\" -I$(top_builddir)
+AM_CPPFLAGS	  = $(global_defs) $(SOMATO_MODULES_CFLAGS) $(SOMATO_WARNING_FLAGS)
+src_somato_LDADD  = $(SOMATO_MODULES_LIBS)
 
 update_icon_cache = $(GTK_UPDATE_ICON_CACHE) --ignore-theme-index --force
 
