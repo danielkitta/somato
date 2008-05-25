@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -1282,7 +1282,7 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
 
 void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
 {
-  texture_context_.clear();
+  texture_context_.reset();
 
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
 
@@ -1299,7 +1299,7 @@ void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
 
 void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
 {
-  texture_context_.clear();
+  texture_context_.reset();
 
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
 
@@ -1378,7 +1378,7 @@ void Scene::on_signal_realize()
 {
   g_return_if_fail(gl_drawable_ == 0);
 
-  texture_context_.clear();
+  texture_context_.reset();
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
 
   GtkWidget     *const glwidget = Gtk::Widget::gobj();
@@ -1446,7 +1446,7 @@ void Scene::on_signal_unrealize()
     has_back_buffer_ = false;
   }
 
-  texture_context_.clear();
+  texture_context_.reset();
 }
 
 void Scene::gl_init_stipple_texture()
