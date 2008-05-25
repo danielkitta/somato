@@ -245,7 +245,10 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 
   // If no double-buffered visual is available, try a single-buffered one.
   if (!config && (mode & GDK_GL_MODE_DOUBLE) != 0)
-    config = gdk_gl_config_new_by_mode_for_screen(screen, GdkGLConfigMode(mode & ~GDK_GL_MODE_DOUBLE));
+  {
+    config = gdk_gl_config_new_by_mode_for_screen(screen,
+                 GdkGLConfigMode(mode & ~unsigned(GDK_GL_MODE_DOUBLE)));
+  }
 #endif /* !GDK_WINDOWING_WIN32 */
 
   if (!config)
