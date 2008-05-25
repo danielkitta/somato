@@ -1,4 +1,4 @@
-## Copyright (c) 2004-2007  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of Somato.
 ##
@@ -45,7 +45,7 @@ AC_LANG([C++])
 DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 
 # Note that this is only a compile-time requirement.
-DK_REQUIRE_GL_VERSION([1.5])
+DK_REQUIRE_GL_VERSION([1.4])
 
 # Before running any of the other tests, check whether it is necessary
 # to explicitely link -lm on this platform.
@@ -62,12 +62,20 @@ DK_CHECK_FEATURE([sincosf],
                   [[float s, c; sincosf(0.0f, &s, &c);]])
 ])
 
+DK_SH_VAR_PUSH([LIBS], ["$SOMATO_MODULES_LIBS $LIBS"])
+DK_CHECK_FEATURE([ustring::compose],
+[
+  AC_LANG_PROGRAM([[#include <glibmm/ustring.h>]],
+                  [[(void) Glib::ustring::compose("%1", 123);]])
+])
+DK_SH_VAR_POP([LIBS])
+
 SOMATO_ARG_ENABLE_VECTOR_SIMD()
 
 DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS],
                        [-Wall -w1],
-                       [-pedantic -Wall -Wextra -w1],
-                       [GLIBMM GTKMM])
+                       [-DGDK_MULTIHEAD_SAFE -pedantic -Wall -Wextra -w1],
+                       [LIBSIGC PANGO G GDK GDK_PIXBUF GTK GLIBMM GDKMM GTKMM])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
