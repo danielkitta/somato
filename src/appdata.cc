@@ -28,10 +28,9 @@
 std::string Util::locate_data_file(const std::string& basename)
 {
 #ifdef G_OS_WIN32
-  const Glib::ScopedPtr<char> exedir (g_win32_get_package_installation_directory_of_module(0));
-  if (exedir.get())
+  if (char *const exedir = g_win32_get_package_installation_directory_of_module(0))
   {
-    const std::string fullpath = Glib::build_filename(exedir.get(), basename);
+    const std::string fullpath = Glib::build_filename(Glib::ScopedPtr<char>(exedir).get(), basename);
 
     if (Glib::file_test(fullpath, Glib::FILE_TEST_IS_REGULAR))
       return fullpath;
