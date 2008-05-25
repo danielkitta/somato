@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -24,10 +24,10 @@
 
 #include <glib.h>
 #include <gtk/gtkgl.h>
-#include <gtk/gtkwindow.h> /* for gtk_window_set_default_icon_name() */
 #include <glibmm.h>
 #include <gtkmm/main.h>
 #include <gtkmm/rc.h>
+#include <gtkmm/window.h>
 
 #include <locale>
 #include <stdexcept>
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 
     Glib::set_application_name(PACKAGE_NAME);
 #ifndef G_OS_WIN32
-    gtk_window_set_default_icon_name(PACKAGE_TARNAME);
+    Gtk::Window::set_default_icon_name(PACKAGE_TARNAME);
 #endif
     Glib::add_exception_handler(&trap_gl_error);
 
