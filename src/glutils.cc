@@ -103,11 +103,19 @@ Glib::ustring error_message_from_code(unsigned int error_code)
   // Although it is quite unlikely that the message will ever contain any
   // characters outside the basic ASCII range, the code should be able to
   // properly handle that eventuality.
+  //
+  // On Windows, we get the string in UTF-16 instead, by means of an
+  // extension which appears to be generally available on the platform.
 
+#ifdef GDK_WINDOWING_WIN32
+  if (const wchar_t *const message = gluErrorUnicodeStringEXT(error_code))
+    if (char *const buf = g_utf16_to_utf8(reinterpret_cast<const gunichar2*>(message), -1, 0, 0, 0))
+      return Glib::ScopedPtr<char>(buf).get();
+#else
   if (const GLubyte *const message = gluErrorString(error_code))
     return Glib::convert(reinterpret_cast<const char*>(message), "UTF-8", "ISO-8859-1");
-  else
-    return Glib::ustring();
+#endif
+  return Glib::ustring();
 }
 
 static inline
