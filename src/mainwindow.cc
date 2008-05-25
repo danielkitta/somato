@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -27,6 +27,7 @@
 #include "vectormath.h"
 
 #include <glib.h>
+#include <gtk/gtkmain.h>
 #include <glibmm.h>
 #include <gtkmm/aboutdialog.h>
 #include <gtkmm/accelgroup.h>
@@ -47,7 +48,7 @@
 
 #include <cmath>
 #include <algorithm>
-#include <iostream>
+#include <iomanip>
 #include <sstream>
 
 #include <config.h>
@@ -69,16 +70,6 @@ static const char *const program_license =
   "You should have received a copy of the GNU General Public License "
   "along with Somato; if not, write to the Free Software Foundation, "
   "Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA\n";
-
-/*
- * List of authors to be displayed in the about dialog.
- */
-static
-const char *const program_authors[] =
-{
-  "Daniel Elstner <daniel.kitta@gmail.com>",
-  0
-};
 
 static
 void range_increment(Gtk::Range* range)
@@ -397,6 +388,16 @@ void MainWindow::switch_cube(int index)
 
   if (cube_index_ >= 0)
   {
+#if SOMATO_HAVE_USTRING__COMPOSE
+    cube_scene_->set_heading(Glib::ustring::compose("Soma cube #%1", cube_index_ + 1));
+    cube_scene_->set_cube_pieces(solutions_[cube_index_]);
+
+    statusbar_->pop(context_cube_);
+    statusbar_->push(Glib::ustring::compose("%1 triangles, %2 vertices",
+                                            cube_scene_->get_cube_triangle_count(),
+                                            cube_scene_->get_cube_vertex_count()),
+                     context_cube_);
+#else
     std::ostringstream output;
 
     output << "Soma cube #" << cube_index_ + 1;
@@ -411,6 +412,7 @@ void MainWindow::switch_cube(int index)
 
     statusbar_->pop(context_cube_);
     statusbar_->push(Glib::locale_to_utf8(output.str()), context_cube_);
+#endif /* !SOMATO_HAVE_USTRING__COMPOSE */
   }
 }
 
@@ -511,6 +513,8 @@ void MainWindow::on_application_about()
     dialog->set_copyright("Copyright \302\251 2004-2008 Daniel Elstner");
     dialog->set_website("http://danielkitta.org/projects/somato");
 
+    const char* const program_authors[] = { "Daniel Elstner <daniel.kitta@gmail.com>", 0 };
+
     dialog->set_authors(program_authors);
     dialog->set_license(program_license);
     dialog->set_wrap_license(true);
@@ -603,12 +607,11 @@ void MainWindow::on_toggle_profile()
   if (actions_->toggle_profile->get_active())
   {
     cube_scene_->set_use_back_buffer(false);
-    cube_scene_->reset_counters();
-
     statusbar_->push("Profiling...", context_profile_);
 
     conn_profile_ = Glib::signal_idle().connect(sigc::mem_fun(*this, &MainWindow::on_profile_idle));
 
+    cube_scene_->reset_counters();
     profile_timer_.start();
   }
   else
@@ -631,24 +634,31 @@ bool MainWindow::on_profile_idle()
 
   if (elapsed >= 1.0)
   {
+    using Glib::ustring;
+
+    const double frames    = cube_scene_->get_frame_counter()    / elapsed;
+    const double triangles = cube_scene_->get_triangle_counter() / elapsed;
+
+#if SOMATO_HAVE_USTRING__COMPOSE
+    const ustring message = ustring::compose("%1 frames/s, %2 triangles/s",
+        ustring::format(std::fixed, std::setprecision(0), frames),
+        ustring::format(std::fixed, std::setprecision(0), triangles));
+#else
     std::ostringstream output;
 
     output.setf(std::ios::fixed);
     output.precision(0);
+    output << frames << " frames/s, " << triangles << " triangles/s";
 
-    output << cube_scene_->get_frame_counter()    / elapsed << " frames/s, "
-           << cube_scene_->get_triangle_counter() / elapsed << " triangles/s";
-
-    cube_scene_->reset_counters();
-
-    const std::string message = output.str();
-
+    const ustring message = Glib::locale_to_utf8(output.str());
+#endif
     if (actions_->toggle_fullscreen->get_active())
-      std::cout << message << std::endl;
+      g_message("%s", message.c_str());
 
     statusbar_->pop(context_profile_);
-    statusbar_->push(Glib::locale_to_utf8(message), context_profile_);
+    statusbar_->push(message, context_profile_);
 
+    cube_scene_->reset_counters();
     profile_timer_.start();
   }
 
