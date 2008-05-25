@@ -1282,7 +1282,8 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
 
 void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
 {
-  texture_context_.reset();
+  // Avoid both reset() and clear()... it's all Murray's fault :-P
+  Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
 
@@ -1299,7 +1300,7 @@ void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
 
 void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
 {
-  texture_context_.reset();
+  Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
 
@@ -1378,7 +1379,7 @@ void Scene::on_signal_realize()
 {
   g_return_if_fail(gl_drawable_ == 0);
 
-  texture_context_.reset();
+  Glib::RefPtr<Pango::Context>().swap(texture_context_);
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
 
   GtkWidget     *const glwidget = Gtk::Widget::gobj();
@@ -1446,7 +1447,7 @@ void Scene::on_signal_unrealize()
     has_back_buffer_ = false;
   }
 
-  texture_context_.reset();
+  Glib::RefPtr<Pango::Context>().swap(texture_context_);
 }
 
 void Scene::gl_init_stipple_texture()
