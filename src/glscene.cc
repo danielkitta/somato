@@ -31,7 +31,6 @@
 #include <gtk/gtkgl.h>
 #include <gdkmm.h>
 #include <gtkmm/style.h>
-#include <GL/glu.h>
 
 #include <cstring>
 #include <algorithm>
@@ -751,7 +750,7 @@ int Scene::gl_render()
     GL::ScopeMatrix projection (GL_PROJECTION);
 
     glLoadIdentity();
-    gluOrtho2D(0.0, Math::max(1, get_width()), 0.0, Math::max(1, get_height()));
+    glOrtho(0.0, Math::max(1, get_width()), 0.0, Math::max(1, get_height()), -1.0, 1.0);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
