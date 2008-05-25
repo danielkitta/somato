@@ -20,13 +20,10 @@
 
 #if defined(SOMATO_VECTORMATH_H_INCLUDED) && SOMATO_VECTOR_USE_SSE
 
-#include <xmmintrin.h>
-
 #if SOMATO_VECTOR_USE_SSE2
 # include <emmintrin.h>
-#elif !defined(_MSC_VER)
-# include <cfloat> /* see Math::Quat::mask_xyz_() */
 #endif
+#include <xmmintrin.h>
 
 #if !SOMATO_HAVE__MM_CVTSS_F32
 # if defined(__GNUC__)
@@ -320,7 +317,9 @@ class Quat
 private:
   __m128 v_;
 
-  static inline __m128 mask_xyz_();
+  union CastVec4 { int i[4]; __m128 v; };
+  static const CastVec4 mask_xyz_;
+
   static __m128 from_axis_(const Vector4& a, __m128 phi);
   static void   to_matrix_(__m128 quat, __m128* result);
   static float  angle_(__m128 quat);
@@ -376,31 +375,6 @@ public:
 #endif
 };
 
-/*
- * Compute the mask {0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000} using
- * only floating point expressions that can be evaluated at compile time.
- *
- * Note that this rules out the mask-returning comparison intrinsics like
- * _mm_cmpneq_ps(), as gcc does not contract them.  Also, although the
- * expression copysignf(nanf("0x7FFFFF"), -1.0f) does yield the desired
- * result with both GCC and ICC, the Intel compiler does not evaluate
- * these C99 function calls at compile time.
- */
-// static
-inline __m128 Quat::mask_xyz_()
-{
-#if defined(_MSC_VER)
-  static const union { int i[4]; __m128 v; } mask = { { -1, -1, -1, 0 } };
-  return mask.v;
-#elif SOMATO_VECTOR_USE_SSE2
-  return _mm_castsi128_ps(_mm_setr_epi32(-1, -1, -1, 0));
-#else
-  // Even with this, ICC will defer the OR to runtime.  Well duh.
-  return _mm_or_ps(_mm_setr_ps(-FLT_MIN, -FLT_MIN, -FLT_MIN, 0.0f),
-                   _mm_setr_ps(-FLT_MAX, -FLT_MAX, -FLT_MAX, 0.0f));
-#endif
-}
-
 inline Quat::Quat()
   : v_ (Matrix4::identity[3]) {}
 
@@ -427,7 +401,7 @@ inline Matrix4 Quat::to_matrix(const Quat& quat)
   { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat.v_, r.data()); return r; }
 
 inline Vector4 Quat::axis() const
-  { return Vector4(_mm_and_ps(v_, Quat::mask_xyz_())); }
+  { return Vector4(_mm_and_ps(v_, Quat::mask_xyz_.v)); }
 
 inline Quat::value_type Quat::angle() const
   { return angle_(v_); }

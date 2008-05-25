@@ -313,6 +313,9 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
 }
 
 // static
+const Quat::CastVec4 Quat::mask_xyz_ = { { -1, -1, -1, 0 } };
+
+// static
 __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 {
   const float phi_2 = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
@@ -336,15 +339,13 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
   s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(1,0,0,0));
   c = _mm_shuffle_ps(c, c, _MM_SHUFFLE(0,1,1,1));
 
-  const __m128 mask = mask_xyz_();
-
-  return _mm_or_ps(_mm_and_ps(_mm_mul_ps(u, s), mask), c);
+  return _mm_or_ps(_mm_and_ps(_mm_mul_ps(u, s), mask_xyz_.v), c);
 }
 
 // static
 void Quat::to_matrix_(__m128 quat, __m128* result)
 {
-  const __m128 mask = mask_xyz_();
+  const __m128 mask = mask_xyz_.v;
 
   const __m128 xyz = _mm_and_ps(quat, mask);
   const __m128 www = _mm_and_ps(_mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3)), mask);
@@ -388,17 +389,8 @@ float Quat::angle_(__m128 quat)
 // static
 __m128 Quat::renormalize_(__m128 quat, __m128 epsilon)
 {
-#if defined(_MSC_VER)
-  // MSVC doesn't contract intrinsics in expressions...
   static const union { int i; float f; } absmasku = { 0x7FFFFFFF };
   const __m128 absmask = _mm_load_ss(&absmasku.f);
-#elif defined(SOMATO_VECTOR_USE_SSE2)
-  const __m128 absmask = _mm_castsi128_ps(_mm_setr_epi32(0x7FFFFFFF, 0, 0, 0));
-#else
-  // Evaluates to {0x7FFFFFFF, 0, 0, 0} at compile time.  See the comment
-  // at Quat::mask_xyz_() for the rationale as to why it is done this way.
-  const __m128 absmask = _mm_or_ps(_mm_set_ss(FLT_MIN), _mm_set_ss(FLT_MAX));
-#endif
 
   const __m128 norm  = vector4_dot(quat, quat);
   const __m128 error = _mm_and_ps(_mm_sub_ss(_mm_set_ss(1.0f), norm), absmask);
