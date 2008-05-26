@@ -1416,6 +1416,10 @@ void Scene::on_signal_realize()
     if (has_back_buffer_ && !use_back_buffer_)
       glDrawBuffer(GL_FRONT);
 
+    // Use 8-byte alignment for all pixel rectangle transfers.
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
+    glPixelStorei(GL_PACK_ALIGNMENT,   8);
+
     gl_initialize();
   }
 }

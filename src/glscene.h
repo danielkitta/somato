@@ -68,6 +68,12 @@ typedef std::vector<UIVertex>       GeometryVector;
  * "gl_" prefix expect the caller to set up the GL context.  Also, be careful
  * to never invoke unknown functions or signal handlers while a GL context is
  * active, as recursive activation is not allowed.
+ *
+ * Note that the implementation of GL::Scene does not rely on any particular
+ * pixel unpack alignment setting.  During the initial setup of a GL context,
+ * the default alignment is raised to the maximum value of eight bytes, since
+ * the traditional default of four bytes no longer matches the characteristics
+ * of current hardware.
  */
 class Scene : public Gtk::DrawingArea
 {
