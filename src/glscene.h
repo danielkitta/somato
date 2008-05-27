@@ -54,12 +54,12 @@ struct UIVertex
     { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); return *this; }
 };
 
-#if SOMATO_USE_RAWVECTOR
-typedef Util::RawVector<LayoutTexture*> LayoutVector;
-typedef Util::RawVector<UIVertex>       GeometryVector;
+#if SOMATO_USE_UNCHECKEDVECTOR
+typedef Util::UncheckedVector<LayoutTexture*> LayoutVector;
+typedef Util::UncheckedVector<UIVertex>       GeometryVector;
 #else
-typedef std::vector<LayoutTexture*> LayoutVector;
-typedef std::vector<UIVertex>       GeometryVector;
+typedef std::vector<LayoutTexture*>           LayoutVector;
+typedef std::vector<UIVertex>                 GeometryVector;
 #endif
 
 /*

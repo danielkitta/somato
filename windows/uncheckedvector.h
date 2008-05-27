@@ -46,13 +46,13 @@ namespace Util
  * For this reason, on top of the incompatibility with any element type which
  * imposes an additional alignment restriction, I decided to bite the bullet
  * and reimplement a vector-like STL container. The new substitute container
- * is now available through "uncheckedvector.h" as class Util::RawVector<T>.
+ * is now available through "uncheckedvector.h" as class UncheckedVector<T>.
  * The allocation semantics and average complexity match std::vector<T>, but
  * the interface is restricted to the small subset of functionality which is
  * actually being used throughout the Somato code base.
  */
 template <class T>
-class RawVector
+class UncheckedVector
 {
 public:
   typedef typename Util::MemChunk<T>::value_type              value_type;
@@ -76,13 +76,13 @@ private:
   void expand_(size_type c);
 
 public:
-  inline void swap(RawVector<T>& b);
+  inline void swap(UncheckedVector<T>& b);
 
-  RawVector() : storage_ (), n_elements_ (0) {}
-  explicit inline RawVector(size_type s, const T& value = T());
-  inline RawVector(const RawVector<T>& b);
-  inline RawVector<T>& operator=(const RawVector<T>& b);
-  inline ~RawVector();
+  UncheckedVector() : storage_ (), n_elements_ (0) {}
+  explicit inline UncheckedVector(size_type s, const T& value = T());
+  inline UncheckedVector(const UncheckedVector<T>& b);
+  inline UncheckedVector<T>& operator=(const UncheckedVector<T>& b);
+  inline ~UncheckedVector();
 
   size_type capacity() const { return storage_.size(); }
   size_type size()     const { return n_elements_; }
@@ -114,7 +114,7 @@ public:
 };
 
 template <class T> inline // static
-void RawVector<T>::destroy_backward_n_(typename MemChunk<T>::iterator pend, size_type count)
+void UncheckedVector<T>::destroy_backward_n_(typename MemChunk<T>::iterator pend, size_type count)
 {
   for (; count > 0; --count)
   {
@@ -124,14 +124,14 @@ void RawVector<T>::destroy_backward_n_(typename MemChunk<T>::iterator pend, size
 }
 
 template <class T> inline
-void RawVector<T>::clear()
+void UncheckedVector<T>::clear()
 {
   destroy_backward_n_(storage_.begin() + n_elements_, n_elements_);
   n_elements_ = 0;
 }
 
 template <class T> inline
-void RawVector<T>::erase(iterator pbegin, iterator pend)
+void UncheckedVector<T>::erase(iterator pbegin, iterator pend)
 {
   stdext::unchecked_copy(pend, storage_.begin() + n_elements_, pbegin);
   destroy_backward_n_(storage_.begin() + n_elements_, pend - pbegin);
@@ -139,13 +139,13 @@ void RawVector<T>::erase(iterator pbegin, iterator pend)
 }
 
 template <class T> inline
-RawVector<T>::~RawVector()
+UncheckedVector<T>::~UncheckedVector()
 {
   destroy_backward_n_(storage_.begin() + n_elements_, n_elements_);
 }
 
 template <class T> inline
-RawVector<T>::RawVector(size_type s, const T& value)
+UncheckedVector<T>::UncheckedVector(size_type s, const T& value)
 :
   storage_    ((s + chunkmask) & ~chunkmask),
   n_elements_ (s)
@@ -154,7 +154,7 @@ RawVector<T>::RawVector(size_type s, const T& value)
 }
 
 template <class T> inline
-RawVector<T>::RawVector(const RawVector<T>& b)
+UncheckedVector<T>::UncheckedVector(const UncheckedVector<T>& b)
 :
   storage_    ((b.n_elements_ + chunkmask) & ~chunkmask),
   n_elements_ (b.n_elements_)
@@ -164,16 +164,16 @@ RawVector<T>::RawVector(const RawVector<T>& b)
 }
 
 template <class T> inline
-void RawVector<T>::swap(RawVector<T>& b)
+void UncheckedVector<T>::swap(UncheckedVector<T>& b)
 {
   storage_.swap(b.storage_);
   std::swap(n_elements_, b.n_elements_);
 }
 
 template <class T> inline
-RawVector<T>& RawVector<T>::operator=(const RawVector<T>& b)
+UncheckedVector<T>& UncheckedVector<T>::operator=(const UncheckedVector<T>& b)
 {
-  RawVector<T> temp (b);
+  UncheckedVector<T> temp (b);
   this->swap(temp);
   return *this;
 }
@@ -182,7 +182,7 @@ RawVector<T>& RawVector<T>::operator=(const RawVector<T>& b)
 // Apart from reducing code size, this will nudge the compiler to pursue
 // other, more rewarding inlining opportunities.
 template <class T> __declspec(noinline)
-void RawVector<T>::expand_(size_type c)
+void UncheckedVector<T>::expand_(size_type c)
 {
   Util::MemChunk<T> temp ((c + chunkmask) & ~chunkmask);
 
@@ -193,14 +193,14 @@ void RawVector<T>::expand_(size_type c)
 }
 
 template <class T> inline
-void RawVector<T>::reserve(size_type c)
+void UncheckedVector<T>::reserve(size_type c)
 {
   if (c > storage_.size())
     expand_(c);
 }
 
 template <class T> inline
-void RawVector<T>::resize(size_type s, const T& value)
+void UncheckedVector<T>::resize(size_type s, const T& value)
 {
   if (s > n_elements_)
   {
@@ -216,7 +216,7 @@ void RawVector<T>::resize(size_type s, const T& value)
 }
 
 template <class T> inline
-void RawVector<T>::push_back(const T& value)
+void UncheckedVector<T>::push_back(const T& value)
 {
   if (n_elements_ == storage_.size())
     expand_(n_elements_ / 2 * 3 + 2);
@@ -228,7 +228,7 @@ void RawVector<T>::push_back(const T& value)
 }
 
 template <class T> inline
-void swap(RawVector<T>& a, RawVector<T>& b)
+void swap(UncheckedVector<T>& a, UncheckedVector<T>& b)
 {
   a.swap(b);
 }

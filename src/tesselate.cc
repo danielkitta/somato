@@ -77,16 +77,16 @@ struct EdgePosition
 
 struct EdgeCorner;
 
-#if SOMATO_USE_RAWVECTOR
-typedef Util::RawVector<int>          IndexStore;
-typedef Util::RawVector<CubePosition> FaceStore;
-typedef Util::RawVector<EdgePosition> EdgeStore;
-typedef Util::RawVector<EdgeCorner*>  CornerStore;
+#if SOMATO_USE_UNCHECKEDVECTOR
+typedef Util::UncheckedVector<int>          IndexStore;
+typedef Util::UncheckedVector<CubePosition> FaceStore;
+typedef Util::UncheckedVector<EdgePosition> EdgeStore;
+typedef Util::UncheckedVector<EdgeCorner*>  CornerStore;
 #else
-typedef std::vector<int>              IndexStore;
-typedef std::vector<CubePosition>     FaceStore;
-typedef std::vector<EdgePosition>     EdgeStore;
-typedef std::vector<EdgeCorner*>      CornerStore;
+typedef std::vector<int>                    IndexStore;
+typedef std::vector<CubePosition>           FaceStore;
+typedef std::vector<EdgePosition>           EdgeStore;
+typedef std::vector<EdgeCorner*>            CornerStore;
 #endif
 
 struct EdgeCorner

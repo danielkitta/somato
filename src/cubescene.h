@@ -62,10 +62,10 @@ struct PieceCell
   PieceCell& operator=(const PieceCell& b) { piece = b.piece; cell = b.cell; return *this; }
 };
 
-#if SOMATO_USE_RAWVECTOR
-typedef Util::RawVector<PieceCell> PieceCellVector;
+#if SOMATO_USE_UNCHECKEDVECTOR
+typedef Util::UncheckedVector<PieceCell>  PieceCellVector;
 #else
-typedef std::vector<PieceCell> PieceCellVector;
+typedef std::vector<PieceCell>            PieceCellVector;
 #endif
 
 class CubeScene : public GL::Scene

@@ -34,20 +34,20 @@
 namespace Somato
 {
 
-typedef Math::Vector233               CubeElement;
-typedef GLushort                      CubeIndex;
+typedef Math::Vector233 CubeElement;
+typedef GLushort        CubeIndex;
 
-#if SOMATO_USE_RAWVECTOR
-typedef Util::RawVector<CubeElement>  CubeElementArray;
-typedef Util::RawVector<CubeIndex>    CubeIndexArray;
-typedef Util::RawVector<GLint>        RangeStartArray;
-typedef Util::RawVector<GLsizei>      RangeCountArray;
+#if SOMATO_USE_UNCHECKEDVECTOR
+typedef Util::UncheckedVector<CubeElement>  CubeElementArray;
+typedef Util::UncheckedVector<CubeIndex>    CubeIndexArray;
+typedef Util::UncheckedVector<GLint>        RangeStartArray;
+typedef Util::UncheckedVector<GLsizei>      RangeCountArray;
 #else
-typedef std::vector<CubeElement>      CubeElementArray;
-typedef std::vector<CubeIndex>        CubeIndexArray;
-typedef std::vector<GLint>            RangeStartArray;
-typedef std::vector<GLsizei>          RangeCountArray;
-#endif /* !SOMATO_USE_RAWVECTOR */
+typedef std::vector<CubeElement>            CubeElementArray;
+typedef std::vector<CubeIndex>              CubeIndexArray;
+typedef std::vector<GLint>                  RangeStartArray;
+typedef std::vector<GLsizei>                RangeCountArray;
+#endif /* !SOMATO_USE_UNCHECKEDVECTOR */
 
 enum
 {

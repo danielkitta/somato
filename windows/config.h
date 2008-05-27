@@ -49,7 +49,7 @@
  */
 
 /*
- * On Windows with MS Visual C++, we use our own custom Util::RawVector<T>
+ * On Windows with MS Visual C++, we use our own custom UncheckedVector<T>
  * template class instead of std::vector<T> in some cases.  This turned out
  * to be necessary for mainly these two reasons:  Microsoft's std::vector<>
  * cannot be used with any element type which imposes alignment requirements
@@ -57,9 +57,9 @@
  * accidental, and wouldn't be there if std::vector<T>::resize() and maybe
  * a few other methods had been declared with constant reference arguments.
  *
- * Please refer to "uncheckedvector.h" for the class description and source code.
+ * Please refer to "uncheckedvector.h" for the documentation and source code.
  */
-#define SOMATO_USE_RAWVECTOR 1
+#define SOMATO_USE_UNCHECKEDVECTOR 1
 /*
  * Include this Windows-specific header file here, so we won't have to
  * sprinkle the code with preprocessor conditionals all over the place.
