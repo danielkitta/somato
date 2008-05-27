@@ -46,7 +46,7 @@ namespace Util
  * For this reason, on top of the incompatibility with any element type which
  * imposes an additional alignment restriction, I decided to bite the bullet
  * and reimplement a vector-like STL container. The new substitute container
- * is now available through "windows/rawvector.h" as class Util::RawVector<T>.
+ * is now available through "uncheckedvector.h" as class Util::RawVector<T>.
  * The allocation semantics and average complexity match std::vector<T>, but
  * the interface is restricted to the small subset of functionality which is
  * actually being used throughout the Somato code base.

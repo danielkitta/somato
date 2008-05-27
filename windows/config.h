@@ -57,11 +57,11 @@
  * accidental, and wouldn't be there if std::vector<T>::resize() and maybe
  * a few other methods had been declared with constant reference arguments.
  *
- * Please refer to "rawvector.h" for the class description and source code.
+ * Please refer to "uncheckedvector.h" for the class description and source code.
  */
 #define SOMATO_USE_RAWVECTOR 1
 /*
  * Include this Windows-specific header file here, so we won't have to
  * sprinkle the code with preprocessor conditionals all over the place.
  */
-#include "rawvector.h"
+#include "uncheckedvector.h"

@@ -244,10 +244,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\windows\rawvector.h"
-				>
-			</File>
-			<File
 				RelativePath=".\windows\resource.h"
 				>
 			</File>
@@ -271,6 +267,10 @@
 			</File>
 			<File
 				RelativePath=".\src\tesselate.h"
+				>
+			</File>
+			<File
+				RelativePath=".\windows\uncheckedvector.h"
 				>
 			</File>
 			<File
