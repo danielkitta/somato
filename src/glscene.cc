@@ -355,7 +355,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     // is a bug somewhere.  But there is no need for extensive checks right
     // here, as glTexSubImage2D() would bail out later anyway.
     img_height = Math::max(ink_height, ink_height_) + 2 * img_border;
-    img_width  = aligned_stride(Math::max(ink_width,  ink_width_) + 2 * img_border);
+    img_width  = aligned_stride(Math::max(ink_width, ink_width_) + 2 * img_border);
   }
 
   Util::MemChunk<GLubyte> tex_image (img_height * img_width);
