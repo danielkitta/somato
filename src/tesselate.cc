@@ -440,7 +440,7 @@ Matrix4 compute_edge_rotation(const Vector4& a, const Vector4& b)
   const Vector4 dy = Vector4::sign(r + cross);
   const Vector4 dz = Vector4::sign(r - cross);
 
-  return Matrix4(dx, dy, dz, Math::Matrix4::identity[3]);
+  return Matrix4(dx, dy, dz, Vector4(Matrix4::identity[3]));
 }
 
 } // anonymous namespace
@@ -475,19 +475,16 @@ private:
 
   bool find_top_vertex_pair(const CubePosition& pos, IndexStore& indices) const;
   bool find_left_vertex_pair(const CubePosition& pos, IndexStore& indices) const;
-
-  void build_contour_strip2(const FaceStore& vertices,
-                            const IndexStore& indices);
 #if 0
   void build_quad_contour();
   void build_hexagon_contour();
   void build_octagon_contour();
-#endif
-  void compute_contour_vertices(FaceStore& vertices, IndexStore& inward);
-#if 0
   void build_contour_strip(const FaceStore& vertices,
                            const unsigned char* order, int count, int offset);
+  void build_edge_stripe2(const Matrix4& rotation, const EdgeCorner& ca, const EdgeCorner& cb);
 #endif
+  void build_contour_strip2(const FaceStore& vertices, const IndexStore& indices);
+  void compute_contour_vertices(FaceStore& vertices, IndexStore& inward);
   void check_new_edge(const CubePosition& pos, const CubePosition& ivertex,
                       EdgeType type, EdgeType prevtype);
   Vector4 vertex_at_corner(const CubePosition& vpos) const;
@@ -496,11 +493,6 @@ private:
 
   void trace_connected_edges();
   void build_single_edge(const Matrix4& rotation, const EdgeCorner& ca, const EdgeCorner& cb);
-
-#if 0
-  void build_edge_stripe2(const Matrix4& rotation, const EdgeCorner& ca, const EdgeCorner& cb);
-#endif
-
   void build_edge_stripe(const Matrix4& rotation, const CornerStore& stripe);
   void build_corner_slice(const Vector4& origin,
                           const Vector4::array_type* slice, int begin, int end);
@@ -510,7 +502,6 @@ private:
   void build_bridge_strip(const Matrix4& matrixa, const Matrix4& matrixb,
                           const Vector4& a, const Vector4& b,
                           const Vector4::array_type* normals);
-
   // noncopyable
   Impl(const CubeTesselator::Impl&);
   CubeTesselator::Impl& operator=(const CubeTesselator::Impl&);
@@ -520,7 +511,6 @@ public:
   RangeStartArray*  range_start_array;
   RangeCountArray*  range_count_array;
   CubeIndexArray*   index_array;
-
   float             cellsize;
   int               trianglecount;
 
@@ -1248,8 +1238,7 @@ void CubeTesselator::Impl::build_octagon_contour()
 }
 #endif
 
-void CubeTesselator::Impl::compute_contour_vertices(FaceStore& vertices,
-                                                    IndexStore& inward)
+void CubeTesselator::Impl::compute_contour_vertices(FaceStore& vertices, IndexStore& inward)
 {
   enum { ORIGIN = Cube::N * EDGE_SCALE / 2 };
   static const signed char corneroffset[4][2] = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };

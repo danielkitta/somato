@@ -87,7 +87,7 @@ private:
   // to be implemented using the pimpl (pointer to implementation) idiom.
   class Impl;
 
-  Impl* pimpl_;
+  Impl *const pimpl_;
 
   // noncopyable
   CubeTesselator(const CubeTesselator&);
