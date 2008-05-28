@@ -44,13 +44,10 @@ bool Cube::get(int x, int y, int z) const
 
 bool Cube::getsafe(int x, int y, int z) const
 {
-  if ((x >= 0 && x < N) && (y >= 0 && y < N) && (z >= 0 && z < N))
-  {
-    const int index = N*N*x + N*y + z;
-
-    return ((data_ >> index) & Bits(1));
-  }
-  return false;
+  const int index = N*N*x + N*y + z;
+  // This code is not optimal, but on balance probably better than three
+  // consecutive branches within the first few instructions of a function.
+  return (x >= 0 && x < N) & (y >= 0 && y < N) & (z >= 0 && z < N) & (data_ >> index);
 }
 
 void Cube::put(int x, int y, int z, bool value)

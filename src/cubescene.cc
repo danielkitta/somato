@@ -79,7 +79,7 @@ enum { TRACK_UNSET = G_MININT };
 /*
  * Single-precision factor used for conversion of angles.
  */
-static const float radians_per_degree = G_PI / 180.0;
+static const float degrees_per_radian = 180.0 / G_PI;
 
 /*
  * The time span, in seconds, to wait for further user input
@@ -225,7 +225,6 @@ private:
   void query();
 
 public:
-
   bool have_separate_specular_color;
   bool have_generate_mipmap;
   bool have_draw_range_elements;
@@ -649,7 +648,7 @@ void CubeScene::rotate(int axis, float angle)
   Math::Vector4 a;
   a[imax] = (matrix[imax][axis] < 0.0f) ? -1.0f : 1.0f;
 
-  set_rotation(rotation_ * Math::Quat::from_axis(a, angle * radians_per_degree));
+  set_rotation(rotation_ * Math::Quat::from_axis(a, angle / degrees_per_radian));
 }
 
 void CubeScene::gl_initialize()
@@ -778,7 +777,7 @@ int CubeScene::gl_render()
     // According to the OpenGL Programming Guide, Appendix F, Rotation:
     // "The R matrix is always defined. If x=y=z=0, then R is the identity
     // matrix."  Thus it's safe not to special-case the identity rotation.
-    glRotatef(rotation_.angle() / radians_per_degree,
+    glRotatef(rotation_.angle() * degrees_per_radian,
               rotation_.x(), rotation_.y(), rotation_.z());
 
     glEnable(GL_DEPTH_TEST);

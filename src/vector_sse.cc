@@ -100,7 +100,7 @@ void* v4_align_alloc(std::size_t size) throw()
   if (size == 0)
     size = 1;
 
-  const std::size_t alignment = (size % sizeof(__m128) != 0) ? 8 : 16;
+  const std::size_t alignment = (size % sizeof(__m128) == 0) ? sizeof(__m128) : sizeof(__m64);
 
   return _mm_malloc(size, alignment);
 }
@@ -227,11 +227,9 @@ __m128 Vector4::rint_(__m128 v)
   v = _mm_cvtpi32_ps(v, i0);
   u = _mm_cvtpi32_ps(u, i1);
 
-  v = _mm_movelh_ps(v, u);
-
   _mm_empty(); // reset FP state
 
-  return v;
+  return _mm_movelh_ps(v, u);
 }
 #endif /* !SOMATO_VECTOR_USE_SSE2 */
 

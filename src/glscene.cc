@@ -1213,10 +1213,10 @@ Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustri
 {
   if (!texture_context_)
   {
-    const Glib::RefPtr<Pango::Context> context = create_pango_context();
+    Glib::RefPtr<Pango::Context> context = create_pango_context();
     LayoutTexture::prepare_pango_context(context);
 
-    texture_context_ = context;
+    swap(texture_context_, context);
   }
 
   const Glib::RefPtr<Pango::Layout> layout = Pango::Layout::create(texture_context_);
