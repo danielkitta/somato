@@ -1467,11 +1467,11 @@ void CubeScene::gl_create_wireframe()
     GL::Error::throw_if_fail(wireframe_buffers_[0] != 0 && wireframe_buffers_[1] != 0);
 
     gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, wireframe_buffers_[0]);
-    gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, vertices.bytes(), &vertices[0], GL_STATIC_DRAW_ARB);
-
+    gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, vertices.bytes(), &vertices[0],
+                         GL_STATIC_DRAW_ARB);
     gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, wireframe_buffers_[1]);
-    gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.bytes(), &indices[0], GL_STATIC_DRAW_ARB);
-
+    gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.bytes(), &indices[0],
+                         GL_STATIC_DRAW_ARB);
     gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
     gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
   }
@@ -1485,13 +1485,11 @@ void CubeScene::gl_create_wireframe()
 
     glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
     glEnableClientState(GL_VERTEX_ARRAY);
-
     {
       GL::ScopeList list (wireframe_list_, GL_COMPILE);
 
       gl_draw_wireframe_elements(&indices[0]);
     }
-
     glDisableClientState(GL_VERTEX_ARRAY);
   }
 
@@ -1674,10 +1672,11 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
     {
       for (std::vector<int>::const_iterator p = depth_order_.begin(); p != depth_order_.end(); ++p)
       {
-        if (*p >= first && *p <= last_fixed)
-        {
-          const AnimationData& data = animation_data_[*p];
+        const int i = *p;
 
+        if (i >= first && i <= last_fixed)
+        {
+          const AnimationData& data = animation_data_[i];
           triangle_count += data.triangle_count;
 
           gl_draw_piece_elements(data);
@@ -1688,7 +1687,6 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
     if (last != last_fixed)
     {
       const AnimationData& data = animation_data_[last];
-
       triangle_count += data.triangle_count;
 
       gl_translate_animated_piece(data.direction);
@@ -1722,13 +1720,13 @@ int CubeScene::gl_draw_piece_list_range(int first, int last) const
     {
       for (std::vector<int>::const_iterator p = depth_order_.begin(); p != depth_order_.end(); ++p)
       {
-        if (*p >= first && *p <= last_fixed)
+        const int i = *p;
+
+        if (i >= first && i <= last_fixed)
         {
-          const AnimationData& data = animation_data_[*p];
+          triangle_count += animation_data_[i].triangle_count;
 
-          triangle_count += data.triangle_count;
-
-          glCallList(piece_list_base_ + *p);
+          glCallList(piece_list_base_ + i);
         }
       }
     }
@@ -1736,7 +1734,6 @@ int CubeScene::gl_draw_piece_list_range(int first, int last) const
     if (last != last_fixed)
     {
       const AnimationData& data = animation_data_[last];
-
       triangle_count += data.triangle_count;
 
       gl_translate_animated_piece(data.direction);
@@ -1801,12 +1798,12 @@ void CubeScene::gl_init_cube_texture()
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, WIDTH, HEIGHT, 0,
-                 GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+                 GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
   }
   else
   {
     const int result = gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, WIDTH, HEIGHT,
-                                         GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+                                         GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
     if (result != GL_NO_ERROR)
       throw GL::Error(result);
   }
