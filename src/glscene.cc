@@ -459,7 +459,7 @@ Scene::Scene()
   exclusive_context_  (false),
   has_back_buffer_    (false),
   use_back_buffer_    (true),
-  enable_vsync_       (false),
+  enable_vsync_       (true),
   vsync_enabled_      (false),
   show_focus_         (true),
   focus_drawable_     (false),
@@ -618,10 +618,8 @@ void Scene::gl_update_ui()
     if (!ui_buffer_)
     {
       gl_ext()->GenBuffers(1, &ui_buffer_);
-
       GL::Error::throw_if_fail(ui_buffer_ != 0);
     }
-
     gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
     gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, ui_geometry_.size() * sizeof(UIVertex),
                          &ui_geometry_[0], GL_DYNAMIC_DRAW_ARB);
@@ -780,7 +778,7 @@ int Scene::gl_render()
 
 int Scene::gl_render_ui(void* arrays) const
 {
-  GLubyte *const byte_start = static_cast<GLubyte*>(arrays);
+  char *const byte_start = static_cast<char*>(arrays);
 
   if (use_multitexture_)
   {
@@ -789,7 +787,6 @@ int Scene::gl_render_ui(void* arrays) const
 
     gl_ext()->ClientActiveTexture(GL_TEXTURE0);
   }
-
   glTexCoordPointer(2, GL_FLOAT, sizeof(UIVertex), byte_start);
   glVertexPointer  (2, GL_FLOAT, sizeof(UIVertex), byte_start + 2 * sizeof(GLfloat));
 
@@ -838,7 +835,10 @@ int Scene::gl_render_layouts() const
 }
 
 /*
- * Render text layouts and shadow in a single pass.
+ * Render text layouts and shadow in a single pass.  The target must be
+ * either GL_TEXTURE_RECTANGLE_NV or GL_TEXTURE_2D.  At least the first
+ * element in the non-empty sequence [first, ui_layouts_.end()) must be
+ * enabled and ready for drawing.
  *
  * Assumed GL state on entry:
  *
@@ -1092,7 +1092,6 @@ void Scene::gl_build_focus()
       generate_focus_rect(width, height, focus_padding, Math::max(1, focus_line_width),
                           (focus_line_pattern.empty()) ? 1 : guchar(focus_line_pattern[0]),
                           ui_geometry_.begin() + FOCUS_ARRAY_OFFSET);
-
       focus_drawable_ = true;
     }
   }
@@ -1415,10 +1414,6 @@ void Scene::on_signal_realize()
 
     if (has_back_buffer_ && !use_back_buffer_)
       glDrawBuffer(GL_FRONT);
-
-    // Use 8-byte alignment for all pixel rectangle transfers.
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
-    glPixelStorei(GL_PACK_ALIGNMENT,   8);
 
     gl_initialize();
   }
