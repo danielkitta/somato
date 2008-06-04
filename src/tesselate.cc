@@ -683,45 +683,31 @@ void CubeTesselator::Impl::strip_element(const CubeElement& element)
 {
   if (index_array)
   {
-#if 0
-    // It gets a bit tricky with reverse iterators, but after all the vertex
-    // we look for is most likely to be found among the more recent additions.
-
-    const CubeElementArray::reverse_iterator p =
-        std::find(element_array->rbegin(), element_array->rend() - first_element_, element);
-
-    int element_index = (element_array->rend() - p) - 1;
-
-    if (element_index < first_element_)
-    {
-      element_index = element_array->size();
-      element_array->push_back(element);
-    }
-#else
-    // Not using reverse iterators because it generated inefficient code.
-
     const CubeElementArray::const_iterator pbegin = element_array->begin();
     const CubeElementArray::const_iterator pend   = element_array->end();
 
+    // FIXME: The linear search below is horribly expensive and on the
+    // critical path.  The fix is to first come up with a proper data
+    // structure to describe the model surface, and then rewrite this
+    // horrible mess entirely from scratch.  Unfortunately I'm stuck at
+    // step one for now.
     const CubeElementArray::const_iterator p = std::find(pbegin + first_element_, pend, element);
-
     const int element_index = p - pbegin;
 
     if (p == pend)
       element_array->push_back(element);
-#endif
 
     if (strip_index_ > 2)
     {
       const CubeIndexArray::const_iterator pos = index_array->end();
 
-      const int i0 = (strip_index_ % 2 != 0) ? pos[-1] : pos[-3];
-      const int i1 = (strip_index_ % 2 != 0) ? pos[-2] : pos[-1];
+      const int odd = strip_index_ & 1; // odd:    | even:
+      const int i0  = pos[2 * odd - 3]; // pos[-1] | pos[-3]
+      const int i1  = pos[-1 - odd];    // pos[-2] | pos[-1]
 
       index_array->push_back(i0);
       index_array->push_back(i1);
     }
-
     index_array->push_back(element_index);
   }
   else
