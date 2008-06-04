@@ -70,7 +70,6 @@ public:
 #elif defined(GDK_WINDOWING_WIN32)
   PFNWGLSWAPINTERVALEXTPROC     SwapIntervalEXT;
 #endif
-
   PFNGLACTIVETEXTUREPROC        ActiveTexture;
   PFNGLCLIENTACTIVETEXTUREPROC  ClientActiveTexture;
 
@@ -82,10 +81,10 @@ public:
   Extensions() : extensions_ (0), version_ (0) { query(); }
   virtual ~Extensions();
 
-  bool have_version(int major, int minor) const
+  inline bool have_version(int major, int minor) const
     { return (version_ >= GL::make_version(major, minor)); }
 
-  bool have_extension(const char* name) const
+  inline bool have_extension(const char* name) const
     { return GL::parse_extensions_string(extensions_, name); }
 };
 
