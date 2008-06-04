@@ -71,8 +71,8 @@ template <class T>
 class MemChunk
 {
 private:
-  std::size_t size_;
-  T*          data_;
+  T* mbegin_;
+  T* mend_;
 
   // noncopyable
   MemChunk(const MemChunk<T>&);
@@ -90,34 +90,34 @@ public:
   typedef std::ptrdiff_t                        difference_type;
 
   explicit MemChunk(size_type s)
-    : size_ (s), data_ (static_cast<T*>(operator new(sizeof(T) * s))) {}
-  MemChunk() : size_ (0), data_ (0) {}
-  ~MemChunk() { operator delete(data_); }
+    : mbegin_ (static_cast<T*>(operator new(sizeof(T) * s))), mend_ (mbegin_ + s) {}
+  MemChunk() : mbegin_ (0), mend_ (0) {}
+  ~MemChunk() { operator delete(mbegin_); }
 
   void swap(MemChunk<T>& b)
-    { std::swap(size_, b.size_); std::swap(data_, b.data_); }
+    { std::swap(mbegin_, b.mbegin_); std::swap(mend_, b.mend_); }
 
-  size_type bytes() const { return size_ * sizeof(T); }
-  size_type size()  const { return size_; }
-  bool      empty() const { return (size_ == 0); }
+  size_type bytes() const { return size_type(mend_ - mbegin_) * sizeof(T); }
+  size_type size()  const { return mend_ - mbegin_; }
+  bool      empty() const { return (mbegin_ == mend_); }
 
-  reference       operator[](size_type i)       { return data_[i]; }
-  const_reference operator[](size_type i) const { return data_[i]; }
+  reference       operator[](size_type i)       { return mbegin_[i]; }
+  const_reference operator[](size_type i) const { return mbegin_[i]; }
 
-  reference       front()       { return data_[0]; }
-  const_reference front() const { return data_[0]; }
-  reference       back()        { return data_[size_ - 1]; }
-  const_reference back()  const { return data_[size_ - 1]; }
+  reference       front()       { return mbegin_[0]; }
+  const_reference front() const { return mbegin_[0]; }
+  reference       back()        { return mend_[-1]; }
+  const_reference back()  const { return mend_[-1]; }
 
-  iterator       begin()       { return data_; }
-  const_iterator begin() const { return data_; }
-  iterator       end()         { return data_ + size_; }
-  const_iterator end()   const { return data_ + size_; }
+  iterator       begin()       { return mbegin_; }
+  const_iterator begin() const { return mbegin_; }
+  iterator       end()         { return mend_; }
+  const_iterator end()   const { return mend_; }
 
-  reverse_iterator       rbegin()       { return reverse_iterator(data_ + size_); }
-  const_reverse_iterator rbegin() const { return const_reverse_iterator(data_ + size_); }
-  reverse_iterator       rend()         { return reverse_iterator(data_); }
-  const_reverse_iterator rend()   const { return const_reverse_iterator(data_); }
+  reverse_iterator       rbegin()       { return reverse_iterator(mend_); }
+  const_reverse_iterator rbegin() const { return const_reverse_iterator(mend_); }
+  reverse_iterator       rend()         { return reverse_iterator(mbegin_); }
+  const_reverse_iterator rend()   const { return const_reverse_iterator(mbegin_); }
 };
 
 template <class T> inline

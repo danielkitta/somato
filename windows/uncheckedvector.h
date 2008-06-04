@@ -67,26 +67,26 @@ public:
 
 private:
   Util::MemChunk<T> storage_;
-  size_type         n_elements_;
+  iterator          endused_;
 
   static const size_type chunksize = 32;
   static const size_type chunkmask = 0x1F;
 
-  static inline void destroy_backward_n_(typename MemChunk<T>::iterator pend, size_type count);
+  static inline iterator destroy_backward_(iterator pbegin, iterator pend);
   void expand_(size_type c);
 
 public:
   inline void swap(UncheckedVector<T>& b);
 
-  UncheckedVector() : storage_ (), n_elements_ (0) {}
+  UncheckedVector() : storage_ (), endused_ (0) {}
   explicit inline UncheckedVector(size_type s, const T& value = T());
   inline UncheckedVector(const UncheckedVector<T>& b);
   inline UncheckedVector<T>& operator=(const UncheckedVector<T>& b);
   inline ~UncheckedVector();
 
   size_type capacity() const { return storage_.size(); }
-  size_type size()     const { return n_elements_; }
-  bool      empty()    const { return (n_elements_ == 0); }
+  size_type size()     const { return endused_ - storage_.begin(); }
+  bool      empty()    const { return (storage_.begin() == endused_); }
 
   inline void reserve(size_type c);
   inline void resize(size_type s, const T& value = T());
@@ -99,56 +99,55 @@ public:
 
   reference       front()       { return storage_.front(); }
   const_reference front() const { return storage_.front(); }
-  reference       back()        { return storage_[n_elements_ - 1]; }
-  const_reference back()  const { return storage_[n_elements_ - 1]; }
+  reference       back()        { return endused_[-1]; }
+  const_reference back()  const { return endused_[-1]; }
 
   iterator       begin()       { return storage_.begin(); }
   const_iterator begin() const { return storage_.begin(); }
-  iterator       end()         { return storage_.begin() + n_elements_; }
-  const_iterator end()   const { return storage_.begin() + n_elements_; }
+  iterator       end()         { return endused_; }
+  const_iterator end()   const { return endused_; }
 
-  reverse_iterator       rbegin()       { return reverse_iterator(end()); }
-  const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-  reverse_iterator       rend()         { return reverse_iterator(begin()); }
-  const_reverse_iterator rend()   const { return const_reverse_iterator(begin()); }
+  reverse_iterator       rbegin()       { return reverse_iterator(endused_); }
+  const_reverse_iterator rbegin() const { return const_reverse_iterator(endused_); }
+  reverse_iterator       rend()         { return reverse_iterator(storage_.begin()); }
+  const_reverse_iterator rend()   const { return const_reverse_iterator(storage_.begin()); }
 };
 
 template <class T> inline // static
-void UncheckedVector<T>::destroy_backward_n_(typename MemChunk<T>::iterator pend, size_type count)
+typename UncheckedVector<T>::iterator
+UncheckedVector<T>::destroy_backward_(iterator pbegin, iterator pend)
 {
-  for (; count > 0; --count)
+  while (pend != pbegin)
   {
     --pend;
     pend->~T();
   }
+  return pbegin;
 }
 
 template <class T> inline
 void UncheckedVector<T>::clear()
 {
-  destroy_backward_n_(storage_.begin() + n_elements_, n_elements_);
-  n_elements_ = 0;
+  endused_ = destroy_backward_(storage_.begin(), endused_);
 }
 
 template <class T> inline
 void UncheckedVector<T>::erase(iterator pbegin, iterator pend)
 {
-  stdext::unchecked_copy(pend, storage_.begin() + n_elements_, pbegin);
-  destroy_backward_n_(storage_.begin() + n_elements_, pend - pbegin);
-  n_elements_ -= pend - pbegin;
+  endused_ = destroy_backward_(stdext::unchecked_copy(pend, endused_, pbegin), endused_);
 }
 
 template <class T> inline
 UncheckedVector<T>::~UncheckedVector()
 {
-  destroy_backward_n_(storage_.begin() + n_elements_, n_elements_);
+  destroy_backward_(storage_.begin(), endused_);
 }
 
 template <class T> inline
 UncheckedVector<T>::UncheckedVector(size_type s, const T& value)
 :
-  storage_    ((s + chunkmask) & ~chunkmask),
-  n_elements_ (s)
+  storage_ ((s + chunkmask) & ~chunkmask),
+  endused_ (storage_.begin() + s)
 {
   stdext::unchecked_uninitialized_fill_n(storage_.begin(), s, value);
 }
@@ -156,18 +155,15 @@ UncheckedVector<T>::UncheckedVector(size_type s, const T& value)
 template <class T> inline
 UncheckedVector<T>::UncheckedVector(const UncheckedVector<T>& b)
 :
-  storage_    ((b.n_elements_ + chunkmask) & ~chunkmask),
-  n_elements_ (b.n_elements_)
-{
-  stdext::unchecked_uninitialized_copy(b.storage_.begin(), b.storage_.begin() + n_elements_,
-                                       storage_.begin());
-}
+  storage_ ((b.size() + chunkmask) & ~chunkmask),
+  endused_ (stdext::unchecked_uninitialized_copy(b.begin(), b.end(), storage_.begin()))
+{}
 
 template <class T> inline
 void UncheckedVector<T>::swap(UncheckedVector<T>& b)
 {
   storage_.swap(b.storage_);
-  std::swap(n_elements_, b.n_elements_);
+  std::swap(endused_, b.endused_);
 }
 
 template <class T> inline
@@ -186,10 +182,10 @@ void UncheckedVector<T>::expand_(size_type c)
 {
   Util::MemChunk<T> temp ((c + chunkmask) & ~chunkmask);
 
-  stdext::unchecked_uninitialized_copy(storage_.begin(), storage_.begin() + n_elements_,
-                                       temp.begin());
+  const iterator pend = endused_;
+  endused_ = stdext::unchecked_uninitialized_copy(storage_.begin(), pend, temp.begin());
   storage_.swap(temp);
-  destroy_backward_n_(temp.begin() + n_elements_, n_elements_);
+  destroy_backward_(temp.begin(), pend);
 }
 
 template <class T> inline
@@ -202,29 +198,31 @@ void UncheckedVector<T>::reserve(size_type c)
 template <class T> inline
 void UncheckedVector<T>::resize(size_type s, const T& value)
 {
-  if (s > n_elements_)
+  const size_type oldsize = endused_ - storage_.begin();
+
+  if (s > oldsize)
   {
     if (s > storage_.size())
       expand_(s);
-    stdext::unchecked_uninitialized_fill_n(storage_.begin() + n_elements_, s - n_elements_, value);
+    stdext::unchecked_uninitialized_fill_n(endused_, s - oldsize, value);
+    endused_ = storage_.begin() + s;
   }
   else
-  {
-    destroy_backward_n_(storage_.begin() + n_elements_, n_elements_ - s);
-  }
-  n_elements_ = s;
+    endused_ = destroy_backward_(storage_.begin() + s, endused_);
 }
 
 template <class T> inline
 void UncheckedVector<T>::push_back(const T& value)
 {
-  if (n_elements_ == storage_.size())
-    expand_(n_elements_ / 2 * 3 + 2);
+  void* dest = endused_;
 
-  void *const dest = &storage_[n_elements_];
+  if (dest == storage_.end())
+  {
+    expand_(storage_.size() / 2 * 3 + 2);
+    dest = endused_;
+  }
   __assume(dest != 0);
-  new(dest) T(value);
-  ++n_elements_;
+  endused_ = new(dest) T(value) + 1;
 }
 
 template <class T> inline
