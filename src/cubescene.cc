@@ -1463,7 +1463,6 @@ void CubeScene::gl_create_wireframe()
     g_return_if_fail(wireframe_buffers_[0] == 0 && wireframe_buffers_[1] == 0);
 
     gl_ext()->GenBuffers(2, wireframe_buffers_);
-
     GL::Error::throw_if_fail(wireframe_buffers_[0] != 0 && wireframe_buffers_[1] != 0);
 
     gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, wireframe_buffers_[0]);
@@ -1480,7 +1479,6 @@ void CubeScene::gl_create_wireframe()
     g_return_if_fail(wireframe_list_ == 0);
 
     wireframe_list_ = glGenLists(1);
-
     GL::Error::throw_if_fail(wireframe_list_ != 0);
 
     glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
@@ -1517,7 +1515,7 @@ void CubeScene::gl_delete_wireframe()
   }
 }
 
-void CubeScene::gl_draw_wireframe_elements(void* indices)
+void CubeScene::gl_draw_wireframe_elements(void* indices) const
 {
   static const GLubyte wireframe_color[3] = { 0x47, 0x47, 0x47 };
 
@@ -1534,7 +1532,7 @@ void CubeScene::gl_draw_wireframe_elements(void* indices)
   }
 }
 
-void CubeScene::gl_draw_wireframe()
+void CubeScene::gl_draw_wireframe() const
 {
   if (gl_ext()->have_vertex_buffer_object)
   {
@@ -1785,7 +1783,6 @@ void CubeScene::gl_init_cube_texture()
   }
 
   glGenTextures(1, &cube_texture_);
-
   GL::Error::throw_if_fail(cube_texture_ != 0);
 
   glBindTexture(GL_TEXTURE_2D, cube_texture_);
@@ -1898,6 +1895,8 @@ void CubeScene::gl_delete_cube_pieces()
 
 void CubeScene::gl_create_piece_buffers()
 {
+  g_return_if_fail(piece_buffers_[0] == 0 && piece_buffers_[1] == 0);
+
   CubeElementArray  element_array;
   CubeIndexArray    index_array;
 
@@ -1913,29 +1912,24 @@ void CubeScene::gl_create_piece_buffers()
   for (std::vector<AnimationData>::iterator p = animation_data_.begin();
        p != animation_data_.end(); ++p)
   {
+    AnimationData& data = *p;
+    g_return_if_fail(data.cube_index < cube_pieces_.size());
+
     const unsigned int offset = index_array.size();
     const unsigned int first  = element_array.size();
 
-    const unsigned int cube_index = p->cube_index;
-
-    g_return_if_fail(cube_index < cube_pieces_.size());
-
-    tesselator.run(cube_pieces_[cube_index]);
+    tesselator.run(cube_pieces_[data.cube_index]);
 
     const int count = tesselator.reset_triangle_count();
-
     g_return_if_fail(3 * count == int(index_array.size() - offset));
 
-    p->triangle_count = count;
-    p->indices_offset = offset;
-    p->element_first  = first;
-    p->element_last   = element_array.size() - 1;
+    data.triangle_count = count;
+    data.indices_offset = offset;
+    data.element_first  = first;
+    data.element_last   = element_array.size() - 1;
   }
 
-  g_return_if_fail(piece_buffers_[0] == 0 && piece_buffers_[1] == 0);
-
   gl_ext()->GenBuffers(2, piece_buffers_);
-
   GL::Error::throw_if_fail(piece_buffers_[0] != 0 && piece_buffers_[1] != 0);
 
   gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, piece_buffers_[0]);
@@ -1956,6 +1950,8 @@ void CubeScene::gl_create_piece_buffers()
 
 void CubeScene::gl_create_piece_lists()
 {
+  g_return_if_fail(piece_list_base_ == 0);
+
   CubeElementArray  element_array;
   RangeStartArray   start_array;
   RangeCountArray   count_array;
@@ -1972,51 +1968,43 @@ void CubeScene::gl_create_piece_lists()
 
   const int piece_count = animation_data_.size();
 
-  g_return_if_fail(piece_list_base_ == 0);
-
   piece_list_base_ = glGenLists(piece_count);
-
   GL::Error::throw_if_fail(piece_list_base_ != 0);
 
   piece_list_count_ = piece_count;
 
   for (int i = 0; i < piece_count; ++i)
   {
-    const unsigned int cube_index = animation_data_[i].cube_index;
+    AnimationData& data = animation_data_[i];
+    g_return_if_fail(data.cube_index < cube_pieces_.size());
 
-    g_return_if_fail(cube_index < cube_pieces_.size());
-
-    tesselator.run(cube_pieces_[cube_index]);
+    tesselator.run(cube_pieces_[data.cube_index]);
 
     g_return_if_fail(!element_array.empty() && !start_array.empty());
     g_return_if_fail(start_array.size() == count_array.size());
 
-    animation_data_[i].triangle_count = tesselator.reset_triangle_count();
-    animation_data_[i].indices_offset = 0;
-    animation_data_[i].element_first  = 0;
-    animation_data_[i].element_last   = element_array.size() - 1;
+    data.triangle_count = tesselator.reset_triangle_count();
+    data.indices_offset = 0;
+    data.element_first  = 0;
+    data.element_last   = element_array.size() - 1;
 
     glInterleavedArrays(CUBE_ELEMENT_TYPE, 0, &element_array[0]);
-
     {
       GL::ScopeList list (piece_list_base_ + i, GL_COMPILE);
 
-      gl_set_piece_material(cube_index);
-
-      const int strip_count = start_array.size();
+      gl_set_piece_material(data.cube_index);
+      const int count = start_array.size();
 
       if (gl_ext()->have_multi_draw_arrays)
       {
-        gl_ext()->MultiDrawArrays(GL_TRIANGLE_STRIP,
-                                  &start_array[0], &count_array[0], strip_count);
+        gl_ext()->MultiDrawArrays(GL_TRIANGLE_STRIP, &start_array[0], &count_array[0], count);
       }
       else
       {
-        for (int k = 0; k < strip_count; ++k)
+        for (int k = 0; k < count; ++k)
           glDrawArrays(GL_TRIANGLE_STRIP, start_array[k], count_array[k]);
       }
     }
-
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);

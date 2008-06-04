@@ -210,8 +210,8 @@ private:
 
   void gl_create_wireframe();
   void gl_delete_wireframe();
-  void gl_draw_wireframe_elements(void* indices);
-  void gl_draw_wireframe();
+  void gl_draw_wireframe_elements(void* indices) const;
+  void gl_draw_wireframe() const;
 
   int  gl_draw_cube() const;
   int  gl_draw_pieces() const;
