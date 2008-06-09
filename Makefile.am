@@ -52,15 +52,15 @@ src_somato_SOURCES =		\
 	src/vectormath.cc	\
 	src/vectormath.h
 
-EXTRA_src_somato_SOURCES =	\
-	src/vector_classic.cc	\
-	src/vector_classic.h	\
-	src/vector_sse.cc	\
-	src/vector_sse.h	\
-	windows/config.h	\
-	windows/rawvector.h     \
-	windows/resource.h      \
-	windows/stdafx.cc       \
+EXTRA_src_somato_SOURCES =		\
+	src/vector_classic.cc		\
+	src/vector_classic.h		\
+	src/vector_sse.cc		\
+	src/vector_sse.h		\
+	windows/config.h		\
+	windows/uncheckedvector.h	\
+	windows/resource.h		\
+	windows/stdafx.cc		\
 	windows/stdafx.h
 
 dist_pkgdata_DATA =		\
@@ -86,11 +86,11 @@ dist_noinst_DATA =			\
 	Somato.sln			\
 	Somato.vcproj
 
-iconthemedir      = $(datadir)/icons/hicolor
-appicondir        = $(iconthemedir)/48x48/apps
+iconthemedir	  = $(datadir)/icons/hicolor
+appicondir	  = $(iconthemedir)/48x48/apps
 dist_appicon_DATA = ui/somato.png
 
-desktopdir        = $(datadir)/applications
+desktopdir	  = $(datadir)/applications
 dist_desktop_DATA = ui/somato.desktop
 
 global_defs	  = -DSOMATO_PKGDATADIR=\""$(pkgdatadir)"\" -I$(top_builddir)
