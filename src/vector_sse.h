@@ -85,47 +85,47 @@ public:
   static inline __m128 cross_(__m128 a, __m128 b); // 3-D vector product, returns w = 0
 
   inline Vector4();
-  Vector4(const Vector4& b) : v_ (b.v_) {}
-  Vector4(array_type b) : v_ (b) {}
+  inline Vector4(const Vector4& b) : v_ (b.v_) {}
+  inline Vector4(array_type b) : v_ (b) {}
   explicit inline Vector4(const value_type* b);
   inline Vector4(value_type x_, value_type y_, value_type z_, value_type w_ = 0.0f);
 
-  Vector4& operator=(const Vector4& b) { v_ = b.v_; return *this; }
+  inline Vector4& operator=(const Vector4& b) { v_ = b.v_; return *this; }
   inline Vector4& operator=(const value_type* b);
 
   inline void assign(value_type x_, value_type y_, value_type z_, value_type w_ = 0.0f);
 
-  Vector4& operator+=(const Vector4& b) { v_ = _mm_add_ps(v_, b.v_); return *this; }
-  Vector4& operator-=(const Vector4& b) { v_ = _mm_sub_ps(v_, b.v_); return *this; }
-  Vector4& operator*=(value_type b) { v_ = _mm_mul_ps(v_, _mm_set1_ps(b)); return *this; }
-  Vector4& operator/=(value_type b) { v_ = _mm_div_ps(v_, _mm_set1_ps(b)); return *this; }
-  Vector4& operator%=(const Vector4& b);
+  inline Vector4& operator+=(const Vector4& b) { v_ = _mm_add_ps(v_, b.v_); return *this; }
+  inline Vector4& operator-=(const Vector4& b) { v_ = _mm_sub_ps(v_, b.v_); return *this; }
+  inline Vector4& operator*=(value_type b) { v_ = _mm_mul_ps(v_, _mm_set1_ps(b)); return *this; }
+  inline Vector4& operator/=(value_type b) { v_ = _mm_div_ps(v_, _mm_set1_ps(b)); return *this; }
+  inline Vector4& operator%=(const Vector4& b);
 
-  static value_type     mag (const Vector4& v) { return _mm_cvtss_f32(mag_(v.v_)); }
+  static inline value_type mag(const Vector4& v) { return _mm_cvtss_f32(mag_(v.v_)); }
   static inline Vector4 sign(const Vector4& v); // returns 1, -1 or 0 depending on sign of input
   static inline Vector4 rint(const Vector4& v); // round to nearest integer, halfway cases to even
 
   static inline Vector4 mask_ifzero   (const Vector4& a, const Vector4& b);
   static inline Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b);
 
-  array_type data() const { return v_; }
+  inline array_type data() const { return v_; }
 
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.
-  value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
-  const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
+  inline value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
+  inline const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
 
 #ifdef _MSC_VER
   // MSVC messes up when single floats are extracted by value.
-  const value_type& x() const { return v_.m128_f32[0]; }
-  const value_type& y() const { return v_.m128_f32[1]; }
-  const value_type& z() const { return v_.m128_f32[2]; }
-  const value_type& w() const { return v_.m128_f32[3]; }
+  inline const value_type& x() const { return v_.m128_f32[0]; }
+  inline const value_type& y() const { return v_.m128_f32[1]; }
+  inline const value_type& z() const { return v_.m128_f32[2]; }
+  inline const value_type& w() const { return v_.m128_f32[3]; }
 #else
-  value_type x() const { return _mm_cvtss_f32(v_); }
-  value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
-  value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
-  value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
+  inline value_type x() const { return _mm_cvtss_f32(v_); }
+  inline value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
+  inline value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
+  inline value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
 #endif
 };
 
@@ -265,32 +265,32 @@ public:
   static __m128 mul_(const __m128* a, __m128 b);
   static void   mul_(const __m128* a, const __m128* b, __m128* result);
 
-  explicit Matrix4(Uninitialized) {}
+  explicit inline Matrix4(Uninitialized) {}
 
   void assign(const column_type* b);
   void assign(const value_type b[][4]);
 
-  Matrix4()                                 { assign(identity); }
-  Matrix4(const Matrix4& b)                 { assign(b.m_); }
-  explicit Matrix4(const column_type* b)    { assign(b); }
-  explicit Matrix4(const value_type b[][4]) { assign(b); }
+  inline Matrix4()                                 { assign(identity); }
+  inline Matrix4(const Matrix4& b)                 { assign(b.m_); }
+  explicit inline Matrix4(const column_type* b)    { assign(b); }
+  explicit inline Matrix4(const value_type b[][4]) { assign(b); }
 
   inline Matrix4(const Vector4& c0, const Vector4& c1, const Vector4& c2, const Vector4& c3);
 
-  Matrix4& operator=(const Matrix4& b)        { assign(b.m_); return *this; }
-  Matrix4& operator=(const column_type* b)    { assign(b);    return *this; }
-  Matrix4& operator=(const value_type b[][4]) { assign(b);    return *this; }
+  inline Matrix4& operator=(const Matrix4& b)        { assign(b.m_); return *this; }
+  inline Matrix4& operator=(const column_type* b)    { assign(b);    return *this; }
+  inline Matrix4& operator=(const value_type b[][4]) { assign(b);    return *this; }
 
-  Matrix4& operator*=(const Matrix4& b)     { mul_(m_, b.m_, m_); return *this; }
-  Matrix4& operator*=(const column_type* b) { mul_(m_, b, m_);    return *this; }
+  inline Matrix4& operator*=(const Matrix4& b)     { mul_(m_, b.m_, m_); return *this; }
+  inline Matrix4& operator*=(const column_type* b) { mul_(m_, b, m_);    return *this; }
 
   void transpose();
 
-  column_type*       data()       { return m_; }
-  const column_type* data() const { return m_; }
+  inline column_type*       data()       { return m_; }
+  inline const column_type* data() const { return m_; }
 
-  value_type*       operator[](size_type i)       { return reinterpret_cast<float*>(&m_[i]); }
-  const value_type* operator[](size_type i) const { return reinterpret_cast<const float*>(&m_[i]); }
+  inline value_type*       operator[](size_type i)       { return reinterpret_cast<float*>(&m_[i]); }
+  inline const value_type* operator[](size_type i) const { return reinterpret_cast<const float*>(&m_[i]); }
 };
 
 inline Matrix4::Matrix4(const Vector4& c0, const Vector4& c1, const Vector4& c2, const Vector4& c3)
@@ -334,13 +334,13 @@ public:
 
   inline Quat();
   inline Quat(value_type x_, value_type y_, value_type z_, value_type w_);
-  Quat(const Quat& b) : v_ (b.v_) {}
-  Quat(array_type b)  : v_ (b) {}
+  inline Quat(const Quat& b) : v_ (b.v_) {}
+  inline Quat(array_type b)  : v_ (b) {}
   explicit inline Quat(const value_type* b);
 
   inline void assign(value_type x_, value_type y_, value_type z_, value_type w_);
 
-  Quat& operator=(const Quat& b) { v_ = b.v_; return *this; }
+  inline Quat& operator=(const Quat& b) { v_ = b.v_; return *this; }
   inline Quat& operator=(const value_type* b);
 
   static inline Quat    from_axis(const Vector4& a, value_type phi);
@@ -349,29 +349,29 @@ public:
   inline Vector4    axis()  const; // returns (x,y,z,0)
   inline value_type angle() const; // extracts the rotation angle phi
 
-  Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }
+  inline Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }
 
   // Renormalize if the norm is off by more than epsilon.
   inline void renormalize(value_type epsilon);
 
-  array_type data() const { return v_; }
+  inline array_type data() const { return v_; }
 
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.
-  value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
-  const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
+  inline value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
+  inline const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
 
 #ifdef _MSC_VER
   // MSVC messes up when single floats are extracted by value.
-  const value_type& x() const { return v_.m128_f32[0]; }
-  const value_type& y() const { return v_.m128_f32[1]; }
-  const value_type& z() const { return v_.m128_f32[2]; }
-  const value_type& w() const { return v_.m128_f32[3]; }
+  inline const value_type& x() const { return v_.m128_f32[0]; }
+  inline const value_type& y() const { return v_.m128_f32[1]; }
+  inline const value_type& z() const { return v_.m128_f32[2]; }
+  inline const value_type& w() const { return v_.m128_f32[3]; }
 #else
-  value_type x() const { return _mm_cvtss_f32(v_); }
-  value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
-  value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
-  value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
+  inline value_type x() const { return _mm_cvtss_f32(v_); }
+  inline value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
+  inline value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
+  inline value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
 #endif
 };
 

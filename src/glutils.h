@@ -61,7 +61,7 @@ public:
   static void check();                // throw if glGetError() != GL_NO_ERROR
   static void fail() G_GNUC_NORETURN; // like check() but always throws
 
-  static void throw_if_fail(bool condition) { if (G_UNLIKELY(!condition)) fail(); }
+  static inline void throw_if_fail(bool condition) { if (G_UNLIKELY(!condition)) fail(); }
 };
 
 /*
@@ -77,8 +77,8 @@ private:
   static void end_();
 
 public:
-  ScopeList(unsigned int list, unsigned int mode) { new_(list, mode); }
-  ~ScopeList() { end_(); }
+  inline ScopeList(unsigned int list, unsigned int mode) { new_(list, mode); }
+  inline ~ScopeList() { end_(); }
 };
 
 /*
@@ -100,8 +100,8 @@ private:
   static void pop_(unsigned int mode);
 
 public:
-  explicit ScopeMatrix(unsigned int mode) : mode_ (mode) { push_(mode_); }
-  ~ScopeMatrix() { pop_(mode_); }
+  explicit inline ScopeMatrix(unsigned int mode) : mode_ (mode) { push_(mode_); }
+  inline ~ScopeMatrix() { pop_(mode_); }
 };
 
 /*

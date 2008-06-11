@@ -41,16 +41,16 @@ struct UIVertex
   float texcoord[2];
   float vertex[2];
 
-  void set_texcoord(float s, float t) { texcoord[0] = s; texcoord[1] = t; }
-  void set_vertex(float x, float y) { vertex[0] = x; vertex[1] = y; }
+  inline void set_texcoord(float s, float t) { texcoord[0] = s; texcoord[1] = t; }
+  inline void set_vertex(float x, float y) { vertex[0] = x; vertex[1] = y; }
 
-  UIVertex()
+  inline UIVertex()
     { texcoord[0] = 0.0; texcoord[1] = 0.0; vertex[0] = 0.0; vertex[1] = 0.0; }
 
-  UIVertex(const UIVertex& b)
+  inline UIVertex(const UIVertex& b)
     { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); }
 
-  UIVertex& operator=(const UIVertex& b)
+  inline UIVertex& operator=(const UIVertex& b)
     { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); return *this; }
 };
 
@@ -186,8 +186,8 @@ private:
   ScopeContext& operator=(const ScopeContext&);
 
 public:
-  explicit ScopeContext(Scene& scene) : scene_ (scene) { begin_(scene_); }
-  ~ScopeContext() { end_(scene_); }
+  explicit inline ScopeContext(Scene& scene) : scene_ (scene) { begin_(scene_); }
+  inline ~ScopeContext() { end_(scene_); }
 };
 
 } // namespace GL

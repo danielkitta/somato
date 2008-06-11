@@ -167,7 +167,7 @@ public:
   typedef T second_argument_type;
   typedef T result_type;
 
-  T operator()(T a, T b) const { return (a & b); }
+  inline T operator()(T a, T b) const { return (a & b); }
 };
 
 template <class T>
@@ -180,9 +180,8 @@ public:
   typedef T    argument_type;
   typedef bool result_type;
 
-  explicit DoesIntersect(T value) : value_ (value) {}
-
-  bool operator()(T a) const { return ((a & value_) != T()); }
+  explicit inline DoesIntersect(T value) : value_ (value) {}
+  inline bool operator()(T a) const { return ((a & value_) != T()); }
 };
 
 } // namespace Util

@@ -140,19 +140,19 @@ public:
   inline void set_color(GLubyte red, GLubyte green, GLubyte blue);
   inline void set_color(const GLubyte* color);
 
-  GLubyte*       color()       { return color_; }
-  const GLubyte* color() const { return color_; }
+  inline GLubyte*       color()       { return color_; }
+  inline const GLubyte* color() const { return color_; }
 
-  bool need_update() const { return need_update_; }
-  bool drawable() const { return (tex_name_ != 0); }
+  inline bool need_update() const { return need_update_; }
+  inline bool drawable() const { return (tex_name_ != 0); }
 
-  int get_width()  const { return log_width_;  }
-  int get_height() const { return log_height_; }
+  inline int get_width()  const { return log_width_;  }
+  inline int get_height() const { return log_height_; }
 
-  void set_window_pos(int x, int y) { window_x_ = x; window_y_ = y; }
+  inline void set_window_pos(int x, int y) { window_x_ = x; window_y_ = y; }
 
-  int get_window_x() const { return window_x_; }
-  int get_window_y() const { return window_y_; }
+  inline int get_window_x() const { return window_x_; }
+  inline int get_window_y() const { return window_y_; }
 };
 
 class LayoutTexture::Invalidate
@@ -161,7 +161,7 @@ public:
   typedef LayoutTexture*  argument_type;
   typedef void            result_type;
 
-  void operator()(LayoutTexture* layout) const { layout->need_update_ = true; }
+  inline void operator()(LayoutTexture* layout) const { layout->need_update_ = true; }
 };
 
 class LayoutTexture::IsDrawable
@@ -170,7 +170,7 @@ public:
   typedef const LayoutTexture*  argument_type;
   typedef bool                  result_type;
 
-  bool operator()(const LayoutTexture* layout) const { return layout->drawable(); }
+  inline bool operator()(const LayoutTexture* layout) const { return layout->drawable(); }
 };
 
 inline

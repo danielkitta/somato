@@ -78,15 +78,15 @@ private:
 public:
   inline void swap(UncheckedVector<T>& b);
 
-  UncheckedVector() : storage_ (), endused_ (0) {}
+  inline UncheckedVector() : storage_ (), endused_ (0) {}
   explicit inline UncheckedVector(size_type s, const T& value = T());
   inline UncheckedVector(const UncheckedVector<T>& b);
   inline UncheckedVector<T>& operator=(const UncheckedVector<T>& b);
   inline ~UncheckedVector();
 
-  size_type capacity() const { return storage_.size(); }
-  size_type size()     const { return endused_ - storage_.begin(); }
-  bool      empty()    const { return (storage_.begin() == endused_); }
+  inline size_type capacity() const { return storage_.size(); }
+  inline size_type size()     const { return endused_ - storage_.begin(); }
+  inline bool      empty()    const { return (storage_.begin() == endused_); }
 
   inline void reserve(size_type c);
   inline void resize(size_type s, const T& value = T());
@@ -94,23 +94,23 @@ public:
   inline void clear();
   inline void push_back(const T& value);
 
-  reference       operator[](size_type i)       { return storage_[i]; }
-  const_reference operator[](size_type i) const { return storage_[i]; }
+  inline reference       operator[](size_type i)       { return storage_[i]; }
+  inline const_reference operator[](size_type i) const { return storage_[i]; }
 
-  reference       front()       { return storage_.front(); }
-  const_reference front() const { return storage_.front(); }
-  reference       back()        { return endused_[-1]; }
-  const_reference back()  const { return endused_[-1]; }
+  inline reference       front()       { return storage_.front(); }
+  inline const_reference front() const { return storage_.front(); }
+  inline reference       back()        { return endused_[-1]; }
+  inline const_reference back()  const { return endused_[-1]; }
 
-  iterator       begin()       { return storage_.begin(); }
-  const_iterator begin() const { return storage_.begin(); }
-  iterator       end()         { return endused_; }
-  const_iterator end()   const { return endused_; }
+  inline iterator       begin()       { return storage_.begin(); }
+  inline const_iterator begin() const { return storage_.begin(); }
+  inline iterator       end()         { return endused_; }
+  inline const_iterator end()   const { return endused_; }
 
-  reverse_iterator       rbegin()       { return reverse_iterator(endused_); }
-  const_reverse_iterator rbegin() const { return const_reverse_iterator(endused_); }
-  reverse_iterator       rend()         { return reverse_iterator(storage_.begin()); }
-  const_reverse_iterator rend()   const { return const_reverse_iterator(storage_.begin()); }
+  inline reverse_iterator       rbegin()       { return reverse_iterator(endused_); }
+  inline const_reverse_iterator rbegin() const { return const_reverse_iterator(endused_); }
+  inline reverse_iterator       rend()         { return reverse_iterator(storage_.begin()); }
+  inline const_reverse_iterator rend()   const { return const_reverse_iterator(storage_.begin()); }
 };
 
 template <class T> inline // static
