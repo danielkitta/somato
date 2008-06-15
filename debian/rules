@@ -61,7 +61,7 @@ $(addprefix install/,$(DEB_ARCH_PACKAGES))::install/%:
 
 $(addprefix binary-install/,$(DEB_ARCH_PACKAGES))::binary-install/%:
 	dh_desktop -p"$*" $(DEB_DH_DESKTOP_ARGS)
-	dh_iconcache -p"$*" $(DEB_DH_ICONCACHE_ARGS)
+	dh_icons -p"$*" $(DEB_DH_ICONS_ARGS)
 
 # Cleanup is a no-brainer thanks to the VPATH setup.
 cleanbuilddir::
