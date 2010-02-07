@@ -1,4 +1,4 @@
-## Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2004-2010  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of Somato.
 ##
@@ -16,13 +16,8 @@
 ## along with Somato; if not, write to the Free Software Foundation, Inc.,
 ## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-## This project does not use recursive make, but a single toplevel Makefile
-## to build the entire tree.  Read Peter Miller's excellent paper to learn
-## why recursive make invocations are both slow and error-prone:
-## http://members.pcug.org.au/~millerp/rmch/recu-make-cons-harm.html
-
 AUTOMAKE_OPTIONS = subdir-objects
-ACLOCAL_AMFLAGS  = -I m4 $(ACLOCAL_FLAGS)
+ACLOCAL_AMFLAGS  = -I m4 ${ACLOCAL_FLAGS}
 DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 
 bin_PROGRAMS = src/somato

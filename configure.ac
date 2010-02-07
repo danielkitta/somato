@@ -1,4 +1,4 @@
-## Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2004-2010  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of Somato.
 ##
@@ -16,7 +16,8 @@
 ## along with Somato; if not, write to the Free Software Foundation, Inc.,
 ## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-AC_INIT([Somato], [0.6], [daniel.kitta@gmail.com], [somato])
+AC_INIT([Somato], [0.6], [daniel.kitta@gmail.com], [somato],
+        [http://danielkitta.org/projects/somato])
 AC_PREREQ([2.58])
 
 AC_CONFIG_SRCDIR([src/cubescene.cc])
@@ -24,9 +25,10 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.8 -Wall gnu no-define nostdinc check-news])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 AC_ARG_VAR([ACLOCAL_FLAGS], [aclocal flags, e.g. -I <macro dir>])
 
-AC_PROG_CXX()
+AC_PROG_CXX
 
 PKG_CHECK_MODULES([SOMATO_MODULES],
                   [gthread-2.0 >= 2.8.0 pangocairo >= 1.10.0 gtk+-2.0 >= 2.8.0
@@ -70,14 +72,14 @@ DK_CHECK_FEATURE([ustring::compose],
 ])
 DK_SH_VAR_POP([LIBS])
 
-SOMATO_ARG_ENABLE_VECTOR_SIMD()
+SOMATO_ARG_ENABLE_VECTOR_SIMD
 
 DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS],
                        [-Wall -w1],
                        [-DGDK_MULTIHEAD_SAFE -pedantic -Wall -Wextra -w1],
-                       [LIBSIGC PANGO G GDK GDK_PIXBUF GTK GLIBMM GDKMM GTKMM])
+                       [PANGO G GDK GDK_PIXBUF GTK GLIBMM GDKMM])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
 AC_CONFIG_FILES([Makefile])
-AC_OUTPUT()
+AC_OUTPUT
