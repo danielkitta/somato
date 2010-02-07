@@ -130,9 +130,9 @@ static inline
 int aligned_stride(int width)
 {
 #if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1,5,8)
-  return cairo_format_stride_for_width(CAIRO_FORMAT_A8, width + 7 & ~7);
+  return cairo_format_stride_for_width(CAIRO_FORMAT_A8, (width + 7) & ~7);
 #else
-  return width + 7 & ~7;
+  return (width + 7) & ~7;
 #endif
 }
 

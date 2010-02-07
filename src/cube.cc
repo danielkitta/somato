@@ -54,7 +54,7 @@ void Cube::put(int x, int y, int z, bool value)
 {
   const int index = N*N*x + N*y + z;
 
-  data_ = data_ & ~(Bits(1) << index) | (Bits(value) << index);
+  data_ = (data_ & ~(Bits(1) << index)) | (Bits(value) << index);
 }
 
 Cube& Cube::rotate(int axis)
