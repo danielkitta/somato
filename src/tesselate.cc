@@ -121,7 +121,7 @@ public:
 
 enum
 {
-  EDGE_SLICES = 3,
+  EDGE_SLICES = 4,
   EDGE_SCALE  = 16  // denominator of the edge radius
 };
 
@@ -157,59 +157,112 @@ static const EdgeFlags EF_CONTINUE = 1 << 4;
  * optimization takes place only at the code generation stage later on, and
  * therefore does not take care of static array initializers.
  */
-#define SINPI3 0.86602540378443864676372317 /* sin(PI / 3) = sqrt(3) / 2 */
-#define TANPI6 0.57735026918962576450914878 /* tan(PI / 6) = sqrt(3) / 3 */
+#define SINPI8 0.38268343236508977172845998 /* sin(PI / 8) */
+#define SINPI4 0.70710678118654752440084436 /* sin(PI / 4) */
+#define COSPI8 0.92387953251128675612818319 /* cos(PI / 8) */
+
+/*
+ * The subdivision is optimized so that the area of the center triangle
+ * is equal to the area of each neighboring triangle.  Mathematically,
+ * the problem boils down to solving the equation:
+ *
+ * 0 = 9*z*z*z - 2*sqrt(2)*z*z - 7*z + 2*sqrt(2)
+ *
+ * The term below is a mathematically exact solution of this polynom.
+ *
+ *     2                      1            4*401*sqrt(2)
+ * z = -- * (sqrt(197) * cos[ - * arccos(- -------------) ] + sqrt(2))
+ *     27                     3            197*sqrt(197)
+ */
+#define SUBDV1 0.42859318955462237500354246 /* sqrt((1 - z*z) / 2) */
+#define SUBDV2 0.79537145770689500384661081 /* z */
+
+/*
+ * Precomputed magic numbers used to define arrays
+ * of normals for the bridge joints between edges.
+ */
+#define NORMC1 0.0055069676901018
+#define NORMC2 0.176659168404023
+#define NORMC3 0.195523867907935
+#define NORMC4 0.284590680520277
+#define NORMC5 0.307795063149275
+#define NORMC6 0.679113294636966
+#define NORMC7 0.712458189135422
+#define NORMC8 0.938498034968282
+#define NORMC9 0.951436741148771
 
 static
 const Vector4::array_type edgedata[EDGE_SLICES + 1] =
 {
   {    0.0,    0.0,    1.0,    0.0 },
-  {    0.0,    0.5, SINPI3,    0.0 },
-  {    0.0, SINPI3,    0.5,    0.0 },
+  {    0.0, SINPI8, COSPI8,    0.0 },
+  {    0.0, SINPI4, SINPI4,    0.0 },
+  {    0.0, COSPI8, SINPI8,    0.0 },
   {    0.0,    1.0,    0.0,    0.0 }
 };
 
 static
-const Vector4::array_type cornerdata[EDGE_SLICES][2 * EDGE_SLICES + 4] =
+const Vector4::array_type cornerdata[EDGE_SLICES][3 * EDGE_SLICES] =
 { 
   { // z-turn, slice 0
-    {    0.5,    0.0, SINPI3,    0.0 },
+    { SINPI8,    0.0, COSPI8,    0.0 },
     {    0.0,    0.0,    1.0,    0.0 },
-    {    0.0,    0.5, SINPI3,    0.0 },
+    {    0.0, SINPI8, COSPI8,    0.0 },
     // y-turn, slice 0
     {    1.0,    0.0,    0.0,    0.0 },
-    { SINPI3,    0.5,    0.0,    0.0 },
-    { SINPI3,    0.0,    0.5,    0.0 },
-    { TANPI6, TANPI6, TANPI6,    0.0 },
-    {    0.5,    0.0, SINPI3,    0.0 },
-    {    0.0,    0.5, SINPI3,    0.0 },
+    { COSPI8, SINPI8,    0.0,    0.0 },
+    { COSPI8,    0.0, SINPI8,    0.0 },
+    { SUBDV2, SUBDV1, SUBDV1,    0.0 },
+    { SINPI4,    0.0, SINPI4,    0.0 },
+    { SUBDV1, SUBDV1, SUBDV2,    0.0 },
+    { SINPI8,    0.0, COSPI8,    0.0 },
+    {    0.0, SINPI8, COSPI8,    0.0 },
     {    0.0,    0.0,    1.0,    0.0 }
   },
   { // z-turn, slice 1
-    { SINPI3,    0.0,    0.5,    0.0 },
-    {    0.5,    0.0, SINPI3,    0.0 },
-    { TANPI6, TANPI6, TANPI6,    0.0 },
-    {    0.0,    0.5, SINPI3,    0.0 },
-    {    0.0, SINPI3,    0.5,    0.0 },
+    { SINPI4,    0.0, SINPI4,    0.0 },
+    { SINPI8,    0.0, COSPI8,    0.0 },
+    { SUBDV1, SUBDV1, SUBDV2,    0.0 },
+    {    0.0, SINPI8, COSPI8,    0.0 },
+    {    0.0, SINPI4, SINPI4,    0.0 },
     // y-turn, slice 1
-    { SINPI3,    0.5,    0.0,    0.0 },
-    {    0.5, SINPI3,    0.0,    0.0 },
-    { TANPI6, TANPI6, TANPI6,    0.0 },
-    {    0.0, SINPI3,    0.5,    0.0 },
-    {    0.0,    0.5, SINPI3,    0.0 }
+    { COSPI8, SINPI8,    0.0,    0.0 },
+    { SINPI4, SINPI4,    0.0,    0.0 },
+    { SUBDV2, SUBDV1, SUBDV1,    0.0 },
+    { SUBDV1, SUBDV2, SUBDV1,    0.0 },
+    { SUBDV1, SUBDV1, SUBDV2,    0.0 },
+    {    0.0, SINPI4, SINPI4,    0.0 },
+    {    0.0, SINPI8, COSPI8,    0.0 }
   },
   { // z-turn, slice 2
-    {    1.0,    0.0,    0.0,    0.0 },
-    { SINPI3,    0.0,    0.5,    0.0 },
-    { SINPI3,    0.5,    0.0,    0.0 },
-    { TANPI6, TANPI6, TANPI6,    0.0 },
-    {    0.5, SINPI3,    0.0,    0.0 },
-    {    0.0, SINPI3,    0.5,    0.0 },
-    {    0.0,    1.0,    0.0,    0.0 },
+    { COSPI8,    0.0, SINPI8,    0.0 },
+    { SINPI4,    0.0, SINPI4,    0.0 },
+    { SUBDV2, SUBDV1, SUBDV1,    0.0 },
+    { SUBDV1, SUBDV1, SUBDV2,    0.0 },
+    { SUBDV1, SUBDV2, SUBDV1,    0.0 },
+    {    0.0, SINPI4, SINPI4,    0.0 },
+    {    0.0, COSPI8, SINPI8,    0.0 },
     // y-turn, slice 2
-    {    0.5, SINPI3,    0.0,    0.0 },
+    { SINPI4, SINPI4,    0.0,    0.0 },
+    { SINPI8, COSPI8,    0.0,    0.0 },
+    { SUBDV1, SUBDV2, SUBDV1,    0.0 },
+    {    0.0, COSPI8, SINPI8,    0.0 },
+    {    0.0, SINPI4, SINPI4,    0.0 }
+  },
+  { // z-turn, slice 3
+    {    1.0,    0.0,    0.0,    0.0 },
+    { COSPI8,    0.0, SINPI8,    0.0 },
+    { COSPI8, SINPI8,    0.0,    0.0 },
+    { SUBDV2, SUBDV1, SUBDV1,    0.0 },
+    { SINPI4, SINPI4,    0.0,    0.0 },
+    { SUBDV1, SUBDV2, SUBDV1,    0.0 },
+    { SINPI8, COSPI8,    0.0,    0.0 },
+    {    0.0, COSPI8, SINPI8,    0.0 },
     {    0.0,    1.0,    0.0,    0.0 },
-    {    0.0, SINPI3,    0.5,    0.0 }
+    // y-turn, slice 3
+    { SINPI8, COSPI8,    0.0,    0.0 },
+    {    0.0,    1.0,    0.0,    0.0 },
+    {    0.0, COSPI8, SINPI8,    0.0 }
   }
 };
 
@@ -218,10 +271,12 @@ const Vector4::array_type normaldata_bridge_y[2 * EDGE_SLICES + 2] =
 {
   {    -1.0,     0.0,     0.0,     0.0 },
   {    -1.0,     0.0,     0.0,     0.0 },
-  { -SINPI3,     0.5,     0.0,     0.0 },
-  { -SINPI3,     0.5,     0.0,     0.0 },
-  {    -0.5,  SINPI3,     0.0,     0.0 },
-  {    -0.5,  SINPI3,     0.0,     0.0 },
+  { -NORMC8,  NORMC4,  NORMC3,     0.0 },
+  { -NORMC9,  NORMC5,  NORMC1,     0.0 },
+  { -NORMC7,  NORMC6,  NORMC2,     0.0 },
+  { -NORMC6,  NORMC7, -NORMC2,     0.0 },
+  { -NORMC5,  NORMC9, -NORMC1,     0.0 },
+  { -NORMC4,  NORMC8, -NORMC3,     0.0 },
   {     0.0,     1.0,     0.0,     0.0 },
   {     0.0,     1.0,     0.0,     0.0 }
 };
@@ -231,10 +286,12 @@ const Vector4::array_type normaldata_bridge_z[2 * EDGE_SLICES + 2] =
 {
   {     0.0,     0.0,     1.0,     0.0 },
   {     0.0,     0.0,     1.0,     0.0 },
-  {    -0.5,     0.0,  SINPI3,     0.0 },
-  {    -0.5,     0.0,  SINPI3,     0.0 },
-  { -SINPI3,     0.0,     0.5,     0.0 },
-  { -SINPI3,     0.0,     0.5,     0.0 },
+  { -NORMC4,  NORMC3,  NORMC8,     0.0 },
+  { -NORMC5,  NORMC1,  NORMC9,     0.0 },
+  { -NORMC6,  NORMC2,  NORMC7,     0.0 },
+  { -NORMC7, -NORMC2,  NORMC6,     0.0 },
+  { -NORMC9, -NORMC1,  NORMC5,     0.0 },
+  { -NORMC8, -NORMC3,  NORMC4,     0.0 },
   {    -1.0,     0.0,     0.0,     0.0 },
   {    -1.0,     0.0,     0.0,     0.0 }
 };
@@ -1417,10 +1474,6 @@ void CubeTesselator::Impl::trace_connected_edges()
       ca->flags = 0;
       build_bridge(rotation, ca->vertex, flags);
     }
-    else if ((flags & EF_JOINYZ) == EF_JOINYZ)
-    {
-      g_debug("foo");
-    }
 
     stripe.clear();
 
@@ -1435,7 +1488,7 @@ void CubeTesselator::Impl::trace_connected_edges()
 //    while (cb->link[0] && (cb->link[1] || (cb->flags & EF_CONTINUE) != 0))
     while (cb->link[0] && (cb->link[1])) // XXX
     {
-//      if (cb->link[1])
+      if (cb->link[1])
       {
         g_return_if_fail((cb->flags & EF_CONTINUE) == 0);
 
@@ -1447,7 +1500,6 @@ void CubeTesselator::Impl::trace_connected_edges()
         cb = ca->link[(n % 2) ^ unsigned(d1 % d2 == d0)];
         ++n;
       }
-#if 0
       else
       {
         g_return_if_fail((cb->flags & EF_CONTINUE) != 0);
@@ -1455,7 +1507,7 @@ void CubeTesselator::Impl::trace_connected_edges()
         ca = cb;
         cb = ca->link[0];
       }
-#endif
+
       stripe.push_back(cb);
 
       ca->remove_link(cb);
@@ -1483,10 +1535,6 @@ void CubeTesselator::Impl::trace_connected_edges()
     {
       cb->flags = 0;
       build_bridge(compute_edge_rotation(cb->vertex, ca->vertex), cb->vertex, flags);
-    }
-    else if ((flags & EF_JOINYZ) == EF_JOINYZ)
-    {
-      g_debug("bar");
     }
   }
 
