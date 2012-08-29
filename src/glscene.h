@@ -54,13 +54,8 @@ struct UIVertex
     { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); return *this; }
 };
 
-#if SOMATO_USE_UNCHECKEDVECTOR
-typedef Util::UncheckedVector<LayoutTexture*> LayoutVector;
-typedef Util::UncheckedVector<UIVertex>       GeometryVector;
-#else
-typedef std::vector<LayoutTexture*>           LayoutVector;
-typedef std::vector<UIVertex>                 GeometryVector;
-#endif
+typedef std::vector<LayoutTexture*> LayoutVector;
+typedef std::vector<UIVertex>       GeometryVector;
 
 /*
  * Base GL widget class that implements all the generic stuff not specific

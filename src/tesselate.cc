@@ -77,17 +77,10 @@ struct EdgePosition
 
 struct EdgeCorner;
 
-#if SOMATO_USE_UNCHECKEDVECTOR
-typedef Util::UncheckedVector<int>          IndexStore;
-typedef Util::UncheckedVector<CubePosition> FaceStore;
-typedef Util::UncheckedVector<EdgePosition> EdgeStore;
-typedef Util::UncheckedVector<EdgeCorner*>  CornerStore;
-#else
-typedef std::vector<int>                    IndexStore;
-typedef std::vector<CubePosition>           FaceStore;
-typedef std::vector<EdgePosition>           EdgeStore;
-typedef std::vector<EdgeCorner*>            CornerStore;
-#endif
+typedef std::vector<int>          IndexStore;
+typedef std::vector<CubePosition> FaceStore;
+typedef std::vector<EdgePosition> EdgeStore;
+typedef std::vector<EdgeCorner*>  CornerStore;
 
 struct EdgeCorner
 {

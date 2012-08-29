@@ -34,13 +34,8 @@ namespace
 
 using Somato::Cube;
 
-#if SOMATO_USE_UNCHECKEDVECTOR
-typedef Util::UncheckedVector<Cube>       PieceStore;
-typedef Util::UncheckedVector<PieceStore> ColumnStore;
-#else
-typedef std::vector<Cube>                 PieceStore;
-typedef std::vector<PieceStore>           ColumnStore;
-#endif
+typedef std::vector<Cube>       PieceStore;
+typedef std::vector<PieceStore> ColumnStore;
 
 class PuzzleSolver
 {
