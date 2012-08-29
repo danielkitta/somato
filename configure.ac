@@ -32,7 +32,8 @@ AC_PROG_CXX
 
 PKG_CHECK_MODULES([SOMATO_MODULES],
                   [gthread-2.0 >= 2.8.0 pangocairo >= 1.10.0 gtk+-2.0 >= 2.8.0
-                   gtkglext-1.0 >= 1.0.0 gtkmm-2.4 >= 2.6.0 libglademm-2.4 >= 2.6.0])
+                   gtkglext-1.0 >= 1.0.0 libg3d >= 0.0.8
+                   gtkmm-2.4 >= 2.6.0 libglademm-2.4 >= 2.6.0])
 
 # Somato does not use the custom widget feature of libglade, thus there
 # is no need for --export-dynamic.  Remove it to avoid pointless bloat.
