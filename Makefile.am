@@ -72,14 +72,7 @@ dist_noinst_DATA =			\
 	debian/changelog		\
 	debian/control			\
 	debian/copyright		\
-	debian/menu			\
-	windows/gtkmm-2.4.vsprops	\
-	windows/gtkmm-2.4d.vsprops	\
-	windows/somato.ico		\
-	windows/somato.rc		\
-	windows/vc80target.vsprops	\
-	Somato.sln			\
-	Somato.vcproj
+	debian/menu
 
 iconthemedir	  = $(datadir)/icons/hicolor
 appicondir	  = $(iconthemedir)/48x48/apps
