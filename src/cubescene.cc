@@ -280,7 +280,9 @@ void CubeScene::Extensions::query()
       have_multi_draw_arrays = true;
   }
 
-  if (have_extension("GL_NV_depth_clamp"))
+  if (have_version(3, 2)
+      || have_extension("GL_ARB_depth_clamp")
+      || have_extension("GL_NV_depth_clamp"))
   {
     have_depth_clamp = true;
   }
