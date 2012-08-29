@@ -46,6 +46,7 @@ DK_PKG_PATH_PROG([GTK_UPDATE_ICON_CACHE], [gtk+-2.0], [gtk-update-icon-cache])
 
 AC_LANG([C++])
 DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
+DK_PROG_CXX_CXX11
 
 # Note that this is only a compile-time requirement.
 DK_REQUIRE_GL_VERSION([1.4])
