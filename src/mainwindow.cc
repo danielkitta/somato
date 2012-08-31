@@ -196,12 +196,7 @@ MainWindow::MainWindow()
 }
 
 MainWindow::~MainWindow()
-{
-#if (GTKMM_MINOR_VERSION <= 10) /* FIXME: Gross HACK! */
-  if (aboutdialog_.get() && aboutdialog_->is_managed_())
-    gtk_object_destroy(aboutdialog_.release()->Gtk::Object::gobj());
-#endif
-}
+{}
 
 Gtk::Window* MainWindow::get_window()
 {
@@ -528,10 +523,6 @@ void MainWindow::on_application_about()
 
 void MainWindow::on_aboutdialog_response(int)
 {
-#if (GTKMM_MINOR_VERSION <= 10) /* FIXME: Gross HACK! */
-  if (aboutdialog_.get() && aboutdialog_->is_managed_())
-    gtk_object_destroy(aboutdialog_.release()->Gtk::Object::gobj());
-#endif
   // Destroy by transferring ownership to local scope.
   const std::auto_ptr<Gtk::Window> dialog (aboutdialog_);
 }
