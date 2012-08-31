@@ -64,6 +64,8 @@ private:
   void on_thread_exit();
 };
 
+Cube puzzle_piece_at_origin(int index);
+
 } // namespace Somato
 
 #endif /* SOMATO_PUZZLE_H_INCLUDED */

@@ -60,9 +60,10 @@ EXTRA_src_somato_SOURCES =		\
 
 dist_pkgdata_DATA =		\
 	ui/cubescene.gtkrc	\
-	ui/cubetexture.png	\
+	ui/puzzlepieces.dae	\
 	ui/mainwindow.glade	\
-	ui/mainwindow-ui.xml
+	ui/mainwindow-ui.xml	\
+	ui/woodtexture.png
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\

@@ -690,7 +690,7 @@ void CubeScene::gl_initialize()
   glEnable(GL_LIGHT0);
 
   // Use a single global shininess for all lit surfaces.
-  glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, 8);
+  glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, 32);
 
   GL::Error::check();
 
@@ -1754,10 +1754,10 @@ void CubeScene::gl_init_cube_texture()
   // in whatever image file without wreaking havoc.  In essence, the size
   // of a texture is simply a quality setting unrelated to the input data.
 
-  enum { WIDTH = 128, HEIGHT = 128 };
+  enum { WIDTH = 512, HEIGHT = 512 };
 
   const Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::
-      create_from_file(Util::locate_data_file("cubetexture.png"), WIDTH, HEIGHT, false);
+      create_from_file(Util::locate_data_file("woodtexture.png"), WIDTH, HEIGHT, false);
 
   g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
   g_return_if_fail(pixbuf->get_bits_per_sample() == 8);
@@ -1789,8 +1789,10 @@ void CubeScene::gl_init_cube_texture()
 
   glBindTexture(GL_TEXTURE_2D, cube_texture_);
 
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
   if (gl_ext()->have_generate_mipmap)
   {
@@ -1902,8 +1904,8 @@ void CubeScene::gl_create_piece_buffers()
   CubeElementArray  element_array;
   CubeIndexArray    index_array;
 
-  element_array.reserve(2048);
-  index_array.reserve(10240);
+  element_array.reserve(5000);
+  index_array.reserve(30000);
 
   CubeTesselator tesselator;
 

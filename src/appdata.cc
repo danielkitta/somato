@@ -37,6 +37,11 @@ std::string Util::locate_data_file(const std::string& basename)
   }
   return basename;
 #else
-  return Glib::build_filename(SOMATO_PKGDATADIR, basename);
+  const std::string fullpath = Glib::build_filename(SOMATO_PKGDATADIR, basename);
+
+  if (Glib::file_test(fullpath, Glib::FILE_TEST_IS_REGULAR))
+    return fullpath;
+  else // for debugging
+    return Glib::build_filename("ui", basename);
 #endif
 }

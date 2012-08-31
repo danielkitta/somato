@@ -325,4 +325,9 @@ void PuzzleThread::on_thread_exit()
   signal_done_(); // emit
 }
 
+Cube puzzle_piece_at_origin(int index)
+{
+	return Cube(cube_piece_data[index]);
+}
+
 } // namespace Somato
