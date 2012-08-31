@@ -93,11 +93,11 @@ uninstall-hook: uninstall-update-icon-cache
 
 install-update-icon-cache:
 	@$(POST_INSTALL)
-	test -n "$(DESTDIR)" || $(update_icon_cache) "$(iconthemedir)"
+	-test -n "$(DESTDIR)" || $(update_icon_cache) "$(iconthemedir)"
 
 uninstall-update-icon-cache:
 	@$(POST_UNINSTALL)
-	test -n "$(DESTDIR)" || $(update_icon_cache) "$(iconthemedir)"
+	-test -n "$(DESTDIR)" || $(update_icon_cache) "$(iconthemedir)"
 
 dist-deb: distdir
 	cd "$(distdir)" && dpkg-buildpackage -nc -rfakeroot -uc -us
