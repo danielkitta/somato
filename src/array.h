@@ -28,45 +28,6 @@
 namespace Util
 {
 
-template <class T, std::size_t N>
-class Array
-{
-private:
-  T data_[N];
-
-public:
-  typedef T                                     value_type;
-  typedef T&                                    reference;
-  typedef const T&                              const_reference;
-  typedef T*                                    iterator;
-  typedef const T*                              const_iterator;
-  typedef std::reverse_iterator<iterator>       reverse_iterator;
-  typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-  typedef std::size_t                           size_type;
-  typedef std::ptrdiff_t                        difference_type;
-
-  inline size_type size()  const { return N; }
-  inline bool      empty() const { return (N == 0); }
-
-  inline reference       operator[](size_type i)       { return data_[i]; }
-  inline const_reference operator[](size_type i) const { return data_[i]; }
-
-  inline reference       front()       { return data_[0]; }
-  inline const_reference front() const { return data_[0]; }
-  inline reference       back()        { return data_[N - 1]; }
-  inline const_reference back()  const { return data_[N - 1]; }
-
-  inline iterator       begin()       { return &data_[0]; }
-  inline const_iterator begin() const { return &data_[0]; }
-  inline iterator       end()         { return &data_[N]; }
-  inline const_iterator end()   const { return &data_[N]; }
-
-  inline reverse_iterator       rbegin()       { return reverse_iterator(&data_[N]); }
-  inline const_reverse_iterator rbegin() const { return const_reverse_iterator(&data_[N]); }
-  inline reverse_iterator       rend()         { return reverse_iterator(&data_[0]); }
-  inline const_reverse_iterator rend()   const { return const_reverse_iterator(&data_[0]); }
-};
-
 template <class T>
 class MemChunk
 {

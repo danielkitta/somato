@@ -21,10 +21,10 @@
 #ifndef SOMATO_PUZZLE_H_INCLUDED
 #define SOMATO_PUZZLE_H_INCLUDED
 
-#include "array.h"
 #include "cube.h"
 
 #include <glibmm/dispatcher.h>
+#include <array>
 #include <vector>
 
 #ifndef SOMATO_HIDE_FROM_INTELLISENSE
@@ -36,7 +36,7 @@ namespace Somato
 
 enum { CUBE_PIECE_COUNT = 7 };
 
-typedef Util::Array<Cube, CUBE_PIECE_COUNT> Solution;
+typedef std::array<Cube, CUBE_PIECE_COUNT> Solution;
 
 class PuzzleThread
 {

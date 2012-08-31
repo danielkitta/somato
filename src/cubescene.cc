@@ -20,6 +20,7 @@
 
 #include "cubescene.h"
 #include "appdata.h"
+#include "array.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
 #include "mathutils.h"
