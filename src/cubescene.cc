@@ -44,7 +44,6 @@
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
-#include <sstream>
 
 #include <config.h>
 
@@ -1817,15 +1816,7 @@ void CubeScene::update_footing()
   const int percentage = int(100.0f * zoom_ + 0.5f);
 
   if (zoom_visible_ && percentage != 100)
-  {
-#if SOMATO_HAVE_USTRING__COMPOSE
     footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
-#else
-    std::ostringstream output;
-    output << "Zoom " << percentage << '%';
-    footing_->set_content(Glib::locale_to_utf8(output.str()));
-#endif
-  }
   else
     footing_->set_content(Glib::ustring());
 }

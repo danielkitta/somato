@@ -49,7 +49,6 @@
 #include <cmath>
 #include <algorithm>
 #include <iomanip>
-#include <sstream>
 
 #include <config.h>
 
@@ -382,7 +381,6 @@ void MainWindow::switch_cube(int index)
 
   if (cube_index_ >= 0)
   {
-#if SOMATO_HAVE_USTRING__COMPOSE
     cube_scene_->set_heading(Glib::ustring::compose("Soma cube #%1", cube_index_ + 1));
     cube_scene_->set_cube_pieces(solutions_[cube_index_]);
 
@@ -391,22 +389,6 @@ void MainWindow::switch_cube(int index)
                                             cube_scene_->get_cube_triangle_count(),
                                             cube_scene_->get_cube_vertex_count()),
                      context_cube_);
-#else
-    std::ostringstream output;
-
-    output << "Soma cube #" << cube_index_ + 1;
-
-    cube_scene_->set_heading(Glib::locale_to_utf8(output.str()));
-    cube_scene_->set_cube_pieces(solutions_[cube_index_]);
-
-    output.str(std::string());
-
-    output << cube_scene_->get_cube_triangle_count() << " triangles, "
-           << cube_scene_->get_cube_vertex_count()   << " vertices";
-
-    statusbar_->pop(context_cube_);
-    statusbar_->push(Glib::locale_to_utf8(output.str()), context_cube_);
-#endif /* !SOMATO_HAVE_USTRING__COMPOSE */
   }
 }
 
@@ -629,19 +611,10 @@ bool MainWindow::on_profile_idle()
     const double frames    = cube_scene_->get_frame_counter()    / elapsed;
     const double triangles = cube_scene_->get_triangle_counter() / elapsed;
 
-#if SOMATO_HAVE_USTRING__COMPOSE
     const ustring message = ustring::compose("%1 frames/s, %2 triangles/s",
         ustring::format(std::fixed, std::setprecision(0), frames),
         ustring::format(std::fixed, std::setprecision(0), triangles));
-#else
-    std::ostringstream output;
 
-    output.setf(std::ios::fixed);
-    output.precision(0);
-    output << frames << " frames/s, " << triangles << " triangles/s";
-
-    const ustring message = Glib::locale_to_utf8(output.str());
-#endif
     if (actions_->toggle_fullscreen->get_active())
       g_message("%s", message.c_str());
 

@@ -16,7 +16,7 @@
 ## along with Somato; if not, write to the Free Software Foundation, Inc.,
 ## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-AC_INIT([Somato], [0.6], [daniel.kitta@gmail.com], [somato],
+AC_INIT([Somato], [0.7], [daniel.kitta@gmail.com], [somato],
         [http://danielkitta.org/projects/somato])
 AC_PREREQ([2.58])
 
@@ -45,8 +45,9 @@ SOMATO_MODULES_LIBS=`expr " $SOMATO_MODULES_LIBS " |
 DK_PKG_PATH_PROG([GTK_UPDATE_ICON_CACHE], [gtk+-2.0], [gtk-update-icon-cache])
 
 AC_LANG([C++])
-DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 DK_PROG_CXX_CXX11
+
+DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 
 # Note that this is only a compile-time requirement.
 DK_REQUIRE_GL_VERSION([1.4])
@@ -65,14 +66,6 @@ DK_CHECK_FEATURE([sincosf],
   AC_LANG_PROGRAM([[#include <cmath>]],
                   [[float s, c; sincosf(0.0f, &s, &c);]])
 ])
-
-DK_SH_VAR_PUSH([LIBS], ["$SOMATO_MODULES_LIBS $LIBS"])
-DK_CHECK_FEATURE([ustring::compose],
-[
-  AC_LANG_PROGRAM([[#include <glibmm/ustring.h>]],
-                  [[(void) Glib::ustring::compose("%1", 123);]])
-])
-DK_SH_VAR_POP([LIBS])
 
 SOMATO_ARG_ENABLE_VECTOR_SIMD
 
