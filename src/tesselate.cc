@@ -23,6 +23,7 @@
  */
 
 #include "tesselate.h"
+#include "appdata.h"
 #include "array.h"
 #include "puzzle.h"
 
@@ -32,91 +33,13 @@
 #include <assimp/scene.h>
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
-#include <cmath>
-#include <algorithm>
-#include <memory>
-#include <iostream>
+#include <array>
 
 namespace
 {
 
 using Math::Matrix4;
 using Math::Vector4;
-
-void dump_cube(Somato::Cube cube)
-{
-  std::cout << ' ' << (cube.get(0, 2, 0) ? '#' : '.')
-                   << (cube.get(1, 2, 0) ? '#' : '.')
-                   << (cube.get(2, 2, 0) ? '#' : '.')
-            << ' ' << (cube.get(0, 2, 1) ? '#' : '.')
-                   << (cube.get(1, 2, 1) ? '#' : '.')
-                   << (cube.get(2, 2, 1) ? '#' : '.')
-            << ' ' << (cube.get(0, 2, 2) ? '#' : '.')
-                   << (cube.get(1, 2, 2) ? '#' : '.')
-                   << (cube.get(2, 2, 2) ? '#' : '.')
-            << '\n'
-            << ' ' << (cube.get(0, 1, 0) ? '#' : '.')
-                   << (cube.get(1, 1, 0) ? '#' : '.')
-                   << (cube.get(2, 1, 0) ? '#' : '.')
-            << ' ' << (cube.get(0, 1, 1) ? '#' : '.')
-                   << (cube.get(1, 1, 1) ? '#' : '.')
-                   << (cube.get(2, 1, 1) ? '#' : '.')
-            << ' ' << (cube.get(0, 1, 2) ? '#' : '.')
-                   << (cube.get(1, 1, 2) ? '#' : '.')
-                   << (cube.get(2, 1, 2) ? '#' : '.')
-            << '\n'
-            << ' ' << (cube.get(0, 0, 0) ? '#' : '.')
-                   << (cube.get(1, 0, 0) ? '#' : '.')
-                   << (cube.get(2, 0, 0) ? '#' : '.')
-            << ' ' << (cube.get(0, 0, 1) ? '#' : '.')
-                   << (cube.get(1, 0, 1) ? '#' : '.')
-                   << (cube.get(2, 0, 1) ? '#' : '.')
-            << ' ' << (cube.get(0, 0, 2) ? '#' : '.')
-                   << (cube.get(1, 0, 2) ? '#' : '.')
-                   << (cube.get(2, 0, 2) ? '#' : '.')
-            << "\n\n";
-}
-
-void dump_transform(const Matrix4& matrix)
-{
-  std::cout << '\t' << matrix[0][0] << '\t' << matrix[1][0]
-            << '\t' << matrix[2][0] << '\t' << matrix[3][0]
-            << '\n'
-            << '\t' << matrix[0][1] << '\t' << matrix[1][1]
-            << '\t' << matrix[2][1] << '\t' << matrix[3][1]
-            << '\n'
-            << '\t' << matrix[0][2] << '\t' << matrix[1][2]
-            << '\t' << matrix[2][2] << '\t' << matrix[3][2]
-            << '\n'
-            << '\t' << matrix[0][3] << '\t' << matrix[1][3]
-            << '\t' << matrix[2][3] << '\t' << matrix[3][3]
-            << "\n\n";
-}
-
-void dump_transform(const Matrix4& matrix, Somato::Cube cube)
-{
-  using Somato::Cube;
-
-  Cube trans;
-
-  for (int x = 0; x < Cube::N; ++x)
-    for (int y = 0; y < Cube::N; ++y)
-      for (int z = 0; z < Cube::N; ++z)
-        if (cube.get(x, y, z))
-        {
-          const Vector4 vec = matrix * Vector4{x - 1.0f, y - 1.0f, 1.0f - z, 1.0f};
-          const int dx = int(vec.x()) + 1;
-          const int dy = int(vec.y()) + 1;
-          const int dz = 1 - int(vec.z());
-
-          if (dx >= 0 && dx < Cube::N
-              && dy >= 0 && dy < Cube::N
-              && dz >= 0 && dz < Cube::N)
-            trans.put(dx, dy, dz, true);
-        }
-
-  dump_cube(trans);
-}
 
 } // anonymous namespace
 
@@ -126,20 +49,19 @@ namespace Somato
 class CubeTesselator::Impl
 {
 private:
-  Assimp::Importer  importer_;
-  const aiScene*    scene_;
+  Assimp::Importer importer_;
+  const aiScene*   scene_;
+  std::array<Cube, CUBE_PIECE_COUNT> puzzle_pieces_;
 
   // noncopyable
-  Impl(const CubeTesselator::Impl&);
-  CubeTesselator::Impl& operator=(const CubeTesselator::Impl&);
+  Impl(const CubeTesselator::Impl&) = delete;
+  CubeTesselator::Impl& operator=(const CubeTesselator::Impl&) = delete;
 
   void load_object(int idx, const Matrix4& matrix);
-  bool compute_rotations(int idx, Cube cube, Cube piece, Vector4 translation);
+  bool find_piece_position(Cube piece, const Matrix4& rotation);
 
 public:
   CubeElementArray* element_array;
-  RangeStartArray*  range_start_array;
-  RangeCountArray*  range_count_array;
   CubeIndexArray*   index_array;
   float             cellsize;
   int               trianglecount;
@@ -163,8 +85,6 @@ CubeTesselator::~CubeTesselator()
 
 void CubeTesselator::set_element_array(CubeElementArray* elements)
 {
-  g_return_if_fail(pimpl_->range_start_array == 0 || pimpl_->range_start_array->empty());
-  g_return_if_fail(pimpl_->range_count_array == 0 || pimpl_->range_count_array->empty());
   g_return_if_fail(pimpl_->index_array == 0 || pimpl_->index_array->empty());
 
   pimpl_->element_array = elements;
@@ -175,30 +95,24 @@ CubeElementArray* CubeTesselator::get_element_array() const
   return pimpl_->element_array;
 }
 
-void CubeTesselator::set_range_arrays(RangeStartArray* start, RangeCountArray* count)
+void CubeTesselator::set_range_arrays(RangeStartArray*, RangeCountArray*)
 {
-  g_return_if_fail((start == 0 && count == 0) ||
-                   (start != 0 && count != 0 && start->empty() && count->empty()));
-  g_return_if_fail(pimpl_->index_array == 0);
-
-  pimpl_->range_start_array = start;
-  pimpl_->range_count_array = count;
+  g_return_if_reached();
 }
 
 RangeStartArray* CubeTesselator::get_range_start_array() const
 {
-  return pimpl_->range_start_array;
+  g_return_val_if_reached(nullptr);
 }
 
 RangeCountArray* CubeTesselator::get_range_count_array() const
 {
-  return pimpl_->range_count_array;
+  g_return_val_if_reached(nullptr);
 }
 
 void CubeTesselator::set_index_array(CubeIndexArray* indices)
 {
   g_return_if_fail(indices == 0 || indices->empty());
-  g_return_if_fail(pimpl_->range_start_array == 0 && pimpl_->range_count_array == 0);
 
   pimpl_->index_array = indices;
 }
@@ -232,21 +146,36 @@ void CubeTesselator::run(Cube piece)
 
 CubeTesselator::Impl::Impl()
 :
-  importer_         (),
-  scene_            (nullptr),
-  element_array     (nullptr),
-  range_start_array (nullptr),
-  range_count_array (nullptr),
-  index_array       (nullptr),
-  cellsize          (1.0),
-  trianglecount     (0)
+  importer_     (),
+  scene_        (nullptr),
+  element_array (nullptr),
+  index_array   (nullptr),
+  cellsize      (1.0),
+  trianglecount (0)
 {
+  for (int i = 0; i < CUBE_PIECE_COUNT; ++i)
+    puzzle_pieces_[i] = puzzle_piece_at_origin(i);
+
   Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE,
                                 aiDefaultLogStream_STDERR);
 
-  scene_ = importer_.ReadFile("ui/puzzlepieces.dae",
-                              aiProcess_JoinIdenticalVertices
+  importer_.SetPropertyBool(AI_CONFIG_GLOB_MEASURE_TIME, true);
+
+  importer_.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
+                               aiComponent_TANGENTS_AND_BITANGENTS
+                               | aiComponent_COLORS
+                               | aiComponent_TEXCOORDS
+                               | aiComponent_BONEWEIGHTS);
+  importer_.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE,
+                               aiPrimitiveType_POINT
+                               | aiPrimitiveType_LINE);
+  importer_.SetPropertyInteger(AI_CONFIG_PP_ICL_PTCACHE_SIZE, 20);
+
+  scene_ = importer_.ReadFile(Util::locate_data_file("puzzlepieces.dae"),
+                              aiProcess_RemoveComponent
+                              | aiProcess_JoinIdenticalVertices
                               | aiProcess_Triangulate
+                              | aiProcess_SortByPType
                               | aiProcess_GenSmoothNormals
                               | aiProcess_ImproveCacheLocality);
 
@@ -260,7 +189,7 @@ CubeTesselator::Impl::~Impl()
 
 void CubeTesselator::Impl::load_object(int idx, const Matrix4& matrix)
 {
-  static const char object_names[7][16] =
+  static const char object_names[CUBE_PIECE_COUNT][16] =
   {
     "PieceOrange",
     "PieceGreen",
@@ -270,14 +199,11 @@ void CubeTesselator::Impl::load_object(int idx, const Matrix4& matrix)
     "PieceLavender",
     "PieceCyan"
   };
-  g_return_if_fail(idx >= 0 && unsigned(idx) < G_N_ELEMENTS(object_names));
+  g_assert(idx >= 0 && idx < CUBE_PIECE_COUNT);
 
   aiNode *const node = scene_->mRootNode->FindNode(object_names[idx]);
   g_return_if_fail(node != nullptr);
-#if 0
-  std::cout << "Final transform (" << object_names[idx] << ")\n";
-  dump_transform(matrix, puzzle_piece_at_origin(idx));
-#endif
+
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
     aiMesh *const mesh = scene_->mMeshes[node->mMeshes[mesh_idx]];
@@ -292,21 +218,15 @@ void CubeTesselator::Impl::load_object(int idx, const Matrix4& matrix)
       const aiVector3D& mesh_vertex = mesh->mVertices[vert_idx];
       const aiVector3D& mesh_normal = mesh->mNormals[vert_idx];
 
-      const Vector4 vertex {0.5f * mesh_vertex.x - 1.5f,
-                            0.5f * mesh_vertex.y - 1.5f,
-                            0.5f * mesh_vertex.z + 1.5f,
-                            1.0f};
-
+      const Vector4 vertex {mesh_vertex.x, mesh_vertex.y, mesh_vertex.z, 1.0f};
       const Vector4 normal {mesh_normal.x, mesh_normal.y, mesh_normal.z, 0.0f};
 
-      const Vector4 texcoord {0.25f * mesh_vertex.x,
-                              -0.25f * mesh_vertex.z,
-                              0.25f * mesh_vertex.y,
+      const Vector4 texcoord {0.5f * mesh_vertex.x + 0.75f,
+                              0.75f - 0.5f * mesh_vertex.z,
+                              0.5f * mesh_vertex.y + 0.75f,
                               1.0f};
 
-      element_array->push_back(CubeElement{texcoord,
-                                           matrix * normal,
-                                           matrix * vertex});
+      element_array->push_back(CubeElement{texcoord, matrix * normal, matrix * vertex});
     }
 
     for (unsigned int face_idx = 0; face_idx < mesh->mNumFaces; ++face_idx)
@@ -321,51 +241,70 @@ void CubeTesselator::Impl::load_object(int idx, const Matrix4& matrix)
 
         index_array->push_back(start_offset + vi);
       }
-      ++trianglecount;
     }
+    trianglecount += mesh->mNumFaces;
   }
 }
 
-/*
- * Rotate the cube.  This takes care of all orientations possible.
- */
-bool CubeTesselator::Impl::compute_rotations(int idx, Cube cube, Cube piece,
-                                             Vector4 translation)
+bool CubeTesselator::Impl::find_piece_position(Cube piece, const Matrix4& rotation)
+{
+  int z = 0;
+
+  for (Cube piece_z = piece; piece_z != Cube(); piece_z.shift_rev(Cube::AXIS_Z))
+  {
+    int y = 0;
+
+    for (Cube piece_y = piece_z; piece_y != Cube(); piece_y.shift_rev(Cube::AXIS_Y))
+    {
+      int x = 0;
+
+      for (Cube piece_x = piece_y; piece_x != Cube(); piece_x.shift_rev(Cube::AXIS_X))
+      {
+        for (int idx = 0; idx < CUBE_PIECE_COUNT; ++idx)
+          if (piece_x == puzzle_pieces_[idx])
+          {
+            Matrix4 translation {Matrix4::identity[0],
+                                 Matrix4::identity[1],
+                                 Matrix4::identity[2],
+                                 Vector4{x * cellsize, y * cellsize, z * cellsize, 1.0f}};
+
+            load_object(idx, rotation * translation);
+            return true;
+          }
+
+        ++x;
+      }
+      ++y;
+    }
+    --z;
+  }
+  return false;
+}
+
+void CubeTesselator::Impl::run(Cube piece)
 {
   static const Matrix4::array_type rotate90[3] =
   {
-    { {1, 0,  0, 0}, { 0, 0, 1, 0}, {0, -1, 0, 0}, {0, 0, 0, 1} }, // 90 deg around x
-    //{ {0, 0, -1, 0}, { 0, 1,  0, 0}, {1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
-    { {0, 0, 1, 0}, { 0, 1,  0, 0}, {-1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
-    { {0, -1,  0, 0}, {1, 0,  0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1} }  // 90 deg around z
+    { {1, 0,  0, 0}, { 0, 0, -1, 0}, {0, 1, 0, 0}, {0, 0, 0, 1} }, // 90 deg around x
+    { {0, 0, -1, 0}, { 0, 1,  0, 0}, {1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
+    { {0, 1,  0, 0}, {-1, 0,  0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1} }  // 90 deg around z
   };
 
-  Matrix4 matrix {Matrix4::identity[0], Matrix4::identity[1],
-                 Matrix4::identity[2], translation};
+  g_return_if_fail(element_array != nullptr);
+  g_return_if_fail(index_array != nullptr);
+
+  Matrix4 rotation;
 
   for (unsigned int i = 0;; ++i)
   {
-    Cube temp = cube;
-
     // Add the 4 possible orientations of each cube side.
     for (int k = 0; k < 4; ++k)
     {
-#if 0
-      std::cout << "Cube content:\n";
-      dump_cube(temp);
-      std::cout << "Transform:\n";
-      dump_transform(matrix, puzzle_piece_at_origin(idx));
-#endif
-      if (temp == piece)
-      {
-        load_object(idx, matrix);
-        return true;
-      }
-#if 0
-      std::cout << "Rotate Z\n";
-#endif
-      temp.rotate(Cube::AXIS_Z);
-      matrix = rotate90[Cube::AXIS_Z] * matrix;
+      if (find_piece_position(piece, rotation))
+        return;
+
+      piece.rotate(Cube::AXIS_Z);
+      rotation *= rotate90[Cube::AXIS_Z];
     }
 
     if (i == 5)
@@ -373,43 +312,8 @@ bool CubeTesselator::Impl::compute_rotations(int idx, Cube cube, Cube piece,
 
     // Due to the zigzagging performed here, only 5 rotations are
     // necessary to move each of the 6 cube sides in turn to the front.
-#if 0
-    std::cout << "Rotate " << ((i % 2 == 0) ? 'X' : 'Y') << '\n';
-#endif
-    cube.rotate(i % 2);
-    matrix = rotate90[i % 2] * matrix;
-  }
-
-  return false;
-}
-
-void CubeTesselator::Impl::run(Cube piece)
-{
-  g_return_if_fail(element_array != 0);
-  g_return_if_fail((range_start_array != 0) == (range_count_array != 0));
-  g_return_if_fail((index_array != 0) != (range_start_array != 0));
-  g_return_if_fail(range_start_array == 0 || range_start_array->size() == range_count_array->size());
-
-  for (int idx = 0; idx < CUBE_PIECE_COUNT; ++idx)
-  {
-    Cube cube = puzzle_piece_at_origin(idx);
-
-    // Make sure the piece is positioned where we expect it to be.
-    g_return_if_fail(cube.get(0, 0, 0));
-
-    Cube z, y, x;
-    int xi, yi, zi;
-
-    for (z = cube, zi = 0; z != Cube(); z.shift(Cube::AXIS_Z), ++zi)
-      for (y = z, yi = 0; y != Cube(); y.shift(Cube::AXIS_Y), ++yi)
-        for (x = y, xi = 0; x != Cube(); x.shift(Cube::AXIS_X), ++xi)
-        {
-          const Vector4 translation {xi * cellsize, yi * cellsize,
-                                     -zi * cellsize, 1.0f};
-
-          if (compute_rotations(idx, x, piece, translation))
-            return;
-        }
+    piece.rotate(i % 2);
+    rotation *= rotate90[i % 2];
   }
 }
 

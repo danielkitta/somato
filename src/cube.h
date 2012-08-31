@@ -44,7 +44,8 @@ public:
 
   Cube& rotate(int axis);                   // clockwise rotation
   Cube& shift(int axis, bool clip = false); // rightward shifting
-
+  Cube& shift_rev(int axis, bool clip = false); // leftward shifting
+  
   inline Cube& operator&=(Cube other);
   inline Cube& operator|=(Cube other);
   inline Cube operator~() const;

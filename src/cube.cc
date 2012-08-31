@@ -106,4 +106,24 @@ Cube& Cube::shift(int axis, bool clip)
   return *this;
 }
 
+Cube& Cube::shift_rev(int axis, bool clip)
+{
+  static const Bits shift_mask[3] =
+  {
+    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N*N - 1)) * (~(~Bits(0) << (N-1)*N*N) << (N*N)),
+    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N   - 1)) * (~(~Bits(0) << (N-1)*N) << N),
+    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N     - 1)) * (~(~Bits(0) << (N-1)) << 1)
+  };
+  static const unsigned char shift_count[3] = { N*N, N, 1 };
+
+  const Bits source = shift_mask[axis] & data_;
+
+  if (clip || source == data_)
+    data_ = source >> shift_count[axis];
+  else
+    data_ = 0;
+
+  return *this;
+}
+
 } // namespace Somato
