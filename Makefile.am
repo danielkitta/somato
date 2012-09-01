@@ -40,6 +40,8 @@ src_somato_SOURCES =		\
 	src/mainwindow.h	\
 	src/mathutils.cc	\
 	src/mathutils.h		\
+	src/meshloader.cc	\
+	src/meshloader.h	\
 	src/puzzle.cc		\
 	src/puzzle.h		\
 	src/tesselate.cc	\

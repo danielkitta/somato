@@ -22,6 +22,7 @@
 #define SOMATO_PUZZLE_H_INCLUDED
 
 #include "cube.h"
+#include "vectormath.h"
 
 #include <glibmm/dispatcher.h>
 #include <array>
@@ -65,6 +66,7 @@ private:
 };
 
 Cube puzzle_piece_at_origin(int index);
+Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece);
 
 } // namespace Somato
 

@@ -169,6 +169,41 @@ void filter_rotations(PieceStore& store)
   store.erase(pdest, store.end());
 }
 
+static
+bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
+{
+  using Math::Matrix4;
+  using Math::Vector4;
+
+  int z = 0;
+
+  for (Cube piece_z = piece; piece_z != Cube(); piece_z.shift_rev(Cube::AXIS_Z))
+  {
+    int y = 0;
+
+    for (Cube piece_y = piece_z; piece_y != Cube(); piece_y.shift_rev(Cube::AXIS_Y))
+    {
+      int x = 0;
+
+      for (Cube piece_x = piece_y; piece_x != Cube(); piece_x.shift_rev(Cube::AXIS_X))
+      {
+        if (piece_x == original)
+        {
+          transform *= Matrix4{Matrix4::identity[0],
+                               Matrix4::identity[1],
+                               Matrix4::identity[2],
+                               Vector4(x, y, z, 1.0f)};
+          return true;
+        }
+        ++x;
+      }
+      ++y;
+    }
+    --z;
+  }
+  return false;
+}
+
 PuzzleSolver::PuzzleSolver()
 :
   columns_    (Somato::CUBE_PIECE_COUNT),
@@ -328,6 +363,47 @@ void PuzzleThread::on_thread_exit()
 Cube puzzle_piece_at_origin(int index)
 {
 	return Cube(cube_piece_data[index]);
+}
+
+Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
+{
+  using Math::Matrix4;
+
+  static const Matrix4::array_type rotate90[3] =
+  {
+    { {1, 0,  0, 0}, { 0, 0, -1, 0}, {0, 1, 0, 0}, {0, 0, 0, 1} }, // 90 deg around x
+    { {0, 0, -1, 0}, { 0, 1,  0, 0}, {1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
+    { {0, 1,  0, 0}, {-1, 0,  0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1} }  // 90 deg around z
+  };
+
+  Matrix4 transform {Matrix4::identity};
+
+  g_return_val_if_fail(piece_idx >= 0 && piece_idx < CUBE_PIECE_COUNT, transform);
+
+  const Cube original {cube_piece_data[piece_idx]};
+
+  for (unsigned int i = 0;; ++i)
+  {
+    // Add the 4 possible orientations of each cube side.
+    for (int k = 0; k < 4; ++k)
+    {
+      if (find_piece_translation(original, piece, transform))
+        return transform;
+
+      piece.rotate(Cube::AXIS_Z);
+      transform *= rotate90[Cube::AXIS_Z];
+    }
+
+    if (i == 5)
+      break;
+
+    // Due to the zigzagging performed here, only 5 rotations are
+    // necessary to move each of the 6 cube sides in turn to the front.
+    piece.rotate(i % 2);
+    transform *= rotate90[i % 2];
+  }
+
+  return transform;
 }
 
 } // namespace Somato
