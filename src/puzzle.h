@@ -65,7 +65,6 @@ private:
   void on_thread_exit();
 };
 
-Cube puzzle_piece_at_origin(int index);
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece);
 
 } // namespace Somato

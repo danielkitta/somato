@@ -44,8 +44,6 @@ src_somato_SOURCES =		\
 	src/meshloader.h	\
 	src/puzzle.cc		\
 	src/puzzle.h		\
-	src/tesselate.cc	\
-	src/tesselate.h		\
 	src/vectormath.cc	\
 	src/vectormath.h
 

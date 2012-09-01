@@ -360,11 +360,6 @@ void PuzzleThread::on_thread_exit()
   signal_done_(); // emit
 }
 
-Cube puzzle_piece_at_origin(int index)
-{
-	return Cube(cube_piece_data[index]);
-}
-
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 {
   using Math::Matrix4;
