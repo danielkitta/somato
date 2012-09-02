@@ -238,6 +238,7 @@ public:
   bool have_draw_range_elements;
   bool have_multi_draw_arrays;
   bool have_depth_clamp;
+  bool have_texture_filter_anisotropic;
 
   PFNGLDRAWRANGEELEMENTSPROC  DrawRangeElements;
   PFNGLMULTIDRAWARRAYSPROC    MultiDrawArrays;
@@ -251,11 +252,12 @@ CubeScene::Extensions::~Extensions()
 
 void CubeScene::Extensions::query()
 {
-  have_separate_specular_color = false;
-  have_generate_mipmap         = false;
-  have_draw_range_elements     = false;
-  have_multi_draw_arrays       = false;
-  have_depth_clamp             = false;
+  have_separate_specular_color    = false;
+  have_generate_mipmap            = false;
+  have_draw_range_elements        = false;
+  have_multi_draw_arrays          = false;
+  have_depth_clamp                = false;
+  have_texture_filter_anisotropic = false;
 
   DrawRangeElements = 0;
   MultiDrawArrays   = 0;
@@ -294,6 +296,9 @@ void CubeScene::Extensions::query()
   {
     have_depth_clamp = true;
   }
+
+  if (have_extension("GL_EXT_texture_filter_anisotropic"))
+    have_texture_filter_anisotropic = true;
 }
 
 inline
@@ -1851,6 +1856,9 @@ void CubeScene::gl_init_cube_texture()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+  if (gl_ext()->have_texture_filter_anisotropic)
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
 
   if (gl_ext()->have_generate_mipmap)
   {
