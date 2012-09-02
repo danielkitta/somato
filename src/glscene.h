@@ -155,11 +155,11 @@ private:
   void gl_build_focus();
   void gl_build_layouts();
 
-  int  gl_render_ui(void* arrays) const;
-  int  gl_render_focus() const;
-  int  gl_render_layouts() const;
-  int  gl_render_layouts_multitexture(unsigned int target, LayoutVector::const_iterator first) const;
-  int  gl_render_layouts_multipass(unsigned int target, LayoutVector::const_iterator first) const;
+  int gl_render_ui(void* arrays) const;
+  int gl_render_focus() const;
+  int gl_render_layouts() const;
+  int gl_render_layouts_multitexture(LayoutVector::const_iterator first) const;
+  int gl_render_layouts_multipass(LayoutVector::const_iterator first) const;
 };
 
 /*

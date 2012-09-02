@@ -28,7 +28,6 @@
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 #include <functional>
-#include <memory>
 #include <thread>
 
 namespace GL
@@ -126,15 +125,13 @@ MeshLoader::MeshLoader(std::string filename)
 {}
 
 MeshLoader::~MeshLoader()
-{
-  delete pimpl_; // exception-safe as it is the only member
-}
+{}
 
 void MeshLoader::run()
 {
   g_return_if_fail(!pimpl_->thread.joinable());
 
-  pimpl_->thread = std::thread{std::bind(&MeshLoader::Impl::execute, pimpl_)};
+  pimpl_->thread = std::thread{std::bind(&MeshLoader::Impl::execute, pimpl_.get())};
 }
 
 sigc::signal<void>& MeshLoader::signal_done()

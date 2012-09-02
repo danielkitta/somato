@@ -146,24 +146,13 @@ Extensions::~Extensions()
 
 void Extensions::query()
 {
-  have_swap_control         = false;
-  have_texture_rectangle    = false;
-  have_texture_border_clamp = false;
-  have_multitexture         = false;
-  have_texture_env_combine  = false;
-  have_vertex_buffer_object = false;
+  have_swap_control = false;
 
 #if defined(GDK_WINDOWING_X11)
   SwapIntervalSGI     = 0;
 #elif defined(GDK_WINDOWING_WIN32)
   SwapIntervalEXT     = 0;
 #endif
-  ActiveTexture       = 0;
-  ClientActiveTexture = 0;
-  GenBuffers          = 0;
-  DeleteBuffers       = 0;
-  BindBuffer          = 0;
-  BufferData          = 0;
 
   version_    = GL::get_gl_version();
   extensions_ = glGetString(GL_EXTENSIONS);
@@ -184,65 +173,6 @@ void Extensions::query()
       have_swap_control = true;
   }
 #endif
-
-  if (have_extension("GL_ARB_texture_rectangle")
-      || have_extension("GL_EXT_texture_rectangle")
-      || have_extension("GL_NV_texture_rectangle"))
-  {
-    have_texture_rectangle = true;
-  }
-
-  if (have_version(1, 3)
-      || have_extension("GL_ARB_texture_border_clamp")
-      || have_extension("GL_SGIS_texture_border_clamp"))
-  {
-    have_texture_border_clamp = true;
-  }
-
-  if (have_version(1, 3))
-  {
-    if (GL::get_proc_address(ActiveTexture,       "glActiveTexture") &&
-        GL::get_proc_address(ClientActiveTexture, "glClientActiveTexture"))
-    {
-      have_multitexture = true;
-    }
-  }
-  else if (have_extension("GL_ARB_multitexture"))
-  {
-    if (GL::get_proc_address(ActiveTexture,       "glActiveTextureARB") &&
-        GL::get_proc_address(ClientActiveTexture, "glClientActiveTextureARB"))
-    {
-      have_multitexture = true;
-    }
-  }
-
-  if (have_version(1, 3)
-      || have_extension("GL_ARB_texture_env_combine")
-      || have_extension("GL_EXT_texture_env_combine"))
-  {
-    have_texture_env_combine = true;
-  }
-
-  if (have_version(1, 5))
-  {
-    if (GL::get_proc_address(GenBuffers,    "glGenBuffers")    &&
-        GL::get_proc_address(DeleteBuffers, "glDeleteBuffers") &&
-        GL::get_proc_address(BindBuffer,    "glBindBuffer")    &&
-        GL::get_proc_address(BufferData,    "glBufferData"))
-    {
-      have_vertex_buffer_object = true;
-    }
-  }
-  else if (have_extension("GL_ARB_vertex_buffer_object"))
-  {
-    if (GL::get_proc_address(GenBuffers,    "glGenBuffersARB")    &&
-        GL::get_proc_address(DeleteBuffers, "glDeleteBuffersARB") &&
-        GL::get_proc_address(BindBuffer,    "glBindBufferARB")    &&
-        GL::get_proc_address(BufferData,    "glBufferDataARB"))
-    {
-      have_vertex_buffer_object = true;
-    }
-  }
 }
 
 LayoutTexture::LayoutTexture()
@@ -312,8 +242,7 @@ void LayoutTexture::prepare_pango_context(const Glib::RefPtr<Pango::Context>& co
   cairo_destroy(cairo_context);
 }
 
-void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
-                                  int img_border, GLenum target, GLenum clamp_mode)
+void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
 {
   // Measure ink extents to determine the dimensions of the texture image,
   // but keep the logical extents and the ink offsets around for positioning
@@ -335,28 +264,13 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
   const int ink_width  = Math::max(0, ink.get_width())  + 2 * PADDING;
   const int ink_height = Math::max(0, ink.get_height()) + 2 * PADDING;
 
-  int img_height = ink_height + 2 * img_border;
-  int img_width  = aligned_stride(ink_width + 2 * img_border);
+  int img_height = ink_height;
+  int img_width  = aligned_stride(ink_width);
 
-  if (target == GL_TEXTURE_2D)
-  {
-    // Round up as needed to the closest power of two.
-    img_width  = Math::round_pow2(img_width);
-    img_height = Math::round_pow2(img_height);
-  }
   // The dimensions of the new image are often identical with the previous
   // one's.  Exploit this by uploading only a sub-area of the texture image
   // which covers the union of the new ink rectangle and the previous one.
   const bool sub_image = (tex_name_ && tex_width_ == img_width && tex_height_ == img_height);
-
-  if (sub_image && target == GL_TEXTURE_2D)
-  {
-    // At this point, ink_width_ and ink_height_ are either valid, or there
-    // is a bug somewhere.  But there is no need for extensive checks right
-    // here, as glTexSubImage2D() would bail out later anyway.
-    img_height = Math::max(ink_height, ink_height_) + 2 * img_border;
-    img_width  = aligned_stride(Math::max(ink_width, ink_width_) + 2 * img_border);
-  }
 
   Util::MemChunk<GLubyte> tex_image (img_height * img_width);
 
@@ -374,8 +288,8 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     cairo_surface_destroy(surface); // drop reference
 
     cairo_scale(context, 1.0, -1.0);
-    cairo_move_to(context, img_border + PADDING - ink.get_x(),
-                         -(img_border + PADDING + ink.get_y() + ink.get_height()));
+    cairo_move_to(context, PADDING - ink.get_x(),
+                         -(PADDING + ink.get_y() + ink.get_height()));
 
     pango_cairo_show_layout(context, layout->gobj());
 
@@ -392,11 +306,11 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
     GL::Error::throw_if_fail(tex_name_ != 0);
   }
 
-  glBindTexture(target, tex_name_);
+  glBindTexture(GL_TEXTURE_RECTANGLE, tex_name_);
 
   if (sub_image)
   {
-    glTexSubImage2D(target, 0, 0, 0, img_width, img_height,
+    glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, img_width, img_height,
                     GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_image[0]);
     GL::Error::check();
   }
@@ -404,14 +318,13 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
   {
     if (tex_width_ == 0)
     {
-      glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(target, GL_TEXTURE_WRAP_S,     clamp_mode);
-      glTexParameteri(target, GL_TEXTURE_WRAP_T,     clamp_mode);
+      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     }
-
-    glTexImage2D(target, 0, GL_INTENSITY8, img_width, img_height, 0,
-                 GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_image[0]);
+    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_INTENSITY8, img_width, img_height,
+                 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_image[0]);
     GL::Error::check();
 
     tex_width_  = img_width;
@@ -436,7 +349,6 @@ void LayoutTexture::gl_delete()
     glDeleteTextures(1, &tex_name_);
     tex_name_ = 0;
   }
-
   tex_width_  = 0;
   tex_height_ = 0;
   ink_x_      = 0;
@@ -613,17 +525,17 @@ void Scene::gl_update_ui()
   gl_build_focus();
   gl_build_layouts();
 
-  if (!ui_geometry_.empty() && gl_ext()->have_vertex_buffer_object)
+  if (!ui_geometry_.empty())
   {
     if (!ui_buffer_)
     {
-      gl_ext()->GenBuffers(1, &ui_buffer_);
+      glGenBuffers(1, &ui_buffer_);
       GL::Error::throw_if_fail(ui_buffer_ != 0);
     }
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
-    gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, ui_geometry_.size() * sizeof(UIVertex),
-                         &ui_geometry_[0], GL_DYNAMIC_DRAW_ARB);
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
+    glBufferData(GL_ARRAY_BUFFER, ui_geometry_.size() * sizeof(UIVertex),
+                 &ui_geometry_[0], GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     GL::Error::check();
   }
@@ -652,9 +564,9 @@ void Scene::gl_cleanup()
 {
   focus_drawable_ = false;
 
-  if (ui_buffer_ && gl_ext()->have_vertex_buffer_object)
+  if (ui_buffer_)
   {
-    gl_ext()->DeleteBuffers(1, &ui_buffer_);
+    glDeleteBuffers(1, &ui_buffer_);
     ui_buffer_ = 0;
   }
 
@@ -675,35 +587,27 @@ void Scene::gl_cleanup()
 void Scene::gl_reset_state()
 {
   glDisableClientState(GL_VERTEX_ARRAY);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  if (gl_ext()->have_vertex_buffer_object)
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
-
-  if (gl_ext()->have_multitexture)
+  if (use_multitexture_)
   {
-    if (use_multitexture_)
-    {
-      gl_ext()->ClientActiveTexture(GL_TEXTURE1);
-      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glClientActiveTexture(GL_TEXTURE1);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
-      gl_ext()->ActiveTexture(GL_TEXTURE1);
-      glDisable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE1);
+    glDisable(GL_TEXTURE_2D);
 
-      if (gl_ext()->have_texture_rectangle)
-        glDisable(GL_TEXTURE_RECTANGLE_NV);
-    }
-
-    gl_ext()->ClientActiveTexture(GL_TEXTURE0);
-    gl_ext()->ActiveTexture(GL_TEXTURE0);
+    glDisable(GL_TEXTURE_RECTANGLE);
   }
+  glClientActiveTexture(GL_TEXTURE0);
+  glActiveTexture(GL_TEXTURE0);
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
   glDisable(GL_TEXTURE_1D);
   glDisable(GL_TEXTURE_2D);
 
-  if (gl_ext()->have_texture_rectangle)
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+  glDisable(GL_TEXTURE_RECTANGLE);
 
   glDisable(GL_BLEND);
   glDisable(GL_ALPHA_TEST);
@@ -753,26 +657,15 @@ int Scene::gl_render()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    if (gl_ext()->have_vertex_buffer_object)
+    if (ui_buffer_)
     {
-      if (ui_buffer_)
-      {
-        gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, ui_buffer_);
+      glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
 
-        triangle_count = gl_render_ui(GL::buffer_offset(0));
-
-        gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
-      }
-    }
-    else
-    {
-      if (!ui_geometry_.empty())
-      {
-        triangle_count = gl_render_ui(&ui_geometry_[0]);
-      }
+      triangle_count = gl_render_ui(GL::buffer_offset(0));
+      
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
   }
-
   return triangle_count;
 }
 
@@ -782,10 +675,10 @@ int Scene::gl_render_ui(void* arrays) const
 
   if (use_multitexture_)
   {
-    gl_ext()->ClientActiveTexture(GL_TEXTURE1);
+    glClientActiveTexture(GL_TEXTURE1);
     glTexCoordPointer(2, GL_FLOAT, sizeof(UIVertex), byte_start);
 
-    gl_ext()->ClientActiveTexture(GL_TEXTURE0);
+    glClientActiveTexture(GL_TEXTURE0);
   }
   glTexCoordPointer(2, GL_FLOAT, sizeof(UIVertex), byte_start);
   glVertexPointer  (2, GL_FLOAT, sizeof(UIVertex), byte_start + 2 * sizeof(GLfloat));
@@ -818,15 +711,10 @@ int Scene::gl_render_layouts() const
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    GLenum target = GL_TEXTURE_2D;
-
-    if (gl_ext()->have_texture_rectangle)
-      target = GL_TEXTURE_RECTANGLE_NV;
-
     if (use_multitexture_)
-      triangle_count = gl_render_layouts_multitexture(target, first);
+      triangle_count = gl_render_layouts_multitexture(first);
     else
-      triangle_count = gl_render_layouts_multipass(target, first);
+      triangle_count = gl_render_layouts_multipass(first);
 
     glDisable(GL_BLEND);
   }
@@ -860,33 +748,28 @@ int Scene::gl_render_layouts() const
  *   - current texture coordinates
  *   - current raster position
  */
-int Scene::gl_render_layouts_multitexture(unsigned int target,
-                                          LayoutVector::const_iterator first) const
+int Scene::gl_render_layouts_multitexture(LayoutVector::const_iterator first) const
 {
-  gl_ext()->ClientActiveTexture(GL_TEXTURE1);
+  glClientActiveTexture(GL_TEXTURE1);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
   glMatrixMode(GL_TEXTURE);
+  glTranslatef(1.0, -1.0, 0.0);
 
   const LayoutTexture* layout = *first;
 
-  if (target != GL_TEXTURE_2D)
-    glTranslatef(1.0, -1.0, 0.0);
-  else
-    glTranslatef(1.0f / layout->tex_width_, -1.0f / layout->tex_height_, 0.0);
+  glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
+  glEnable(GL_TEXTURE_RECTANGLE);
 
-  glBindTexture(target, layout->tex_name_);
-  glEnable(target);
-
-  gl_ext()->ActiveTexture(GL_TEXTURE1);
+  glActiveTexture(GL_TEXTURE1);
 
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
   glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB,      GL_REPLACE);
   glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB,      GL_PREVIOUS);
   glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA,    GL_ADD);
 
-  glBindTexture(target, layout->tex_name_);
-  glEnable(target);
+  glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
+  glEnable(GL_TEXTURE_RECTANGLE);
 
   glColor3ubv(layout->color_);
   glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
@@ -899,17 +782,11 @@ int Scene::gl_render_layouts_multitexture(unsigned int target,
 
     if (layout->drawable())
     {
-      gl_ext()->ActiveTexture(GL_TEXTURE0);
-      glBindTexture(target, layout->tex_name_);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
 
-      if (target == GL_TEXTURE_2D)
-      {
-        glLoadIdentity();
-        glTranslatef(1.0f / layout->tex_width_, -1.0f / layout->tex_height_, 0.0);
-      }
-
-      gl_ext()->ActiveTexture(GL_TEXTURE1);
-      glBindTexture(target, layout->tex_name_);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
 
       glColor3ubv(layout->color_);
       glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
@@ -918,27 +795,26 @@ int Scene::gl_render_layouts_multitexture(unsigned int target,
     }
   }
 
-  glDisable(target);
+  glDisable(GL_TEXTURE_RECTANGLE);
 
-  gl_ext()->ActiveTexture(GL_TEXTURE0);
-  glDisable(target);
+  glActiveTexture(GL_TEXTURE0);
+  glDisable(GL_TEXTURE_RECTANGLE);
 
   glLoadIdentity();
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  gl_ext()->ClientActiveTexture(GL_TEXTURE0);
+  glClientActiveTexture(GL_TEXTURE0);
 
   return triangle_count;
 }
 
-int Scene::gl_render_layouts_multipass(unsigned int target,
-                                       LayoutVector::const_iterator first) const
+int Scene::gl_render_layouts_multipass(LayoutVector::const_iterator first) const
 {
   static const GLubyte shadow_color[3] = { 0x00, 0x00, 0x00 };
 
   int triangle_count = 0;
 
-  glEnable(target);
+  glEnable(GL_TEXTURE_RECTANGLE);
 
   do
   {
@@ -946,7 +822,7 @@ int Scene::gl_render_layouts_multipass(unsigned int target,
 
     if (layout->drawable())
     {
-      glBindTexture(target, layout->tex_name_);
+      glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
 
       glTranslatef(1.0, -1.0, 0.0);
       glColor3ubv(shadow_color);
@@ -961,7 +837,7 @@ int Scene::gl_render_layouts_multipass(unsigned int target,
   }
   while (++first != ui_layouts_.end());
 
-  glDisable(target);
+  glDisable(GL_TEXTURE_RECTANGLE);
 
   return triangle_count;
 }
@@ -1013,11 +889,7 @@ void Scene::gl_build_layouts()
       if (use_multitexture_)
       {
         offset = 1;
-
-        if (gl_ext()->have_texture_border_clamp)
-          s0 = -1.0;
-        else
-          t0 = 1.0;
+        s0 = -1.0;
       }
 
       const float width  = layout->ink_width_  + offset;
@@ -1025,16 +897,6 @@ void Scene::gl_build_layouts()
 
       float s1 = s0 + width;
       float t1 = t0 + height;
-
-      if (!gl_ext()->have_texture_rectangle)
-      {
-        g_return_if_fail(layout->tex_width_ > 0 && layout->tex_height_ > 0);
-
-        s0 /= layout->tex_width_;
-        s1 /= layout->tex_width_;
-        t0 /= layout->tex_height_;
-        t1 /= layout->tex_height_;
-      }
 
       const float x0 = layout->window_x_ + layout->ink_x_;
       const float y0 = layout->window_y_ + layout->ink_y_ + 1 - offset;
@@ -1168,22 +1030,6 @@ void Scene::gl_update_vsync_state()
 
 void Scene::gl_update_layouts()
 {
-  GLenum  target     = GL_TEXTURE_2D;
-  GLenum  clamp_mode = GL_CLAMP;
-  int     img_border = 0;
-
-  if (gl_ext()->have_texture_rectangle)
-    target = GL_TEXTURE_RECTANGLE_NV;
-
-  // Unconditionally enable border clamping whenever available, so that
-  // out-of-bounds texture coordinates always reference the border color.
-  // Otherwise, when multitexturing, include a border within the image to
-  // avoid wrapping artifacts due to out-of-bounds texture coordinates.
-  if (gl_ext()->have_texture_border_clamp)
-    clamp_mode = GL_CLAMP_TO_BORDER;
-  else if (use_multitexture_)
-    img_border = 1;
-
   for (LayoutVector::iterator p = ui_layouts_.begin(); p != ui_layouts_.end(); ++p)
   {
     LayoutTexture *const layout = *p;
@@ -1192,8 +1038,7 @@ void Scene::gl_update_layouts()
     {
       if (!layout->tex_name_ || layout->need_update_)
       {
-        layout->gl_set_layout(create_texture_pango_layout(layout->content_),
-                              img_border, target, clamp_mode);
+        layout->gl_set_layout(create_texture_pango_layout(layout->content_));
       }
     }
     else
@@ -1212,13 +1057,13 @@ Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustri
 {
   if (!texture_context_)
   {
-    Glib::RefPtr<Pango::Context> context = create_pango_context();
+    auto context = create_pango_context();
     LayoutTexture::prepare_pango_context(context);
 
     swap(texture_context_, context);
   }
 
-  const Glib::RefPtr<Pango::Layout> layout = Pango::Layout::create(texture_context_);
+  const auto layout = Pango::Layout::create(texture_context_);
   layout->set_text(text);
 
   return layout;
@@ -1399,18 +1244,15 @@ void Scene::on_signal_realize()
 
     g_return_if_fail(gl_ext() != 0);
 
-    if (!gl_ext()->have_version(1, 1))
-      g_error("at least OpenGL 1.1 is required to run this program");
+    if (!gl_ext()->have_version(3, 2))
+      g_error("at least OpenGL 3.2 is required to run this program");
 
     gl_update_vsync_state();
 
-    if (gl_ext()->have_multitexture && gl_ext()->have_texture_env_combine)
-    {
-      GLint max_texture_units = 0;
-      glGetIntegerv(GL_MAX_TEXTURE_UNITS, &max_texture_units);
+    GLint max_texture_units = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_UNITS, &max_texture_units);
 
-      use_multitexture_ = (max_texture_units >= 2);
-    }
+    use_multitexture_ = (max_texture_units >= 2);
 
     if (has_back_buffer_ && !use_back_buffer_)
       glDrawBuffer(GL_FRONT);

@@ -21,6 +21,8 @@
 #ifndef SOMATO_GLSCENEPRIVATE_H_INCLUDED
 #define SOMATO_GLSCENEPRIVATE_H_INCLUDED
 
+#define GL_GLEXT_PROTOTYPES 1
+
 #include "glscene.h"
 #include "glutils.h"
 
@@ -59,24 +61,12 @@ private:
 
 public:
   bool have_swap_control;
-  bool have_texture_rectangle;
-  bool have_texture_border_clamp;
-  bool have_multitexture;
-  bool have_texture_env_combine;
-  bool have_vertex_buffer_object;
 
 #if defined(GDK_WINDOWING_X11)
   PFNGLXSWAPINTERVALSGIPROC     SwapIntervalSGI;
 #elif defined(GDK_WINDOWING_WIN32)
   PFNWGLSWAPINTERVALEXTPROC     SwapIntervalEXT;
 #endif
-  PFNGLACTIVETEXTUREPROC        ActiveTexture;
-  PFNGLCLIENTACTIVETEXTUREPROC  ClientActiveTexture;
-
-  PFNGLGENBUFFERSARBPROC        GenBuffers;
-  PFNGLDELETEBUFFERSARBPROC     DeleteBuffers;
-  PFNGLBINDBUFFERARBPROC        BindBuffer;
-  PFNGLBUFFERDATAARBPROC        BufferData;
 
   Extensions() : extensions_ (0), version_ (0) { query(); }
   virtual ~Extensions();
@@ -120,8 +110,7 @@ private:
 
   static void prepare_pango_context(const Glib::RefPtr<Pango::Context>& context);
 
-  void gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
-                     int img_border, GLenum target, GLenum clamp_mode);
+  void gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout);
   void gl_delete();
 
   // noncopyable

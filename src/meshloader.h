@@ -22,6 +22,7 @@
 #define SOMATO_MESHLOADER_H_INCLUDED
 
 #include <sigc++/sigc++.h>
+#include <memory>
 #include <string>
 #include <utility>
 #include <cstdint>
@@ -64,7 +65,7 @@ public:
 private:
   class Impl;
 
-  Impl *const pimpl_;
+  const std::unique_ptr<Impl> pimpl_;
 
   // noncopyable
   MeshLoader(const MeshLoader&) = delete;

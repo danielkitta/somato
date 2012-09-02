@@ -72,8 +72,8 @@ enum
 
 enum
 {
-  CUBE_ELEMENT_TYPE = GL_T2F_N3F_V3F,
-  CUBE_INDEX_TYPE   = GL_UNSIGNED_SHORT
+  MESH_ELEMENT_TYPE = GL_T2F_N3F_V3F,
+  MESH_INDEX_TYPE   = GL_UNSIGNED_SHORT
 };
 
 /*
@@ -233,15 +233,7 @@ private:
   void query();
 
 public:
-  bool have_separate_specular_color;
-  bool have_generate_mipmap;
-  bool have_draw_range_elements;
-  bool have_multi_draw_arrays;
-  bool have_depth_clamp;
   bool have_texture_filter_anisotropic;
-
-  PFNGLDRAWRANGEELEMENTSPROC  DrawRangeElements;
-  PFNGLMULTIDRAWARRAYSPROC    MultiDrawArrays;
 
   Extensions() { query(); }
   virtual ~Extensions();
@@ -252,50 +244,7 @@ CubeScene::Extensions::~Extensions()
 
 void CubeScene::Extensions::query()
 {
-  have_separate_specular_color    = false;
-  have_generate_mipmap            = false;
-  have_draw_range_elements        = false;
-  have_multi_draw_arrays          = false;
-  have_depth_clamp                = false;
   have_texture_filter_anisotropic = false;
-
-  DrawRangeElements = 0;
-  MultiDrawArrays   = 0;
-
-  if (have_version(1, 2) || have_extension("GL_EXT_separate_specular_color"))
-    have_separate_specular_color = true;
-
-  if (have_version(1, 4) || have_extension("GL_SGIS_generate_mipmap"))
-    have_generate_mipmap = true;
-
-  if (have_version(1, 2))
-  {
-    if (GL::get_proc_address(DrawRangeElements, "glDrawRangeElements"))
-      have_draw_range_elements = true;
-  }
-  else if (have_extension("GL_EXT_draw_range_elements"))
-  {
-    if (GL::get_proc_address(DrawRangeElements, "glDrawRangeElementsEXT"))
-      have_draw_range_elements = true;
-  }
-
-  if (have_version(1, 4))
-  {
-    if (GL::get_proc_address(MultiDrawArrays, "glMultiDrawArrays"))
-      have_multi_draw_arrays = true;
-  }
-  else if (have_extension("GL_EXT_multi_draw_arrays"))
-  {
-    if (GL::get_proc_address(MultiDrawArrays, "glMultiDrawArraysEXT"))
-      have_multi_draw_arrays = true;
-  }
-
-  if (have_version(3, 2)
-      || have_extension("GL_ARB_depth_clamp")
-      || have_extension("GL_NV_depth_clamp"))
-  {
-    have_depth_clamp = true;
-  }
 
   if (have_extension("GL_EXT_texture_filter_anisotropic"))
     have_texture_filter_anisotropic = true;
@@ -668,24 +617,20 @@ void CubeScene::gl_initialize()
   // impact the framerate on my system.
 
   glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-  if (gl_ext()->have_generate_mipmap)
-    glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
+  glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
   glEnable(GL_CULL_FACE);
 
   // Trade viewspace clipping for depth clamping to avoid highly visible
   // volume clipping artifacts.  The clamping could potentially produce some
   // artifacts of its own, but so far it appears to play along nicely.
-  if (gl_ext()->have_depth_clamp)
-    glEnable(GL_DEPTH_CLAMP_NV);
+  glEnable(GL_DEPTH_CLAMP);
 
   // Set up lighting parameters for the cube pieces.  If supported, enable
   // the separate specular color, so that the specular term of the lighting
   // calculation is applied independently of texturing.
 
-  if (gl_ext()->have_separate_specular_color)
-    glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
+  glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
 
   static const GLfloat scene_ambient [4] = { 0.25, 0.25, 0.25, 1.0 };
   static const GLfloat light_position[4] = { 0.0,  1.0,  4.0,  0.0 };
@@ -744,11 +689,8 @@ void CubeScene::gl_reset_state()
   glDisableClientState(GL_NORMAL_ARRAY);
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
-  if (gl_ext()->have_vertex_buffer_object)
-  {
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
-  }
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_LIGHTING);
@@ -1607,17 +1549,17 @@ void CubeScene::gl_create_wireframe()
 
   g_return_if_fail(wireframe_buffers_[0] == 0 && wireframe_buffers_[1] == 0);
 
-  gl_ext()->GenBuffers(2, wireframe_buffers_);
+  glGenBuffers(2, wireframe_buffers_);
   GL::Error::throw_if_fail(wireframe_buffers_[0] != 0 && wireframe_buffers_[1] != 0);
 
-  gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, wireframe_buffers_[0]);
-  gl_ext()->BufferData(GL_ARRAY_BUFFER_ARB, vertices.bytes(), &vertices[0],
-                       GL_STATIC_DRAW_ARB);
-  gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, wireframe_buffers_[1]);
-  gl_ext()->BufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.bytes(), &indices[0],
-                       GL_STATIC_DRAW_ARB);
-  gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
-  gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
+  glBufferData(GL_ARRAY_BUFFER, vertices.bytes(), &vertices[0], GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.bytes(), &indices[0], GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   GL::Error::check();
 }
@@ -1626,45 +1568,33 @@ void CubeScene::gl_delete_wireframe()
 {
   if (wireframe_buffers_[0] || wireframe_buffers_[1])
   {
-    gl_ext()->DeleteBuffers(2, wireframe_buffers_);
+    glDeleteBuffers(2, wireframe_buffers_);
     wireframe_buffers_[0] = 0;
     wireframe_buffers_[1] = 0;
   }
 }
 
-void CubeScene::gl_draw_wireframe_elements(void* indices) const
+void CubeScene::gl_draw_wireframe() const
 {
   static const GLubyte wireframe_color[3] = { 0x47, 0x47, 0x47 };
 
-  glColor3ubv(wireframe_color);
-
-  if (gl_ext()->have_draw_range_elements)
-  {
-    gl_ext()->DrawRangeElements(GL_LINES, 0, WIREFRAME_VERTEX_COUNT - 1,
-                                2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE, indices);
-  }
-  else
-  {
-    glDrawElements(GL_LINES, 2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE, indices);
-  }
-}
-
-void CubeScene::gl_draw_wireframe() const
-{
   if (wireframe_buffers_[0] && wireframe_buffers_[1])
   {
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, wireframe_buffers_[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
     glVertexPointer(3, GL_FLOAT, 0, GL::buffer_offset(0));
     glEnableClientState(GL_VERTEX_ARRAY);
 
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, wireframe_buffers_[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
 
-    gl_draw_wireframe_elements(GL::buffer_offset(0));
+    glColor3ubv(wireframe_color);
+    glDrawRangeElements(GL_LINES, 0, WIREFRAME_VERTEX_COUNT - 1,
+                        2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE,
+                        GL::buffer_offset(0));
 
-    gl_ext()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glDisableClientState(GL_VERTEX_ARRAY);
-    gl_ext()->BindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 }
 
@@ -1747,7 +1677,7 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data) const
   const auto& mesh = mesh_data_[data.cube_index];
 
   glDrawRangeElements(GL_TRIANGLES, mesh.element_first, mesh.element_last,
-                      3 * mesh.triangle_count, CUBE_INDEX_TYPE,
+                      3 * mesh.triangle_count, MESH_INDEX_TYPE,
                       GL::buffer_offset(mesh.indices_offset * sizeof(GL::MeshIndex)));
   glPopMatrix();
 }
@@ -1759,7 +1689,7 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
   if (mesh_buffers_[0] && mesh_buffers_[1])
   {
     glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[0]);
-    glInterleavedArrays(CUBE_ELEMENT_TYPE, 0, GL::buffer_offset(0));
+    glInterleavedArrays(MESH_ELEMENT_TYPE, 0, GL::buffer_offset(0));
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[1]);
 
@@ -1860,20 +1790,10 @@ void CubeScene::gl_init_cube_texture()
   if (gl_ext()->have_texture_filter_anisotropic)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
 
-  if (gl_ext()->have_generate_mipmap)
-  {
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, WIDTH, HEIGHT, 0,
-                 GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
-  }
-  else
-  {
-    const int result = gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, WIDTH, HEIGHT,
-                                         GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
-    if (result != GL_NO_ERROR)
-      throw GL::Error(result);
-  }
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, WIDTH, HEIGHT, 0,
+               GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
 
   GL::Error::check();
 }
