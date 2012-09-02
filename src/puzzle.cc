@@ -377,7 +377,7 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 
   const Cube original {cube_piece_data[piece_idx]};
 
-  for (unsigned int i = 0;; ++i)
+  for (unsigned int i = 0; i < 6; ++i)
   {
     // Add the 4 possible orientations of each cube side.
     for (int k = 0; k < 4; ++k)
@@ -389,15 +389,13 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
       transform *= rotate90[Cube::AXIS_Z];
     }
 
-    if (i == 5)
-      break;
-
     // Due to the zigzagging performed here, only 5 rotations are
     // necessary to move each of the 6 cube sides in turn to the front.
     piece.rotate(i % 2);
     transform *= rotate90[i % 2];
   }
 
+  g_warn_if_reached();
   return transform;
 }
 
