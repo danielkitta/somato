@@ -65,23 +65,6 @@ public:
 };
 
 /*
- * Instantiate an object of this class in order to invoke
- * glNewList() and glEndList() in an exception-safe manner.
- */
-class ScopeList
-{
-private:
-  // All non-inline methods are static, in order to enable
-  // the compiler to entirely optimize away the object instance.
-  static void new_(unsigned int list, unsigned int mode);
-  static void end_();
-
-public:
-  inline ScopeList(unsigned int list, unsigned int mode) { new_(list, mode); }
-  inline ~ScopeList() { end_(); }
-};
-
-/*
  * Instantiate an object of this class in order to invoke glPushMatrix()
  * and glPopMatrix() in an exception-safe manner.  Note that both the
  * constructor and the destructor call glMatrixMode() immediately before

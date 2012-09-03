@@ -191,18 +191,6 @@ void GL::Error::fail()
 }
 
 // static
-void GL::ScopeList::new_(unsigned int list, unsigned int mode)
-{
-  glNewList(list, mode);
-}
-
-// static
-void GL::ScopeList::end_()
-{
-  glEndList();
-}
-
-// static
 void GL::ScopeMatrix::push_(unsigned int mode)
 {
   glMatrixMode(mode);
