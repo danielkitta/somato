@@ -50,7 +50,7 @@ DK_PROG_CXX_CXX11
 DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 
 # Note that this is only a compile-time requirement.
-DK_REQUIRE_GL_VERSION([1.4])
+DK_REQUIRE_GL_VERSION([3.2])
 
 # Before running any of the other tests, check whether it is necessary
 # to explicitely link -lm on this platform.
