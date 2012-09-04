@@ -25,10 +25,10 @@ void main()
   float cosAngIncidence = clamp(dot(normCamSpace.xyz, dirToLight), 0.0, 1.0);
 
   vec3 viewDir = normalize(-posCamSpace.xyz);
-  vec3 reflectDir = reflect(-dirToLight, normCamSpace.xyz);
-  float phongTerm = clamp(dot(viewDir, reflectDir), 0.0, 1.0);
+  vec3 halfVec = normalize(dirToLight + viewDir);
+  float blinnTerm = pow(clamp(dot(normCamSpace.xyz, halfVec), 0.0, 1.0), 64);
 
-  float specularReflection = pow((cosAngIncidence != 0.0) ? phongTerm : 0.0, 6);
+  float specularReflection = (cosAngIncidence != 0.0) ? blinnTerm : 0.0;
 
   gl_Position = cameraToClipMatrix * posCamSpace;
   interpColor = diffuseMaterial * (lightIntensity * cosAngIncidence + ambientIntensity);
