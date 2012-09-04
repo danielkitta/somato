@@ -801,16 +801,6 @@ void CubeScene::gl_update_projection()
                       Vector4{0.0, 0.0, (far + near) / (near - far), -1.0},
                       Vector4{0.0, 0.0, 2.0f * far * near / (near - far), 0.0}};
 
-  // Thanks to the simple directional light model we use, the zoom operation
-  // can be implemented by scaling the view distance and the projection matrix.
-  // This way, we can avoid GL_NORMALIZE without having to recompute the whole
-  // vertex data everytime after a zoom operation.
-
-  projection *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
-                        Vector4{0.0, zoom_, 0.0, 0.0},
-                        Vector4{0.0, 0.0, zoom_, 0.0},
-                        Matrix4::identity[3]};
-
   if (piece_shader_)
   {
     piece_shader_.use();
@@ -1625,9 +1615,14 @@ void CubeScene::gl_draw_wireframe()
     Matrix4 modelview {Matrix4::identity[0],
                        Matrix4::identity[1],
                        Matrix4::identity[2],
-                       Vector4{0.0, 0.0, view_z_offset / zoom_, 1.0}};
+                       Vector4{0.0, 0.0, view_z_offset, 1.0}};
 
     modelview *= Math::Quat::to_matrix(rotation_);
+
+    modelview *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
+                         Vector4{0.0, zoom_, 0.0, 0.0},
+                         Vector4{0.0, 0.0, zoom_, 0.0},
+                         Matrix4::identity[3]};
 
     glUniformMatrix4fv(cage_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
@@ -1707,14 +1702,10 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
   using Math::Matrix4;
   using Math::Vector4;
 
-  // Divide the z offset by the zoom factor to account for the scaling of
-  // the projection matrix.  The combined transformation then yields the
-  // same result as if we had scaled the modelview matrix directly.  Note
-  // that this trick only works with a directional light model.
   Matrix4 modelview {Matrix4::identity[0],
                      Matrix4::identity[1],
                      Matrix4::identity[2],
-                     Vector4{0.0, 0.0, view_z_offset / zoom_, 1.0}};
+                     Vector4{0.0, 0.0, view_z_offset, 1.0}};
 
   modelview *= Math::Quat::to_matrix(rotation_);
 
@@ -1722,6 +1713,11 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
                        Matrix4::identity[1],
                        Matrix4::identity[2],
                        animpos};
+
+  modelview *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
+                       Vector4{0.0, zoom_, 0.0, 0.0},
+                       Vector4{0.0, 0.0, zoom_, 0.0},
+                       Matrix4::identity[3]};
 
   modelview *= data.transform;
 
@@ -1785,7 +1781,7 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last)
 
       // Distance in model units an animated cube piece has to travel.
       const float animation_distance = 1.75 * Cube::N * cube_cell_size;
-      const float d = animation_position_ * animation_distance / zoom_;
+      const float d = animation_position_ * animation_distance;
 
       const Math::Vector4 translate {data.direction[0] * d,
                                      data.direction[1] * d,
