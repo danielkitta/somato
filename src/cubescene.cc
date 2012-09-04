@@ -792,9 +792,7 @@ void CubeScene::gl_update_projection()
   const float far   = -view_z_offset * 2.0f - near;
   const float top   = G_SQRT2 - 1.0; // tan(pi/8) = near / cot(pi/8)
   const float right = width / height * top;
-#if 0
-  glFrustum(-right, right, -top, top, near, far);
-#endif
+
   using Math::Matrix4;
   using Math::Vector4;
 
