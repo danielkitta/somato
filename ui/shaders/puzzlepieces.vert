@@ -6,8 +6,8 @@ uniform vec4 diffuseMaterial;
 
 const vec3 dirToLight = vec3(0.0, 0.242535625, 0.9701425);
 const vec4 lightIntensity    = vec4(0.8, 0.8, 0.8, 0.0);
-const vec4 ambientIntensity  = vec4(0.2, 0.2, 0.2, 1.0);
-const vec4 specularIntensity = vec4(0.125, 0.125, 0.125, 0.0);
+const vec4 ambientIntensity  = vec4(0.25, 0.25, 0.25, 1.0);
+const vec4 specularIntensity = vec4(0.1, 0.1, 0.1, 0.0);
 
 in vec3 position;
 in vec3 normal;
@@ -28,7 +28,7 @@ void main()
   vec3 reflectDir = reflect(-dirToLight, normCamSpace.xyz);
   float phongTerm = clamp(dot(viewDir, reflectDir), 0.0, 1.0);
 
-  float specularReflection = pow((cosAngIncidence != 0.0) ? phongTerm : 0.0, 4);
+  float specularReflection = pow((cosAngIncidence != 0.0) ? phongTerm : 0.0, 6);
 
   gl_Position = cameraToClipMatrix * posCamSpace;
   interpColor = diffuseMaterial * (lightIntensity * cosAngIncidence + ambientIntensity);
