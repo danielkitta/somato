@@ -71,8 +71,13 @@ enum
 
 enum
 {
-  MESH_ELEMENT_TYPE = GL_T2F_N3F_V3F,
-  MESH_INDEX_TYPE   = GL_UNSIGNED_SHORT
+  MESH_INDEX_TYPE = GL_UNSIGNED_SHORT
+};
+
+enum
+{
+  ATTRIB_POSITION = 0,
+  ATTRIB_NORMAL   = 1
 };
 
 /*
@@ -147,15 +152,6 @@ static const PieceMaterial piece_materials[] =
   { { 0.05, 0.65, 0.75, 1.0 }, { 0.08, 0.09, 0.10, 1.0 } }, // cyan
   { { 0.80, 0.00, 0.25, 1.0 }, { 0.10, 0.08, 0.09, 1.0 } }  // pink
 };
-
-static inline
-void gl_set_piece_material(unsigned int cube_index)
-{
-  const PieceMaterial& material = piece_materials[cube_index % G_N_ELEMENTS(piece_materials)];
-
-  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, material.diffuse);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR,            material.specular);
-}
 
 /*
  * Find the direction from which a cube piece can be shifted into
@@ -273,6 +269,14 @@ CubeScene::CubeScene()
   heading_                (create_layout_texture()),
   footing_                (create_layout_texture()),
 
+  uf_modelview_           {-1},
+  uf_projection_          {-1},
+  uf_diffuse_material_    {-1},
+  uf_piece_texture_       {-1},
+
+  cage_uf_modelview_      {-1},
+  cage_uf_projection_     {-1},
+
   cube_texture_           (0),
   mesh_buffers_           {0, 0},
   wireframe_buffers_      {0, 0},
@@ -297,8 +301,8 @@ CubeScene::CubeScene()
   show_outline_           (false),
   zoom_visible_           (true)
 {
-  heading_->set_color(0xD8, 0xD8, 0xD8);
-  footing_->set_color(0xA6, 0xA6, 0xA6);
+  heading_->color().assign(0.85, 0.85, 0.85, 1.0);
+  footing_->color().assign(0.65, 0.65, 0.65, 1.0);
 
   set_flags(Gtk::CAN_FOCUS);
 
@@ -608,15 +612,10 @@ void CubeScene::gl_initialize()
     mesh_loader_ = std::move(loader);
   }
 
+  gl_create_piece_shader();
+  gl_create_cage_shader();
+
   GL::Scene::gl_initialize();
-
-  // Set up global parameters which relate to rendering performance.  Note
-  // that even with backface culling, the application is still fill-limited.
-  // Despite of that, perspective-correct interpolation does not measurably
-  // impact the framerate on my system.
-
-  glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-  glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
   glEnable(GL_CULL_FACE);
 
@@ -624,24 +623,6 @@ void CubeScene::gl_initialize()
   // volume clipping artifacts.  The clamping could potentially produce some
   // artifacts of its own, but so far it appears to play along nicely.
   glEnable(GL_DEPTH_CLAMP);
-
-  // Set up lighting parameters for the cube pieces.  If supported, enable
-  // the separate specular color, so that the specular term of the lighting
-  // calculation is applied independently of texturing.
-
-  glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
-
-  static const GLfloat scene_ambient [4] = { 0.25, 0.25, 0.25, 1.0 };
-  static const GLfloat light_position[4] = { 0.0,  1.0,  4.0,  0.0 };
-
-  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, scene_ambient);
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-  glEnable(GL_LIGHT0);
-
-  // Use a single global shininess for all lit surfaces.
-  glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, 32);
-
-  GL::Error::check();
 
   try // go on without texturing if loading the image fails
   {
@@ -658,11 +639,64 @@ void CubeScene::gl_initialize()
     g_warning("GL error: %s", message.c_str());
   }
 
+  piece_shader_.use();
+  glUniform1i(uf_piece_texture_, 0);
+  GL::ShaderProgram::unuse();
+
   gl_update_wireframe();
+}
+
+void CubeScene::gl_create_piece_shader()
+{
+  GL::ShaderProgram program;
+
+  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
+                                  Util::locate_shader_file("puzzlepieces.vert")});
+  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
+                                  Util::locate_shader_file("puzzlepieces.frag")});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
+  program.link();
+
+  uf_modelview_        = program.get_uniform_location("modelToCameraMatrix");
+  uf_projection_       = program.get_uniform_location("cameraToClipMatrix");
+  uf_diffuse_material_ = program.get_uniform_location("diffuseMaterial");
+  uf_piece_texture_    = program.get_uniform_location("pieceTexture");
+
+  piece_shader_ = std::move(program);
+}
+
+void CubeScene::gl_create_cage_shader()
+{
+  GL::ShaderProgram program;
+
+  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
+                                  Util::locate_shader_file("wirecage.vert")});
+  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
+                                  Util::locate_shader_file("wirecage.frag")});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.link();
+
+  cage_uf_modelview_  = program.get_uniform_location("modelToCameraMatrix");
+  cage_uf_projection_ = program.get_uniform_location("cameraToClipMatrix");
+
+  cage_shader_ = std::move(program);
 }
 
 void CubeScene::gl_cleanup()
 {
+  uf_modelview_        = -1;
+  uf_projection_       = -1;
+  uf_diffuse_material_ = -1;
+  uf_piece_texture_    = -1;
+  cage_uf_modelview_   = -1;
+  cage_uf_projection_  = -1;
+
+  piece_shader_.reset();
+  cage_shader_.reset();
+
   if (mesh_buffers_[0] || mesh_buffers_[1])
   {
     glDeleteBuffers(2, mesh_buffers_);
@@ -684,15 +718,14 @@ void CubeScene::gl_reset_state()
 {
   GL::Scene::gl_reset_state();
 
-  glDisableClientState(GL_VERTEX_ARRAY);
-  glDisableClientState(GL_NORMAL_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  GL::ShaderProgram::unuse();
+
+  glDisableVertexAttribArray(ATTRIB_NORMAL);
+  glDisableVertexAttribArray(ATTRIB_POSITION);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_POLYGON_OFFSET_FILL);
   glDisable(GL_POLYGON_OFFSET_LINE);
@@ -716,21 +749,6 @@ int CubeScene::gl_render()
 
     if (animation_running_)
       advance_animation();
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    // Divide the z offset by the zoom factor to account for the scaling of
-    // the projection matrix.  The combined transformation then yields the
-    // same result as if we had scaled the modelview matrix directly.  Note
-    // that this trick only works with a directional light model.
-    glTranslatef(0.0, 0.0, view_z_offset / zoom_);
-
-    // According to the OpenGL Programming Guide, Appendix F, Rotation:
-    // "The R matrix is always defined. If x=y=z=0, then R is the identity
-    // matrix."  Thus it's safe not to special-case the identity rotation.
-    glRotatef(rotation_.angle() * degrees_per_radian,
-              rotation_.x(), rotation_.y(), rotation_.z());
 
     glEnable(GL_DEPTH_TEST);
 
@@ -764,24 +782,48 @@ void CubeScene::gl_update_projection()
 {
   GL::Scene::gl_update_projection();
 
-  const double width  = Math::max(1, get_width());
-  const double height = Math::max(1, get_height());
+  const float width  = Math::max(1, get_width());
+  const float height = Math::max(1, get_height());
 
   // Set up a perspective projection with a field of view angle of 45 degrees
   // in the y-direction.  Place the far clipping plane so that the cube origin
   // will be positioned halfway between the near and far clipping planes.
-  const double near  = 1.0;
-  const double far   = -view_z_offset * 2.0 - near;
-  const double top   = G_SQRT2 - 1.0; // tan(pi/8) = near / cot(pi/8)
-  const double right = width / height * top;
-
+  const float near  = 1.0;
+  const float far   = -view_z_offset * 2.0f - near;
+  const float top   = G_SQRT2 - 1.0; // tan(pi/8) = near / cot(pi/8)
+  const float right = width / height * top;
+#if 0
   glFrustum(-right, right, -top, top, near, far);
+#endif
+  using Math::Matrix4;
+  using Math::Vector4;
+
+  Matrix4 projection {Vector4{near / right, 0.0, 0.0, 0.0},
+                      Vector4{0.0, near / top, 0.0, 0.0},
+                      Vector4{0.0, 0.0, (far + near) / (near - far), -1.0},
+                      Vector4{0.0, 0.0, 2.0f * far * near / (near - far), 0.0}};
 
   // Thanks to the simple directional light model we use, the zoom operation
   // can be implemented by scaling the view distance and the projection matrix.
   // This way, we can avoid GL_NORMALIZE without having to recompute the whole
   // vertex data everytime after a zoom operation.
-  glScalef(zoom_, zoom_, zoom_);
+
+  projection *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
+                        Vector4{0.0, zoom_, 0.0, 0.0},
+                        Vector4{0.0, 0.0, zoom_, 0.0},
+                        Matrix4::identity[3]};
+
+  if (piece_shader_)
+  {
+    piece_shader_.use();
+    glUniformMatrix4fv(uf_projection_, 1, GL_FALSE, &projection[0][0]);
+  }
+  if (cage_shader_)
+  {
+    cage_shader_.use();
+    glUniformMatrix4fv(cage_uf_projection_, 1, GL_FALSE, &projection[0][0]);
+  }
+  GL::ShaderProgram::unuse();
 }
 
 void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
@@ -1573,46 +1615,55 @@ void CubeScene::gl_delete_wireframe()
   }
 }
 
-void CubeScene::gl_draw_wireframe() const
+void CubeScene::gl_draw_wireframe()
 {
-  static const GLubyte wireframe_color[3] = { 0x47, 0x47, 0x47 };
+  using Math::Matrix4;
+  using Math::Vector4;
 
-  if (wireframe_buffers_[0] && wireframe_buffers_[1])
+  if (cage_shader_ && wireframe_buffers_[0] && wireframe_buffers_[1])
   {
+    cage_shader_.use();
+
+    Matrix4 modelview {Matrix4::identity[0],
+                       Matrix4::identity[1],
+                       Matrix4::identity[2],
+                       Vector4{0.0, 0.0, view_z_offset / zoom_, 1.0}};
+
+    modelview *= Math::Quat::to_matrix(rotation_);
+
+    glUniformMatrix4fv(cage_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
+
     glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
-    glVertexPointer(3, GL_FLOAT, 0, GL::buffer_offset(0));
-    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
+                          3 * sizeof(float), GL::buffer_offset(0));
+    glEnableVertexAttribArray(ATTRIB_POSITION);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
 
-    glColor3ubv(wireframe_color);
     glDrawRangeElements(GL_LINES, 0, WIREFRAME_VERTEX_COUNT - 1,
                         2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE,
                         GL::buffer_offset(0));
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableVertexAttribArray(ATTRIB_POSITION);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GL::ShaderProgram::unuse();
   }
 }
 
-int CubeScene::gl_draw_cube() const
+int CubeScene::gl_draw_cube()
 {
   int triangle_count = 0;
 
   if (animation_piece_ > 0 && animation_piece_ <= int(animation_data_.size()))
   {
-    glEnable(GL_LIGHTING);
+    glBindTexture(GL_TEXTURE_2D, cube_texture_);
 
     if (!show_outline_)
     {
-      glBindTexture(GL_TEXTURE_2D, cube_texture_);
-      glEnable(GL_TEXTURE_2D);
-
       triangle_count += gl_draw_pieces();
-
-      glDisable(GL_TEXTURE_2D);
     }
     else
     {
@@ -1622,14 +1673,11 @@ int CubeScene::gl_draw_cube() const
 
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
-
-    glDisable(GL_LIGHTING);
   }
-
   return triangle_count;
 }
 
-int CubeScene::gl_draw_pieces() const
+int CubeScene::gl_draw_pieces()
 {
   const int count = animation_data_.size();
 
@@ -1655,40 +1703,59 @@ int CubeScene::gl_draw_pieces() const
   return triangle_count;
 }
 
-inline
-void CubeScene::gl_translate_animated_piece(const float* direction) const
+void CubeScene::gl_draw_piece_elements(const AnimationData& data,
+                                       const Math::Vector4& animpos)
 {
-  // Distance in model units an animated cube piece has to travel.
-  const float animation_distance = 1.75 * Cube::N * cube_cell_size;
+  using Math::Matrix4;
+  using Math::Vector4;
 
-  const float d = animation_position_ * animation_distance / zoom_;
+  // Divide the z offset by the zoom factor to account for the scaling of
+  // the projection matrix.  The combined transformation then yields the
+  // same result as if we had scaled the modelview matrix directly.  Note
+  // that this trick only works with a directional light model.
+  Matrix4 modelview {Matrix4::identity[0],
+                     Matrix4::identity[1],
+                     Matrix4::identity[2],
+                     Vector4{0.0, 0.0, view_z_offset / zoom_, 1.0}};
 
-  glTranslatef(direction[0] * d, direction[1] * d, direction[2] * d);
-}
+  modelview *= Math::Quat::to_matrix(rotation_);
 
-void CubeScene::gl_draw_piece_elements(const AnimationData& data) const
-{
-  glPushMatrix();
-  glMultMatrixf(&data.transform[0][0]);
+  modelview *= Matrix4{Matrix4::identity[0],
+                       Matrix4::identity[1],
+                       Matrix4::identity[2],
+                       animpos};
 
-  gl_set_piece_material(data.cube_index);
+  modelview *= data.transform;
+
+  glUniformMatrix4fv(uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
+
+  const auto& material = piece_materials[data.cube_index % G_N_ELEMENTS(piece_materials)];
+
+  glUniform4fv(uf_diffuse_material_, 1, material.diffuse);
 
   const auto& mesh = mesh_data_[data.cube_index];
 
   glDrawRangeElements(GL_TRIANGLES, mesh.element_first, mesh.element_last,
                       3 * mesh.triangle_count, MESH_INDEX_TYPE,
                       GL::buffer_offset(mesh.indices_offset * sizeof(GL::MeshIndex)));
-  glPopMatrix();
 }
 
-int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
+int CubeScene::gl_draw_piece_buffer_range(int first, int last)
 {
   int triangle_count = 0;
 
-  if (mesh_buffers_[0] && mesh_buffers_[1])
+  if (piece_shader_ && mesh_buffers_[0] && mesh_buffers_[1])
   {
+    piece_shader_.use();
+
     glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[0]);
-    glInterleavedArrays(MESH_ELEMENT_TYPE, 0, GL::buffer_offset(0));
+
+    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
+                          sizeof(GL::MeshVertex), GL::buffer_offset(0));
+    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE,
+                          sizeof(GL::MeshVertex), GL::buffer_offset(3 * sizeof(float)));
+    glEnableVertexAttribArray(ATTRIB_POSITION);
+    glEnableVertexAttribArray(ATTRIB_NORMAL);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[1]);
 
@@ -1699,17 +1766,15 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
 
     if (last_fixed >= first)
     {
-      for (std::vector<int>::const_iterator p = depth_order_.begin(); p != depth_order_.end(); ++p)
+      for (int i : depth_order_)
       {
-        const int i = *p;
-
         if (i >= first && i <= last_fixed)
         {
           const auto& data = animation_data_[i];
           const auto& mesh = mesh_data_[data.cube_index];
           triangle_count += mesh.triangle_count;
 
-          gl_draw_piece_elements(data);
+          gl_draw_piece_elements(data, Math::Matrix4::identity[3]);
         }
       }
     }
@@ -1720,17 +1785,25 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last) const
       const auto& mesh = mesh_data_[data.cube_index];
       triangle_count += mesh.triangle_count;
 
-      gl_translate_animated_piece(data.direction);
-      gl_draw_piece_elements(data);
+      // Distance in model units an animated cube piece has to travel.
+      const float animation_distance = 1.75 * Cube::N * cube_cell_size;
+      const float d = animation_position_ * animation_distance / zoom_;
+
+      const Math::Vector4 translate {data.direction[0] * d,
+                                     data.direction[1] * d,
+                                     data.direction[2] * d,
+                                     1.0};
+      gl_draw_piece_elements(data, translate);
     }
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableVertexAttribArray(ATTRIB_NORMAL);
+    glDisableVertexAttribArray(ATTRIB_POSITION);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GL::ShaderProgram::unuse();
   }
 
   return triangle_count;
@@ -1789,10 +1862,10 @@ void CubeScene::gl_init_cube_texture()
   if (gl_ext()->have_texture_filter_anisotropic)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-
   glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, WIDTH, HEIGHT, 0,
                GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+
+  glGenerateMipmap(GL_TEXTURE_2D);
 
   GL::Error::check();
 }

@@ -21,6 +21,9 @@
 #ifndef SOMATO_GLSCENE_H_INCLUDED
 #define SOMATO_GLSCENE_H_INCLUDED
 
+#include "glshader.h"
+#include "vectormath.h"
+
 #include <glibmm/ustring.h>
 #include <pangomm/context.h>
 #include <pangomm/layout.h>
@@ -38,20 +41,16 @@ class  LayoutTexture;
 
 struct UIVertex
 {
-  float texcoord[2];
   float vertex[2];
+  float texcoord[2];
 
-  inline void set_texcoord(float s, float t) { texcoord[0] = s; texcoord[1] = t; }
-  inline void set_vertex(float x, float y) { vertex[0] = x; vertex[1] = y; }
+  void set_vertex(float x, float y) { vertex[0] = x; vertex[1] = y; }
+  void set_texcoord(float s, float t) { texcoord[0] = s; texcoord[1] = t; }
 
-  inline UIVertex()
-    { texcoord[0] = 0.0; texcoord[1] = 0.0; vertex[0] = 0.0; vertex[1] = 0.0; }
+  UIVertex() : vertex {0.0, 0.0}, texcoord {0.0, 0.0} {}
 
-  inline UIVertex(const UIVertex& b)
-    { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); }
-
-  inline UIVertex& operator=(const UIVertex& b)
-    { set_texcoord(b.texcoord[0], b.texcoord[1]); set_vertex(b.vertex[0], b.vertex[1]); return *this; }
+  UIVertex(const UIVertex&) = default;
+  UIVertex& operator=(const UIVertex&) = default;
 };
 
 typedef std::vector<LayoutTexture*> LayoutVector;
@@ -120,6 +119,8 @@ private:
   virtual GL::Extensions* gl_query_extensions();
   virtual void gl_reposition_layouts();
 
+  Math::Vector4                 focus_color_;
+
   void*                         gl_drawable_;
   std::auto_ptr<GL::Extensions> gl_extensions_;
   Glib::RefPtr<Pango::Context>  texture_context_;
@@ -127,12 +128,18 @@ private:
   GeometryVector                ui_geometry_;
   LayoutVector                  ui_layouts_;
 
+  GL::ShaderProgram             label_shader_;
+  int                           label_uf_winsize_;
+  int                           label_uf_color_;
+  int                           label_uf_texture_;
+
+  GL::ShaderProgram             focus_shader_;
+  int                           focus_uf_winsize_;
+  int                           focus_uf_color_;
+
   unsigned int                  ui_buffer_;
-  unsigned int                  stipple_texture_;
   unsigned int                  frame_counter_;
   unsigned int                  triangle_counter_;
-
-  unsigned char                 focus_color_[3];
 
   bool                          exclusive_context_;
   bool                          has_back_buffer_;
@@ -141,25 +148,25 @@ private:
   bool                          vsync_enabled_;
   bool                          show_focus_;
   bool                          focus_drawable_;
-  bool                          use_multitexture_;
 
   void on_signal_realize();
   void on_signal_unrealize();
 
   Glib::RefPtr<Pango::Layout> create_texture_pango_layout(const Glib::ustring& text);
 
+  void gl_create_label_shader();
+  void gl_create_focus_shader();
+
   void gl_update_vsync_state();
   void gl_update_layouts();
-  void gl_init_stipple_texture();
 
   void gl_build_focus();
   void gl_build_layouts();
 
-  int gl_render_ui(void* arrays) const;
-  int gl_render_focus() const;
-  int gl_render_layouts() const;
-  int gl_render_layouts_multitexture(LayoutVector::const_iterator first) const;
-  int gl_render_layouts_multipass(LayoutVector::const_iterator first) const;
+  int  gl_render_ui();
+  void gl_render_focus();
+  int  gl_render_layouts();
+  int  gl_render_layout_arrays(LayoutVector::const_iterator first);
 };
 
 /*

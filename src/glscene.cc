@@ -20,6 +20,7 @@
 
 #include "glscene.h"
 #include "glsceneprivate.h"
+#include "appdata.h"
 #include "array.h"
 #include "glutils.h"
 #include "mathutils.h"
@@ -41,80 +42,41 @@ namespace
 
 enum
 {
-  FOCUS_ARRAY_OFFSET    = 0,  // offset into geometry arrays
-  FOCUS_TRIANGLE_COUNT  = 8,  // for throughput statistics
-  FOCUS_VERTEX_COUNT    = 10,
-  FOCUS_PATTERN_LENGTH  = 16  // must be a power of two
+  FOCUS_ARRAY_OFFSET = 0, // offset into geometry arrays
+  FOCUS_VERTEX_COUNT = 4
+};
+
+enum
+{
+  ATTRIB_POSITION = 0,
+  ATTRIB_TEXCOORD = 2
 };
 
 /*
  * Generate vertices for drawing the focus indicator of the GL widget.  This
  * function assumes an orthographic projection that establishes a 1:1 mapping
  * to window coordinates.
- *
- * The focus rectangle is drawn as a single strip of textured triangles
- * instead of a loop of stippled lines, because the former is more likely
- * to be accelerated in hardware.
- *
- * Note that even with an Nvidia GeForce4 Ti4200, which unlike my old Matrox
- * G400 card does accelerate line stippling in hardware, the triangle strip
- * variant is still slightly faster.  Update: I've got an Nvidia 6600 GT now,
- * and it doesn't make a noticeable difference (hard if you get thousands of
- * frames per second).  The fact remains that drawing triangles is definitely
- * at least as fast as drawing lines.  Triangles and texturing really are the
- * bread and butter of 3D graphics hardware, and thus it's wise to express as
- * much as possible in terms of this natural language.
  */
 static
-void generate_focus_rect(int width, int height, int padding, int line_width,
-                         int repeat_count, GL::GeometryVector::iterator geometry)
+void generate_focus_rect(int width, int height, int padding,
+                         GL::GeometryVector::iterator geometry)
 {
-  g_return_if_fail(line_width > 0 && repeat_count > 0);
+  const float x0 = padding + 0.5f;
+  const float y0 = padding + 0.5f;
+  const float x1 = width  - padding - 0.5f;
+  const float y1 = height - padding - 0.5f;
 
-  const int x0 = padding;
-  const int y0 = padding;
-  const int x1 = width  - padding;
-  const int y1 = height - padding;
+  geometry[0].set_vertex(x0, y0);
+  geometry[0].set_texcoord(0.0, 0.0);
 
-  const int sx = width  - 2 * padding;
-  const int sy = height - 2 * padding;
+  geometry[1].set_vertex(x1, y0);
+  geometry[1].set_texcoord(1.0, 0.0);
 
-  const float stride = FOCUS_PATTERN_LENGTH * repeat_count * line_width;
+  geometry[2].set_vertex(x1, y1);
+  geometry[2].set_texcoord(1.0, 1.0);
 
-  // Applying 1D texture coordinates to a triangle strip that repeatedly
-  // turns around corners proved to be a bit of a challenge.  However, the
-  // back-and-forth moving done below does the trick without producing any
-  // distortion.  Try with a line width of 16 for a detailed view.
-
-  geometry[0].set_texcoord((sy - sx + line_width) / stride, 1.0);
-  geometry[0].set_vertex(x0 + line_width, y0 + line_width);
-
-  geometry[1].set_texcoord((sy - sx) / stride, 0.0);
-  geometry[1].set_vertex(x0, y0);
-
-  geometry[2].set_texcoord((sy - line_width) / stride, 1.0);
-  geometry[2].set_vertex(x1 - line_width, y0 + line_width);
-
-  geometry[3].set_texcoord(sy / stride, 0.0);
-  geometry[3].set_vertex(x1, y0);
-
-  geometry[4].set_texcoord(line_width / stride, 1.0);
-  geometry[4].set_vertex(x1 - line_width, y1 - line_width);
-
-  geometry[5].set_texcoord(0.0, 0.0);
-  geometry[5].set_vertex(x1, y1);
-
-  geometry[6].set_texcoord((sx - line_width) / stride, 1.0);
-  geometry[6].set_vertex(x0 + line_width, y1 - line_width);
-
-  geometry[7].set_texcoord(sx / stride, 0.0);
-  geometry[7].set_vertex(x0, y1);
-
-  geometry[8].set_texcoord((sx - sy + line_width) / stride, 1.0);
-  geometry[8].set_vertex(x0 + line_width, y0 + line_width);
-
-  geometry[9].set_texcoord((sx - sy) / stride, 0.0);
-  geometry[9].set_vertex(x0, y0);
+  geometry[3].set_vertex(x0, y1);
+  geometry[3].set_texcoord(0.0, 1.0);
 }
 
 /*
@@ -177,6 +139,7 @@ void Extensions::query()
 
 LayoutTexture::LayoutTexture()
 :
+  color_        {1.0, 1.0, 1.0, 1.0},
   content_      (),
   need_update_  (false),
   array_offset_ (G_MAXINT),
@@ -195,9 +158,7 @@ LayoutTexture::LayoutTexture()
 
   window_x_     (0),
   window_y_     (0)
-{
-  set_color(0xFF, 0xFF, 0xFF);
-}
+{}
 
 LayoutTexture::~LayoutTexture()
 {
@@ -359,13 +320,18 @@ void LayoutTexture::gl_delete()
 
 Scene::Scene()
 :
+  focus_color_        {1.0, 1.0, 1.0, 1.0},
   gl_drawable_        (0),
   gl_extensions_      (),
   texture_context_    (),
   ui_geometry_        (FOCUS_VERTEX_COUNT),
   ui_layouts_         (),
+  label_uf_winsize_   {-1},
+  label_uf_color_     {-1},
+  label_uf_texture_   {-1},
+  focus_uf_winsize_   {-1},
+  focus_uf_color_     {-1},
   ui_buffer_          (0),
-  stipple_texture_    (0),
   frame_counter_      (0),
   triangle_counter_   (0),
   exclusive_context_  (false),
@@ -374,13 +340,8 @@ Scene::Scene()
   enable_vsync_       (true),
   vsync_enabled_      (false),
   show_focus_         (true),
-  focus_drawable_     (false),
-  use_multitexture_   (false)
+  focus_drawable_     (false)
 {
-  focus_color_[0] = 0xFF;
-  focus_color_[1] = 0xFF;
-  focus_color_[2] = 0xFF;
-
   set_double_buffered(false);
 
   add_events(Gdk::EXPOSURE_MASK | Gdk::FOCUS_CHANGE_MASK | Gdk::VISIBILITY_NOTIFY_MASK);
@@ -555,9 +516,57 @@ void Scene::gl_swap_buffers()
 
 void Scene::gl_initialize()
 {
+  gl_create_label_shader();
+  gl_create_focus_shader();
+
   gl_update_viewport();
   gl_update_projection();
   gl_update_color();
+
+  if (label_shader_)
+  {
+    label_shader_.use();
+    glUniform1i(label_uf_texture_, 0);
+    GL::ShaderProgram::unuse();
+  }
+}
+
+void Scene::gl_create_label_shader()
+{
+  GL::ShaderProgram program;
+
+  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
+                                  Util::locate_shader_file("textlabel.vert")});
+  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
+                                  Util::locate_shader_file("textlabel.frag")});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
+  program.link();
+
+  label_uf_winsize_ = program.get_uniform_location("windowSize");
+  label_uf_color_   = program.get_uniform_location("textColor");
+  label_uf_texture_ = program.get_uniform_location("labelTexture");
+
+  label_shader_ = std::move(program);
+}
+
+void Scene::gl_create_focus_shader()
+{
+  GL::ShaderProgram program;
+
+  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
+                                  Util::locate_shader_file("focusrect.vert")});
+  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
+                                  Util::locate_shader_file("focusrect.frag")});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.link();
+
+  focus_uf_winsize_ = program.get_uniform_location("windowSize");
+  focus_uf_color_   = program.get_uniform_location("focusColor");
+
+  focus_shader_ = std::move(program);
 }
 
 void Scene::gl_cleanup()
@@ -573,11 +582,14 @@ void Scene::gl_cleanup()
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(),
                 std::mem_fun(&LayoutTexture::gl_delete));
 
-  if (stipple_texture_)
-  {
-    glDeleteTextures(1, &stipple_texture_);
-    stipple_texture_ = 0;
-  }
+  label_uf_winsize_ = -1;
+  label_uf_color_   = -1;
+  label_uf_texture_ = -1;
+  focus_uf_winsize_ = -1;
+  focus_uf_color_   = -1;
+
+  label_shader_.reset();
+  focus_shader_.reset();
 }
 
 /*
@@ -586,37 +598,14 @@ void Scene::gl_cleanup()
  */
 void Scene::gl_reset_state()
 {
-  glDisableClientState(GL_VERTEX_ARRAY);
+  glDisableVertexAttribArray(ATTRIB_POSITION);
+  glDisableVertexAttribArray(ATTRIB_TEXCOORD);
+
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  if (use_multitexture_)
-  {
-    glClientActiveTexture(GL_TEXTURE1);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-    glActiveTexture(GL_TEXTURE1);
-    glDisable(GL_TEXTURE_2D);
-
-    glDisable(GL_TEXTURE_RECTANGLE);
-  }
-  glClientActiveTexture(GL_TEXTURE0);
-  glActiveTexture(GL_TEXTURE0);
-
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-  glDisable(GL_TEXTURE_1D);
-  glDisable(GL_TEXTURE_2D);
-
-  glDisable(GL_TEXTURE_RECTANGLE);
-
   glDisable(GL_BLEND);
-  glDisable(GL_ALPHA_TEST);
 
-  glMatrixMode(GL_TEXTURE);
-  glLoadIdentity();
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+  GL::ShaderProgram::unuse();
 }
 
 /*
@@ -649,19 +638,11 @@ int Scene::gl_render()
 
   if (focus_drawable_ || std::find_if(pbegin, pend, LayoutTexture::IsDrawable()) != pend)
   {
-    GL::ScopeMatrix projection (GL_PROJECTION);
-
-    glLoadIdentity();
-    glOrtho(0.0, Math::max(1, get_width()), 0.0, Math::max(1, get_height()), -1.0, 1.0);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
     if (ui_buffer_)
     {
       glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
 
-      triangle_count = gl_render_ui(GL::buffer_offset(0));
+      triangle_count = gl_render_ui();
       
       glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
@@ -669,52 +650,43 @@ int Scene::gl_render()
   return triangle_count;
 }
 
-int Scene::gl_render_ui(void* arrays) const
+int Scene::gl_render_ui()
 {
-  char *const byte_start = static_cast<char*>(arrays);
+  glVertexAttribPointer(ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE,
+                        sizeof(UIVertex), GL::buffer_offset(0));
+  glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE,
+                        sizeof(UIVertex), GL::buffer_offset(2 * sizeof(float)));
+  glEnableVertexAttribArray(ATTRIB_POSITION);
+  glEnableVertexAttribArray(ATTRIB_TEXCOORD);
 
-  if (use_multitexture_)
-  {
-    glClientActiveTexture(GL_TEXTURE1);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(UIVertex), byte_start);
+  gl_render_focus();
+  const int triangle_count = gl_render_layouts();
 
-    glClientActiveTexture(GL_TEXTURE0);
-  }
-  glTexCoordPointer(2, GL_FLOAT, sizeof(UIVertex), byte_start);
-  glVertexPointer  (2, GL_FLOAT, sizeof(UIVertex), byte_start + 2 * sizeof(GLfloat));
+  GL::ShaderProgram::unuse();
 
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glEnableClientState(GL_VERTEX_ARRAY);
-
-  int triangle_count = 0;
-
-  triangle_count += gl_render_focus();
-  triangle_count += gl_render_layouts();
-
-  glDisableClientState(GL_VERTEX_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableVertexAttribArray(ATTRIB_TEXCOORD);
+  glDisableVertexAttribArray(ATTRIB_POSITION);
 
   return triangle_count;
 }
 
-int Scene::gl_render_layouts() const
+int Scene::gl_render_layouts()
 {
   int triangle_count = 0;
 
-  const LayoutVector::const_iterator first =
-      std::find_if(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::IsDrawable());
+  const auto first = std::find_if(ui_layouts_.begin(), ui_layouts_.end(),
+                                  LayoutTexture::IsDrawable());
 
-  if (first != ui_layouts_.end())
+  if (first != ui_layouts_.end() && label_shader_)
   {
+    label_shader_.use();
+
     // The source function is identity because we blend in an intensity
     // texture. That is, the color channels are premultiplied by alpha.
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    if (use_multitexture_)
-      triangle_count = gl_render_layouts_multitexture(first);
-    else
-      triangle_count = gl_render_layouts_multipass(first);
+    triangle_count = gl_render_layout_arrays(first);
 
     glDisable(GL_BLEND);
   }
@@ -748,30 +720,13 @@ int Scene::gl_render_layouts() const
  *   - current texture coordinates
  *   - current raster position
  */
-int Scene::gl_render_layouts_multitexture(LayoutVector::const_iterator first) const
+int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 {
-  glClientActiveTexture(GL_TEXTURE1);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-  glMatrixMode(GL_TEXTURE);
-  glTranslatef(1.0, -1.0, 0.0);
-
   const LayoutTexture* layout = *first;
 
   glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
-  glEnable(GL_TEXTURE_RECTANGLE);
+  glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
 
-  glActiveTexture(GL_TEXTURE1);
-
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-  glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB,      GL_REPLACE);
-  glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB,      GL_PREVIOUS);
-  glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA,    GL_ADD);
-
-  glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
-  glEnable(GL_TEXTURE_RECTANGLE);
-
-  glColor3ubv(layout->color_);
   glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
 
   int triangle_count = LayoutTexture::TRIANGLE_COUNT;
@@ -782,92 +737,26 @@ int Scene::gl_render_layouts_multitexture(LayoutVector::const_iterator first) co
 
     if (layout->drawable())
     {
-      glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
+      glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
 
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
-
-      glColor3ubv(layout->color_);
       glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
 
       triangle_count += LayoutTexture::TRIANGLE_COUNT;
     }
   }
-
-  glDisable(GL_TEXTURE_RECTANGLE);
-
-  glActiveTexture(GL_TEXTURE0);
-  glDisable(GL_TEXTURE_RECTANGLE);
-
-  glLoadIdentity();
-
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glClientActiveTexture(GL_TEXTURE0);
-
   return triangle_count;
 }
 
-int Scene::gl_render_layouts_multipass(LayoutVector::const_iterator first) const
+void Scene::gl_render_focus()
 {
-  static const GLubyte shadow_color[3] = { 0x00, 0x00, 0x00 };
-
-  int triangle_count = 0;
-
-  glEnable(GL_TEXTURE_RECTANGLE);
-
-  do
+  if (focus_drawable_ && focus_shader_)
   {
-    const LayoutTexture *const layout = *first;
+    focus_shader_.use();
+    glUniform4fv(focus_uf_color_, 1, &focus_color_[0]);
 
-    if (layout->drawable())
-    {
-      glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
-
-      glTranslatef(1.0, -1.0, 0.0);
-      glColor3ubv(shadow_color);
-      glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
-
-      glLoadIdentity();
-      glColor3ubv(layout->color_);
-      glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
-
-      triangle_count += 2 * LayoutTexture::TRIANGLE_COUNT;
-    }
+    glDrawArrays(GL_LINE_LOOP, FOCUS_ARRAY_OFFSET, FOCUS_VERTEX_COUNT);
   }
-  while (++first != ui_layouts_.end());
-
-  glDisable(GL_TEXTURE_RECTANGLE);
-
-  return triangle_count;
-}
-
-/*
- * On entry, the GL environment is set up for 2D drawing of static UI
- * elements:  An orthographic projection is set up that maps vertices
- * directly to window coordinates, and the modelview transformation is
- * set to identity.
- */
-int Scene::gl_render_focus() const
-{
-  if (focus_drawable_)
-  {
-    glAlphaFunc(GL_GEQUAL, 0.5);
-    glEnable(GL_ALPHA_TEST);
-
-    glBindTexture(GL_TEXTURE_1D, stipple_texture_);
-    glEnable(GL_TEXTURE_1D);
-
-    glColor3ubv(focus_color_);
-    glDrawArrays(GL_TRIANGLE_STRIP, FOCUS_ARRAY_OFFSET, FOCUS_VERTEX_COUNT);
-
-    glDisable(GL_TEXTURE_1D);
-    glDisable(GL_ALPHA_TEST);
-
-    return FOCUS_TRIANGLE_COUNT;
-  }
-
-  return 0;
 }
 
 /*
@@ -882,15 +771,9 @@ void Scene::gl_build_layouts()
 
     if (layout->drawable())
     {
-      int offset = 0;
-      float s0 = 0.0;
+      int offset = 1;
+      float s0 = -1.0;
       float t0 = 0.0;
-
-      if (use_multitexture_)
-      {
-        offset = 1;
-        s0 = -1.0;
-      }
 
       const float width  = layout->ink_width_  + offset;
       const float height = layout->ink_height_ + offset;
@@ -907,17 +790,17 @@ void Scene::gl_build_layouts()
 
       const GeometryVector::iterator geometry = ui_geometry_.begin() + layout->array_offset_;
 
-      geometry[0].set_texcoord(s0, t0);
       geometry[0].set_vertex(x0, y0);
+      geometry[0].set_texcoord(s0, t0);
 
-      geometry[1].set_texcoord(s1, t0);
       geometry[1].set_vertex(x1, y0);
+      geometry[1].set_texcoord(s1, t0);
 
-      geometry[2].set_texcoord(s0, t1);
       geometry[2].set_vertex(x0, y1);
+      geometry[2].set_texcoord(s0, t1);
 
-      geometry[3].set_texcoord(s1, t1);
       geometry[3].set_vertex(x1, y1);
+      geometry[3].set_texcoord(s1, t1);
     }
   }
 }
@@ -937,22 +820,9 @@ void Scene::gl_build_focus()
 
     if (interior_focus && width > 2 * focus_padding && height > 2 * focus_padding)
     {
-      if (!stipple_texture_)
-        gl_init_stipple_texture();
-
-      // Supporting arbitrary line stipple patterns is probably not worth the
-      // effort.  However, we can easily make the most common focus patterns
-      // work by using just the first repeat count for both on and off state.
-      std::string focus_line_pattern;
-      int         focus_line_width = 0;
-
-      get_style_property("focus_line_pattern", focus_line_pattern);
-      get_style_property("focus_line_width",   focus_line_width);
-
       g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_geometry_.size());
 
-      generate_focus_rect(width, height, focus_padding, Math::max(1, focus_line_width),
-                          (focus_line_pattern.empty()) ? 1 : guchar(focus_line_pattern[0]),
+      generate_focus_rect(width, height, focus_padding,
                           ui_geometry_.begin() + FOCUS_ARRAY_OFFSET);
       focus_drawable_ = true;
     }
@@ -965,17 +835,22 @@ void Scene::gl_update_viewport()
   const int height = Math::max(1, get_height());
 
   glViewport(0, 0, width, height);
+
+  if (label_shader_)
+  {
+    label_shader_.use();
+    glUniform2f(label_uf_winsize_, width, height);
+  }
+  if (focus_shader_)
+  {
+    focus_shader_.use();
+    glUniform2f(focus_uf_winsize_, width, height);
+  }
+  GL::ShaderProgram::unuse();
 }
 
-/*
- * If you chain up from an overriding method, it is safe to rely on
- * the base implementation to leave the matrix mode at GL_PROJECTION.
- */
 void Scene::gl_update_projection()
-{
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-}
+{}
 
 void Scene::gl_update_color()
 {
@@ -985,13 +860,12 @@ void Scene::gl_update_color()
   const Gdk::Color fg = style->get_fg(state);
   const Gdk::Color bg = style->get_bg(state);
 
-  focus_color_[0] = (fg.get_red()   & 0xFF00u) >> 8;
-  focus_color_[1] = (fg.get_green() & 0xFF00u) >> 8;
-  focus_color_[2] = (fg.get_blue()  & 0xFF00u) >> 8;
+  focus_color_ = Math::Vector4(fg.get_red(), fg.get_green(), fg.get_blue(), 0xFFFF)
+                 * (1.0f / 0xFFFF);
 
-  const float red   = float(bg.get_red())   / G_MAXUINT16;
-  const float green = float(bg.get_green()) / G_MAXUINT16;
-  const float blue  = float(bg.get_blue())  / G_MAXUINT16;
+  const float red   = float(bg.get_red())   * (1.0f / 0xFFFF);
+  const float green = float(bg.get_green()) * (1.0f / 0xFFFF);
+  const float blue  = float(bg.get_blue())  * (1.0f / 0xFFFF);
 
   glClearColor(red, green, blue, 0.0);
 }
@@ -1239,7 +1113,6 @@ void Scene::on_signal_realize()
   {
     ScopeContext context (*this);
 
-    use_multitexture_ = false;
     gl_extensions_.reset(gl_query_extensions());
 
     g_return_if_fail(gl_ext() != 0);
@@ -1248,11 +1121,6 @@ void Scene::on_signal_realize()
       g_error("at least OpenGL 3.2 is required to run this program");
 
     gl_update_vsync_state();
-
-    GLint max_texture_units = 0;
-    glGetIntegerv(GL_MAX_TEXTURE_UNITS, &max_texture_units);
-
-    use_multitexture_ = (max_texture_units >= 2);
 
     if (has_back_buffer_ && !use_back_buffer_)
       glDrawBuffer(GL_FRONT);
@@ -1269,8 +1137,6 @@ void Scene::on_signal_unrealize()
       ScopeContext context (*this);
 
       gl_cleanup();
-
-      use_multitexture_ = false;
       gl_extensions_.reset();
     }
 
@@ -1284,33 +1150,6 @@ void Scene::on_signal_unrealize()
   }
 
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
-}
-
-void Scene::gl_init_stipple_texture()
-{
-  g_return_if_fail(stipple_texture_ == 0);
-
-  // Generate the focus line pattern dynamically, with proper alignment.
-  Util::MemChunk<GLubyte> pattern ((FOCUS_PATTERN_LENGTH + 7) & ~7);
-
-  for (Util::MemChunk<GLubyte>::size_type i = 0; i < pattern.size() / 2; ++i)
-  {
-    pattern[2 * i]     = 0xFF;
-    pattern[2 * i + 1] = 0x00;
-  }
-
-  glGenTextures(1, &stipple_texture_);
-
-  GL::Error::throw_if_fail(stipple_texture_ != 0);
-
-  glBindTexture(GL_TEXTURE_1D, stipple_texture_);
-
-  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-  glTexImage1D(GL_TEXTURE_1D, 0, GL_ALPHA, FOCUS_PATTERN_LENGTH, 0,
-               GL_ALPHA, GL_UNSIGNED_BYTE, &pattern[0]);
-  GL::Error::check();
 }
 
 // static

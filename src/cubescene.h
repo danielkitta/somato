@@ -23,6 +23,7 @@
 
 #include "glscene.h"
 #include "cube.h"
+#include "glshader.h"
 #include "meshloader.h"
 #include "puzzle.h"
 #include "vectormath.h"
@@ -168,6 +169,16 @@ private:
   GL::LayoutTexture*          heading_;
   GL::LayoutTexture*          footing_;
 
+  GL::ShaderProgram           piece_shader_;
+  int                         uf_modelview_;
+  int                         uf_projection_;
+  int                         uf_diffuse_material_;
+  int                         uf_piece_texture_;
+
+  GL::ShaderProgram           cage_shader_;
+  int                         cage_uf_modelview_;
+  int                         cage_uf_projection_;
+
   unsigned int                cube_texture_;
   unsigned int                mesh_buffers_[2];
   unsigned int                wireframe_buffers_[2];
@@ -217,17 +228,18 @@ private:
                               const MeshNodeArray& nodes,
                               unsigned int global_vertex_count,
                               unsigned int global_triangle_count);
+  void gl_create_piece_shader();
+  void gl_create_cage_shader();
   void gl_create_wireframe();
   void gl_delete_wireframe();
-  void gl_draw_wireframe() const;
+  void gl_draw_wireframe();
 
-  int  gl_draw_cube() const;
-  int  gl_draw_pieces() const;
+  int  gl_draw_cube();
+  int  gl_draw_pieces();
 
-  inline void gl_translate_animated_piece(const float* direction) const;
-
-  void gl_draw_piece_elements(const AnimationData& data) const;
-  int  gl_draw_piece_buffer_range(int first, int last) const;
+  void gl_draw_piece_elements(const AnimationData& data,
+                              const Math::Vector4& animpos);
+  int  gl_draw_piece_buffer_range(int first, int last);
 
   void gl_init_cube_texture();
   void gl_update_wireframe();

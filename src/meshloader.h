@@ -36,9 +36,8 @@ namespace GL
 
 struct MeshVertex
 {
-  float texcoord[2];
-  float normal[3];
   float vertex[3];
+  float normal[3];
 };
 
 typedef uint16_t MeshIndex;

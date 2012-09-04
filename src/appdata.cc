@@ -45,3 +45,8 @@ std::string Util::locate_data_file(const std::string& basename)
     return Glib::build_filename("ui", basename);
 #endif
 }
+
+std::string Util::locate_shader_file(const std::string& basename)
+{
+  return Util::locate_data_file(Glib::build_filename("shaders", basename));
+}

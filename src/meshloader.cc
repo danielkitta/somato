@@ -187,17 +187,13 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
 
       auto& element = buffer[n_written++];
 
-      // FIXME: Temporary hack until shaders are implemented
-      element.texcoord[0] = 0.5f * mesh_vertex.x + 0.75f;
-      element.texcoord[1] = 0.75f - 0.5f * mesh_vertex.z;
+      element.vertex[0] = mesh_vertex.x;
+      element.vertex[1] = mesh_vertex.y;
+      element.vertex[2] = mesh_vertex.z;
 
       element.normal[0] = mesh_normal.x;
       element.normal[1] = mesh_normal.y;
       element.normal[2] = mesh_normal.z;
-
-      element.vertex[0] = mesh_vertex.x;
-      element.vertex[1] = mesh_vertex.y;
-      element.vertex[2] = mesh_vertex.z;
     }
   }
   return n_written;

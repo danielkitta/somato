@@ -190,20 +190,6 @@ void GL::Error::fail()
   throw GL::Error("operation failed without error code");
 }
 
-// static
-void GL::ScopeMatrix::push_(unsigned int mode)
-{
-  glMatrixMode(mode);
-  glPushMatrix();
-}
-
-// static
-void GL::ScopeMatrix::pop_(unsigned int mode)
-{
-  glMatrixMode(mode);
-  glPopMatrix();
-}
-
 void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 {
   GtkWidget *const widget = target.gobj();

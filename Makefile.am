@@ -33,6 +33,8 @@ src_somato_SOURCES =		\
 	src/glscene.cc		\
 	src/glscene.h		\
 	src/glsceneprivate.h	\
+	src/glshader.cc		\
+	src/glshader.h		\
 	src/glutils.cc		\
 	src/glutils.h		\
 	src/main.cc		\
@@ -64,6 +66,17 @@ dist_pkgdata_DATA =		\
 	ui/mainwindow.glade	\
 	ui/mainwindow-ui.xml	\
 	ui/woodtexture.png
+
+shaderdir = $(pkgdatadir)/shaders
+dist_shader_DATA =			\
+	ui/shaders/focusrect.frag	\
+	ui/shaders/focusrect.vert	\
+	ui/shaders/puzzlepieces.frag	\
+	ui/shaders/puzzlepieces.vert	\
+	ui/shaders/textlabel.frag	\
+	ui/shaders/textlabel.vert	\
+	ui/shaders/wirecage.frag	\
+	ui/shaders/wirecage.vert
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\

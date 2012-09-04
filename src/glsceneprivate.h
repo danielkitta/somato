@@ -87,8 +87,8 @@ private:
 
   enum { TRIANGLE_COUNT = 2, VERTEX_COUNT = 4 };
 
+  Math::Vector4 color_;         // text foreground color
   Glib::ustring content_;       // text content of layout
-  GLubyte       color_[3];      // text foreground color
   bool          need_update_;   // flag to indicate change of content
 
   unsigned int  array_offset_;  // offset into geometry arrays
@@ -126,11 +126,8 @@ public:
   void set_content(const Glib::ustring& content);
   Glib::ustring get_content() const { return content_; }
 
-  inline void set_color(GLubyte red, GLubyte green, GLubyte blue);
-  inline void set_color(const GLubyte* color);
-
-  inline GLubyte*       color()       { return color_; }
-  inline const GLubyte* color() const { return color_; }
+  inline       Math::Vector4& color()       { return color_; }
+  inline const Math::Vector4& color() const { return color_; }
 
   inline bool need_update() const { return need_update_; }
   inline bool drawable() const { return (tex_name_ != 0); }
@@ -161,20 +158,6 @@ public:
 
   inline bool operator()(const LayoutTexture* layout) const { return layout->drawable(); }
 };
-
-inline
-void LayoutTexture::set_color(GLubyte red, GLubyte green, GLubyte blue)
-{
-  color_[0] = red;
-  color_[1] = green;
-  color_[2] = blue;
-}
-
-inline
-void LayoutTexture::set_color(const GLubyte* color)
-{
-  set_color(color[0], color[1], color[2]);
-}
 
 inline
 const GL::Extensions* Scene::gl_ext() const

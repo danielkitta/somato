@@ -65,29 +65,6 @@ public:
 };
 
 /*
- * Instantiate an object of this class in order to invoke glPushMatrix()
- * and glPopMatrix() in an exception-safe manner.  Note that both the
- * constructor and the destructor call glMatrixMode() immediately before
- * pushing respectively popping the matrix stack.  Doing so avoids relying
- * on the scoped code to properly restore the matrix mode before unwinding.
- * I think such a requirement would defeat the purpose of this class.
- */
-class ScopeMatrix
-{
-private:
-  unsigned int mode_;
-
-  // All non-inline methods are static, in order to enable
-  // the compiler to entirely optimize away the object instance.
-  static void push_(unsigned int mode);
-  static void pop_(unsigned int mode);
-
-public:
-  explicit inline ScopeMatrix(unsigned int mode) : mode_ (mode) { push_(mode_); }
-  inline ~ScopeMatrix() { pop_(mode_); }
-};
-
-/*
  * Try to enable the OpenGL capability on the specified widget.
  * This function should be called after the widget has been added
  * to a toplevel window.  GL::Error is thrown on failure.
