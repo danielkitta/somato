@@ -19,7 +19,7 @@ smooth out vec4 interpSpecular;
 void main()
 {
   vec4 posCamSpace = modelToCameraMatrix * vec4(position, 1.0);
-  interpTexcoord = vec2(0.5, -0.5) * position.xz + vec2(0.75, 0.75);
+  interpTexcoord = vec2(0.5, -0.5) * position.xz + vec2(0.75);
 
   vec4 normCamSpace = modelToCameraMatrix * vec4(normal, 0.0);
   float cosAngIncidence = clamp(dot(normCamSpace.xyz, dirToLight), 0.0, 1.0);
