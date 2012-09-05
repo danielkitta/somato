@@ -6,8 +6,8 @@ out vec4 outputColor;
 
 void main()
 {
-  float coord = dot(gl_FragCoord, vec4(0.5, 0.5, 0.0, 0.25));
-  float alpha = step(0.5, fract(coord));
+  float coord = dot(gl_FragCoord.xy, vec2(0.5));
+  float alpha = step(0.5, fract(coord + 0.25));
 
   outputColor = focusColor * alpha;
 

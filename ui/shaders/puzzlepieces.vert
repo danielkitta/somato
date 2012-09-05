@@ -15,7 +15,7 @@ void main()
   vec4 posCamSpace  = modelToCameraMatrix * vec4(position, 1.0);
   vec4 normCamSpace = modelToCameraMatrix * vec4(normal, 0.0);
 
-  interpTexcoord = vec2(0.5, -0.5) * position.xz + vec2(0.75);
+  interpTexcoord = vec2(0.5, -0.5) * position.xz + 0.75;
   interpPosition = posCamSpace.xyz;
   interpNormal   = normCamSpace.xyz;
 
