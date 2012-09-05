@@ -274,6 +274,8 @@ CubeScene::CubeScene()
   cube_texture_           (0),
   mesh_buffers_           {0, 0},
   wireframe_buffers_      {0, 0},
+  pieces_vertex_array_    {0},
+  cage_vertex_array_      {0},
 
   track_last_x_           (TRACK_UNSET),
   track_last_y_           (TRACK_UNSET),
@@ -691,13 +693,20 @@ void CubeScene::gl_cleanup()
   piece_shader_.reset();
   cage_shader_.reset();
 
+  gl_delete_wireframe();
+
+  if (pieces_vertex_array_)
+  {
+    glDeleteVertexArrays(1, &pieces_vertex_array_);
+    pieces_vertex_array_ = 0;
+  }
+
   if (mesh_buffers_[0] || mesh_buffers_[1])
   {
     glDeleteBuffers(2, mesh_buffers_);
     mesh_buffers_[0] = 0;
     mesh_buffers_[1] = 0;
   }
-  gl_delete_wireframe();
 
   if (cube_texture_)
   {
@@ -713,6 +722,8 @@ void CubeScene::gl_reset_state()
   GL::Scene::gl_reset_state();
 
   GL::ShaderProgram::unuse();
+
+  glBindVertexArray(0);
 
   glDisableVertexAttribArray(ATTRIB_NORMAL);
   glDisableVertexAttribArray(ATTRIB_POSITION);
@@ -813,10 +824,16 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
                                        unsigned int global_vertex_count,
                                        unsigned int global_triangle_count)
 {
+  g_return_if_fail(pieces_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[0] == 0 && mesh_buffers_[1] == 0);
+
+  glGenVertexArrays(1, &pieces_vertex_array_);
+  GL::Error::throw_if_fail(pieces_vertex_array_ != 0);
 
   glGenBuffers(2, mesh_buffers_);
   GL::Error::throw_if_fail(mesh_buffers_[0] != 0 && mesh_buffers_[1] != 0);
+
+  glBindVertexArray(pieces_vertex_array_);
 
   glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[0]);
   glBufferData(GL_ARRAY_BUFFER,
@@ -845,6 +862,13 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   }
   else
     g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
+
+  glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
+                        sizeof(GL::MeshVertex), GL::buffer_offset(0));
+  glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE,
+                        sizeof(GL::MeshVertex), GL::buffer_offset(3 * sizeof(GLfloat)));
+  glEnableVertexAttribArray(ATTRIB_POSITION);
+  glEnableVertexAttribArray(ATTRIB_NORMAL);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[1]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
@@ -875,6 +899,7 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   else
     g_warning("glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER) failed");
 
+  glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -1529,58 +1554,102 @@ void CubeScene::process_track_motion(int x, int y)
  */
 void CubeScene::gl_create_wireframe()
 {
-  Util::MemChunk<GLfloat>        vertices (3 * WIREFRAME_VERTEX_COUNT);
-  Util::MemChunk<WireframeIndex> indices  (2 * WIREFRAME_LINE_COUNT);
-
-  enum { N = Cube::N + 1 };
-
-  float stride[N];
-
-  for (int i = 0; i < N; ++i)
-    stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.0f);
-
-  Util::MemChunk<GLfloat>::iterator pv = vertices.begin();
-
-  for (int z = 0; z < N; ++z)
-    for (int y = 0; y < N; ++y)
-      for (int x = 0; x < N; ++x)
-      {
-        pv[0] = stride[x];
-        pv[1] = stride[y];
-        pv[2] = stride[z];
-
-        pv += 3;
-      }
-
-  Util::MemChunk<WireframeIndex>::iterator pi = indices.begin();
-
-  for (int i = 0; i < N; ++i)
-    for (int k = 0; k < N; ++k)
-      for (int m = 0; m < N - 1; ++m)
-      {
-        pi[0] = N*N*i + N*k + m;
-        pi[1] = N*N*i + N*k + m + 1;
-
-        pi[2] = N*N*i + N*m + k;
-        pi[3] = N*N*i + N*m + k + N;
-
-        pi[4] = N*N*m + N*i + k;
-        pi[5] = N*N*m + N*i + k + N*N;
-
-        pi += 6;
-      }
-
+  g_return_if_fail(cage_vertex_array_ == 0);
   g_return_if_fail(wireframe_buffers_[0] == 0 && wireframe_buffers_[1] == 0);
+
+  glGenVertexArrays(1, &cage_vertex_array_);
+  GL::Error::throw_if_fail(cage_vertex_array_ != 0);
 
   glGenBuffers(2, wireframe_buffers_);
   GL::Error::throw_if_fail(wireframe_buffers_[0] != 0 && wireframe_buffers_[1] != 0);
 
+  glBindVertexArray(cage_vertex_array_);
+
   glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
-  glBufferData(GL_ARRAY_BUFFER, vertices.bytes(), &vertices[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER,
+               WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
+               nullptr, GL_STATIC_DRAW);
+
+  void *const vertex_data =
+    glMapBufferRange(GL_ARRAY_BUFFER,
+                     0, WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
+                     GL_MAP_WRITE_BIT
+                     | GL_MAP_INVALIDATE_RANGE_BIT
+                     | GL_MAP_INVALIDATE_BUFFER_BIT
+                     | GL_MAP_UNSYNCHRONIZED_BIT);
+  if (vertex_data)
+  {
+    enum { N = Cube::N + 1 };
+
+    float stride[N];
+
+    for (int i = 0; i < N; ++i)
+      stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.0f);
+
+    GLfloat* pv = static_cast<GLfloat*>(vertex_data);
+
+    for (int z = 0; z < N; ++z)
+      for (int y = 0; y < N; ++y)
+        for (int x = 0; x < N; ++x)
+        {
+          pv[0] = stride[x];
+          pv[1] = stride[y];
+          pv[2] = stride[z];
+
+          pv += 3;
+        }
+
+    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
+      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
+  }
+  else
+    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
+
+  glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
+                        3 * sizeof(GLfloat), GL::buffer_offset(0));
+  glEnableVertexAttribArray(ATTRIB_POSITION);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.bytes(), &indices[0], GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
+               nullptr, GL_STATIC_DRAW);
 
+  void *const index_data =
+    glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER,
+                     0, WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
+                     GL_MAP_WRITE_BIT
+                     | GL_MAP_INVALIDATE_RANGE_BIT
+                     | GL_MAP_INVALIDATE_BUFFER_BIT
+                     | GL_MAP_UNSYNCHRONIZED_BIT);
+  if (index_data)
+  {
+    enum { N = Cube::N + 1 };
+
+    WireframeIndex* pi = static_cast<WireframeIndex*>(index_data);
+
+    for (int i = 0; i < N; ++i)
+      for (int k = 0; k < N; ++k)
+        for (int m = 0; m < N - 1; ++m)
+        {
+          pi[0] = N*N*i + N*k + m;
+          pi[1] = N*N*i + N*k + m + 1;
+
+          pi[2] = N*N*i + N*m + k;
+          pi[3] = N*N*i + N*m + k + N;
+
+          pi[4] = N*N*m + N*i + k;
+          pi[5] = N*N*m + N*i + k + N*N;
+
+          pi += 6;
+        }
+
+    if (!glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
+      g_warning("glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
+  }
+  else
+    g_warning("glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER) failed");
+
+  glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -1589,6 +1658,12 @@ void CubeScene::gl_create_wireframe()
 
 void CubeScene::gl_delete_wireframe()
 {
+  if (cage_vertex_array_)
+  {
+    glDeleteVertexArrays(1, &cage_vertex_array_);
+    cage_vertex_array_ = 0;
+  }
+
   if (wireframe_buffers_[0] || wireframe_buffers_[1])
   {
     glDeleteBuffers(2, wireframe_buffers_);
@@ -1602,9 +1677,10 @@ void CubeScene::gl_draw_wireframe()
   using Math::Matrix4;
   using Math::Vector4;
 
-  if (cage_shader_ && wireframe_buffers_[0] && wireframe_buffers_[1])
+  if (cage_shader_ && cage_vertex_array_ && wireframe_buffers_[0] && wireframe_buffers_[1])
   {
     cage_shader_.use();
+    glBindVertexArray(cage_vertex_array_);
 
     Matrix4 modelview {Matrix4::identity[0],
                        Matrix4::identity[1],
@@ -1620,22 +1696,11 @@ void CubeScene::gl_draw_wireframe()
 
     glUniformMatrix4fv(cage_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
-    glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
-                          3 * sizeof(float), GL::buffer_offset(0));
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
-
     glDrawRangeElements(GL_LINES, 0, WIREFRAME_VERTEX_COUNT - 1,
                         2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE,
                         GL::buffer_offset(0));
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    glDisableVertexAttribArray(ATTRIB_POSITION);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+    glBindVertexArray(0);
     GL::ShaderProgram::unuse();
   }
 }
@@ -1724,20 +1789,10 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last)
 {
   int triangle_count = 0;
 
-  if (piece_shader_ && mesh_buffers_[0] && mesh_buffers_[1])
+  if (piece_shader_ && pieces_vertex_array_ && mesh_buffers_[0] && mesh_buffers_[1])
   {
     piece_shader_.use();
-
-    glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[0]);
-
-    glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(GL::MeshVertex), GL::buffer_offset(0));
-    glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(GL::MeshVertex), GL::buffer_offset(3 * sizeof(float)));
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_NORMAL);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[1]);
+    glBindVertexArray(pieces_vertex_array_);
 
     int last_fixed = last;
 
@@ -1776,13 +1831,7 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last)
       gl_draw_piece_elements(data, translate);
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    glDisableVertexAttribArray(ATTRIB_NORMAL);
-    glDisableVertexAttribArray(ATTRIB_POSITION);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+    glBindVertexArray(0);
     GL::ShaderProgram::unuse();
   }
 

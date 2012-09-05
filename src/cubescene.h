@@ -182,6 +182,8 @@ private:
   unsigned int                cube_texture_;
   unsigned int                mesh_buffers_[2];
   unsigned int                wireframe_buffers_[2];
+  unsigned int                pieces_vertex_array_;
+  unsigned int                cage_vertex_array_;
 
   int                         track_last_x_;
   int                         track_last_y_;
