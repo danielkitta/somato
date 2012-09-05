@@ -115,22 +115,6 @@ static const float view_z_offset = -9.0;
 static const float rotation_step = 3.0;
 
 /*
- * Predicate employed to sort the piece cells in front-to-back order.
- */
-class CellAboveZ : public std::binary_function<Somato::PieceCell, Somato::PieceCell, bool>
-{
-private:
-  const float* zcoords_;
-
-public:
-  explicit CellAboveZ(const float* zcoords)
-    : zcoords_ (zcoords) {}
-
-  bool operator()(const Somato::PieceCell& a, const Somato::PieceCell& b) const
-    { return (zcoords_[a.cell] > zcoords_[b.cell]); }
-};
-
-/*
  * The materials applied to cube pieces.  Indices into the materials array
  * match the original piece order as passed to CubeScene::set_cube_pieces(),
  * reduced modulo the number of materials.
@@ -1246,8 +1230,8 @@ void CubeScene::update_depth_order()
 
   enum { N = Cube::N };
 
-  float  zcoords[N*N*N];
-  float* pcell = zcoords;
+  std::array<float, N*N*N> zcoords;
+  auto pcell = begin(zcoords);
 
   for (int x = 1 - N; x < N; x += 2)
     for (int y = 1 - N; y < N; y += 2)
@@ -1258,33 +1242,34 @@ void CubeScene::update_depth_order()
         *pcell++ = coords.z();
       }
 
-  std::sort(piece_cells_.begin(), piece_cells_.end(), CellAboveZ(zcoords));
+  std::sort(begin(piece_cells_), end(piece_cells_),
+            [&zcoords](const PieceCell& a, const PieceCell& b)
+            { return (zcoords[a.cell] > zcoords[b.cell]); });
 
   Cube cube;
-  std::vector<int>::iterator pdepth = depth_order_.begin();
+  auto pdepth = begin(depth_order_);
 
-  g_return_if_fail(pdepth != depth_order_.end());
+  g_return_if_fail(pdepth != end(depth_order_));
 
-  for (PieceCellVector::iterator p = piece_cells_.begin(); p != piece_cells_.end(); ++p)
+  for (const PieceCell& pc : piece_cells_)
   {
-    if (p->piece < animation_data_.size())
+    if (pc.piece < animation_data_.size())
     {
-      const unsigned int index = animation_data_[p->piece].cube_index;
+      const unsigned int index = animation_data_[pc.piece].cube_index;
 
       g_return_if_fail(index < cube_pieces_.size());
 
       if ((cube & cube_pieces_[index]) == Cube())
       {
         cube |= cube_pieces_[index];
-        *pdepth = p->piece;
+        *pdepth = pc.piece;
 
-        if (++pdepth == depth_order_.end())
+        if (++pdepth == end(depth_order_))
           break;
       }
     }
   }
-
-  g_return_if_fail(pdepth == depth_order_.end());
+  g_return_if_fail(pdepth == end(depth_order_));
 
   depth_order_changed_ = false;
 }
