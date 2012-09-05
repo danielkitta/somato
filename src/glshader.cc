@@ -30,48 +30,71 @@
 
 #include <memory>
 
-namespace GL
+namespace
 {
 
-ShaderObject::ShaderObject(unsigned int type, std::string filename)
-:
-  shader_ {glCreateShader(type)}
+class ScopedShader
 {
-  GL::Error::throw_if_fail(shader_ != 0);
+private:
+  GLuint shader_;
+
+public:
+  explicit ScopedShader(GLenum type)
+    : shader_ {glCreateShader(type)} { GL::Error::throw_if_fail(shader_ != 0); }
+  ~ScopedShader() { if (shader_) glDeleteShader(shader_); }
+
+  ScopedShader(const ScopedShader&) = delete;
+  ScopedShader& operator=(const ScopedShader&) = delete;
+
+  GLuint get() const { return shader_; }
+  GLuint release() { const GLuint shader = shader_; shader_ = 0; return shader; }
+};
+
+static
+GLuint compile_shader(GLenum type, const std::string& filename)
+{
+  ScopedShader shader {type};
   {
     const std::string source = Glib::file_get_contents(filename);
     const int   len = source.size();
     const char* str = source.c_str();
 
-    glShaderSource(shader_, 1, &str, &len);
+    glShaderSource(shader.get(), 1, &str, &len);
   }
-  glCompileShader(shader_);
+  glCompileShader(shader.get());
 
   GLint bufsize = 0;
-  glGetShaderiv(shader_, GL_INFO_LOG_LENGTH, &bufsize);
+  glGetShaderiv(shader.get(), GL_INFO_LOG_LENGTH, &bufsize);
 
   if (bufsize > 0)
   {
     const std::unique_ptr<char[]> buffer {new char[bufsize + 1]};
 
     GLsizei length = 0;
-    glGetShaderInfoLog(shader_, bufsize, &length, buffer.get());
+    glGetShaderInfoLog(shader.get(), bufsize, &length, buffer.get());
 
     buffer[length] = '\0';
     g_printerr("%s\n", buffer.get());
   }
 
   GLint success = GL_FALSE;
-  glGetShaderiv(shader_, GL_COMPILE_STATUS, &success);
+  glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &success);
 
   if (!success)
-  {
-    glDeleteShader(shader_);
-    shader_ = 0;
-
     throw GL::Error{Glib::ustring::compose("Compiling %1 failed", filename)};
-  }
+
+  return shader.release();
 }
+
+} // anonymous namespace
+
+namespace GL
+{
+
+ShaderObject::ShaderObject(unsigned int type, const std::string& filename)
+:
+  shader_ {compile_shader(type, filename)}
+{}
 
 ShaderObject::~ShaderObject()
 {
