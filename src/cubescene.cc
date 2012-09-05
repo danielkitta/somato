@@ -43,6 +43,7 @@
 
 #include <cfloat>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
@@ -847,10 +848,10 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   else
     g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
 
-  glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
-                        sizeof(GL::MeshVertex), GL::buffer_offset(0));
-  glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE,
-                        sizeof(GL::MeshVertex), GL::buffer_offset(3 * sizeof(GLfloat)));
+  glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(GL::MeshVertex),
+                        GL::buffer_offset(offsetof(GL::MeshVertex, vertex)));
+  glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE, sizeof(GL::MeshVertex),
+                        GL::buffer_offset(offsetof(GL::MeshVertex, normal)));
   glEnableVertexAttribArray(ATTRIB_POSITION);
   glEnableVertexAttribArray(ATTRIB_NORMAL);
 

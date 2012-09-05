@@ -33,6 +33,7 @@
 #include <gdkmm.h>
 #include <gtkmm/style.h>
 
+#include <cstddef>
 #include <cstring>
 #include <algorithm>
 #include <functional>
@@ -646,10 +647,10 @@ int Scene::gl_render()
 
 int Scene::gl_render_ui()
 {
-  glVertexAttribPointer(ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE,
-                        sizeof(UIVertex), GL::buffer_offset(0));
-  glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE,
-                        sizeof(UIVertex), GL::buffer_offset(2 * sizeof(float)));
+  glVertexAttribPointer(ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex),
+                        GL::buffer_offset(offsetof(UIVertex, vertex)));
+  glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex),
+                        GL::buffer_offset(offsetof(UIVertex, texcoord)));
   glEnableVertexAttribArray(ATTRIB_POSITION);
   glEnableVertexAttribArray(ATTRIB_TEXCOORD);
 
