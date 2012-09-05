@@ -135,22 +135,16 @@ public:
  * match the original piece order as passed to CubeScene::set_cube_pieces(),
  * reduced modulo the number of materials.
  */
-struct PieceMaterial
+static const GLfloat piece_materials[][4] =
 {
-  GLfloat diffuse [4];
-  GLfloat specular[4];
-};
-
-static const PieceMaterial piece_materials[] =
-{
-  { { 0.80, 0.25, 0.00, 1.0 }, { 0.10, 0.09, 0.08, 1.0 } }, // orange
-  { { 0.05, 0.70, 0.10, 1.0 }, { 0.08, 0.10, 0.08, 1.0 } }, // green
-  { { 0.80, 0.00, 0.00, 1.0 }, { 0.10, 0.08, 0.08, 1.0 } }, // red
-  { { 0.80, 0.65, 0.00, 1.0 }, { 0.10, 0.09, 0.08, 1.0 } }, // yellow
-  { { 0.10, 0.00, 0.80, 1.0 }, { 0.08, 0.08, 0.10, 1.0 } }, // blue
-  { { 0.75, 0.00, 0.80, 1.0 }, { 0.09, 0.08, 0.10, 1.0 } }, // magenta
-  { { 0.05, 0.65, 0.75, 1.0 }, { 0.08, 0.09, 0.10, 1.0 } }, // cyan
-  { { 0.80, 0.00, 0.25, 1.0 }, { 0.10, 0.08, 0.09, 1.0 } }  // pink
+  { 0.80, 0.15, 0.00, 1.0 }, // orange
+  { 0.05, 0.60, 0.05, 1.0 }, // green
+  { 0.80, 0.00, 0.00, 1.0 }, // red
+  { 0.80, 0.50, 0.00, 1.0 }, // yellow
+  { 0.10, 0.00, 0.80, 1.0 }, // blue
+  { 0.60, 0.00, 0.80, 1.0 }, // lavender
+  { 0.05, 0.45, 0.80, 1.0 }, // cyan
+  { 0.80, 0.00, 0.25, 1.0 }  // pink
 };
 
 /*
@@ -1723,9 +1717,8 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
 
   glUniformMatrix4fv(uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
-  const auto& material = piece_materials[data.cube_index % G_N_ELEMENTS(piece_materials)];
-
-  glUniform4fv(uf_diffuse_material_, 1, material.diffuse);
+  glUniform4fv(uf_diffuse_material_, 1,
+               piece_materials[data.cube_index % G_N_ELEMENTS(piece_materials)]);
 
   const auto& mesh = mesh_data_[data.cube_index];
 
