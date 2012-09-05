@@ -1691,7 +1691,7 @@ int CubeScene::gl_draw_pieces()
 }
 
 void CubeScene::gl_draw_piece_elements(const AnimationData& data,
-                                       const Math::Vector4& animpos)
+                                       Math::Vector4 animpos)
 {
   using Math::Matrix4;
   using Math::Vector4;
@@ -1702,17 +1702,10 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
                      Vector4{0.0, 0.0, view_z_offset, 1.0}};
 
   modelview *= Math::Quat::to_matrix(rotation_);
-
-  modelview *= Matrix4{Matrix4::identity[0],
-                       Matrix4::identity[1],
-                       Matrix4::identity[2],
-                       animpos};
-
   modelview *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
                        Vector4{0.0, zoom_, 0.0, 0.0},
                        Vector4{0.0, 0.0, zoom_, 0.0},
-                       Matrix4::identity[3]};
-
+                       animpos};
   modelview *= data.transform;
 
   glUniformMatrix4fv(uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
