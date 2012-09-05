@@ -111,16 +111,10 @@ void Extensions::query()
   have_swap_control = false;
 
 #if defined(GDK_WINDOWING_X11)
-  SwapIntervalSGI     = 0;
+  SwapIntervalSGI = nullptr;
 #elif defined(GDK_WINDOWING_WIN32)
-  SwapIntervalEXT     = 0;
+  SwapIntervalEXT = nullptr;
 #endif
-
-  version_    = GL::get_gl_version();
-  extensions_ = glGetString(GL_EXTENSIONS);
-
-  if (!extensions_)
-    GL::Error::check();
 
 #if defined(GDK_WINDOWING_X11)
   if (GL::have_glx_extension("GLX_SGI_swap_control"))
@@ -1111,13 +1105,12 @@ void Scene::on_signal_realize()
   }
 
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     gl_extensions_.reset(gl_query_extensions());
+    g_return_if_fail(gl_ext() != nullptr);
 
-    g_return_if_fail(gl_ext() != 0);
-
-    if (!gl_ext()->have_version(3, 2))
+    if (GL::get_gl_version() < GL::make_version(3, 2))
       g_error("at least OpenGL 3.2 is required to run this program");
 
     gl_update_vsync_state();

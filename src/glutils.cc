@@ -18,6 +18,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#define GL_GLEXT_PROTOTYPES 1
+
 #include "glutils.h"
 
 #include <glib.h>
@@ -258,12 +260,9 @@ int GL::parse_version_string(const unsigned char* version)
       const int minor = parse_version_digits(version);
 
       if (minor >= 0 && (*version == '\0' || *version == ' ' || *version == '.'))
-      {
         return GL::make_version(major, minor);
-      }
     }
   }
-
   return -1;
 }
 
@@ -277,39 +276,23 @@ int GL::get_gl_version()
   return -1;
 }
 
-bool GL::parse_extensions_string(const unsigned char* extensions, const char* name)
-{
-  const std::size_t name_length = (name) ? std::strlen(name) : 0;
-
-  g_return_val_if_fail(name_length > 0, false);
-
-  if (extensions)
-  {
-    const char* pos = reinterpret_cast<const char*>(extensions);
-
-    while (const char *const space = std::strchr(pos, ' '))
-    {
-      const std::size_t length = space - pos;
-
-      if (length == name_length && std::memcmp(pos, name, length) == 0)
-        return true;
-
-      pos = space + 1;
-    }
-
-    return (std::strcmp(pos, name) == 0);
-  }
-
-  return false;
-}
-
 bool GL::have_gl_extension(const char* name)
 {
-  if (const GLubyte *const extensions = glGetString(GL_EXTENSIONS))
-    return GL::parse_extensions_string(extensions, name);
-  else
+  g_return_val_if_fail(name != nullptr, false);
+
+  GLint num_extensions = -1;
+  glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
+
+  if (num_extensions < 0)
     GL::Error::check();
 
+  for (int i = 0; i < num_extensions; ++i)
+  {
+    const GLubyte *const ext = glGetStringi(GL_EXTENSIONS, i);
+
+    if (ext && std::strcmp(reinterpret_cast<const char*>(ext), name) == 0)
+      return true;
+  }
   return false;
 }
 

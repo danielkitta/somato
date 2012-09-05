@@ -50,9 +50,6 @@ namespace GL
 struct Extensions
 {
 private:
-  const GLubyte*  extensions_;
-  int             version_;
-
   void query();
 
   // noncopyable
@@ -63,19 +60,13 @@ public:
   bool have_swap_control;
 
 #if defined(GDK_WINDOWING_X11)
-  PFNGLXSWAPINTERVALSGIPROC     SwapIntervalSGI;
+  PFNGLXSWAPINTERVALSGIPROC SwapIntervalSGI;
 #elif defined(GDK_WINDOWING_WIN32)
-  PFNWGLSWAPINTERVALEXTPROC     SwapIntervalEXT;
+  PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
 #endif
 
-  Extensions() : extensions_ (0), version_ (0) { query(); }
+  Extensions() { query(); }
   virtual ~Extensions();
-
-  inline bool have_version(int major, int minor) const
-    { return (version_ >= GL::make_version(major, minor)); }
-
-  inline bool have_extension(const char* name) const
-    { return GL::parse_extensions_string(extensions_, name); }
 };
 
 class LayoutTexture

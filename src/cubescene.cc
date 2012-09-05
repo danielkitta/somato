@@ -235,7 +235,7 @@ void CubeScene::Extensions::query()
 {
   have_texture_filter_anisotropic = false;
 
-  if (have_extension("GL_EXT_texture_filter_anisotropic"))
+  if (GL::have_gl_extension("GL_EXT_texture_filter_anisotropic"))
     have_texture_filter_anisotropic = true;
 }
 

@@ -95,14 +95,8 @@ int parse_version_string(const unsigned char* version);
 int get_gl_version();
 
 /*
- * Check for the presence of an extension name in the list extensions.
- * The list should have the format as returned by glGetString(GL_EXTENSIONS).
- */
-bool parse_extensions_string(const unsigned char* extensions, const char* name);
-
-/*
- * Check for the presence of an extension name in the list returned
- * by glGetString(GL_EXTENSIONS).  Requires an active GL context.
+ * Check for the presence of an OpenGL extension by name.
+ * Requires an active GL context.
  */
 bool have_gl_extension(const char* name);
 
