@@ -1877,8 +1877,8 @@ void CubeScene::gl_init_cube_texture()
   if (gl_ext()->have_texture_filter_anisotropic)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, WIDTH, HEIGHT, 0,
-               GL_LUMINANCE, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, WIDTH, HEIGHT, 0,
+               GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
 
   glGenerateMipmap(GL_TEXTURE_2D);
 

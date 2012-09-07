@@ -3,16 +3,16 @@
 uniform sampler2D pieceTexture;
 uniform vec4 diffuseMaterial;
 
-const vec3 dirToLight        = vec3(0.0, 0.242535625, 0.9701425);
-const vec4 lightIntensity    = vec4(0.8, 0.8, 0.8, 0.0);
-const vec4 ambientIntensity  = vec4(0.25, 0.25, 0.25, 1.0);
-const vec4 specularIntensity = vec4(0.1, 0.1, 0.1, 0.0);
+const vec3  dirToLight        = vec3(0.0, 0.242535625, 0.9701425);
+const float lightIntensity    = 0.8;
+const float ambientIntensity  = 0.25;
+const float specularIntensity = 0.1;
 
 smooth in vec3 interpPosition;
 smooth in vec3 interpNormal;
 smooth in vec2 interpTexcoord;
 
-out vec4 outputColor;
+out vec3 outputColor;
 
 void main()
 {
@@ -25,8 +25,8 @@ void main()
   float blinnTerm = pow(clamp(dot(normNormal, halfVec), 0.0, 1.0), 32);
   float specularReflection = (cosAngIncidence != 0.0) ? blinnTerm : 0.0;
 
-  vec4 diffuseTerm = diffuseMaterial * (lightIntensity * cosAngIncidence + ambientIntensity);
-  vec4 texColor = texture(pieceTexture, interpTexcoord);
+  float texIntensity = texture(pieceTexture, interpTexcoord).r;
+  float diffuseTerm = texIntensity * (lightIntensity * cosAngIncidence + ambientIntensity);
 
-  outputColor = texColor * diffuseTerm + specularIntensity * specularReflection;
+  outputColor = diffuseMaterial.rgb * diffuseTerm + specularIntensity * specularReflection;
 }

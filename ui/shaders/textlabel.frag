@@ -9,9 +9,9 @@ out vec4 outputColor;
 
 void main()
 {
-  vec4 text = textureOffset(labelTexture, interpTexcoord, ivec2(1, -1));
-  vec4 shadow = texture(labelTexture, interpTexcoord);
-  float alpha = max(text.a, shadow.a);
+  float text = textureOffset(labelTexture, interpTexcoord, ivec2(1, -1)).r;
+  float shadow = texture(labelTexture, interpTexcoord).r;
+  float alpha = max(text, shadow);
 
-  outputColor = textColor * vec4(text.rgb, alpha);
+  outputColor = textColor * vec4(text, text, text, alpha);
 }
