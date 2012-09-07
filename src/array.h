@@ -84,16 +84,6 @@ public:
 template <class T> inline
 void swap(MemChunk<T>& a, MemChunk<T>& b) { a.swap(b); }
 
-template <class T>
-class Delete
-{
-public:
-  typedef T    argument_type;
-  typedef void result_type;
-
-  inline void operator()(T ptr) const { delete ptr; }
-};
-
 } // namespace Util
 
 #endif /* SOMATO_ARRAY_H_INCLUDED */
