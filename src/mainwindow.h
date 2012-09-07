@@ -64,9 +64,9 @@ private:
   struct Actions;
 
   Glib::RefPtr<Gtk::UIManager>  ui_manager_;
-  std::auto_ptr<Actions>        actions_;
+  std::unique_ptr<Actions>      actions_;
 
-  std::auto_ptr<Gtk::Window>    window_;
+  std::unique_ptr<Gtk::Window>  window_;
   Gtk::Box*                     vbox_main_;
   Gtk::Container*               frame_scene_;
   CubeScene*                    cube_scene_;
@@ -74,10 +74,10 @@ private:
   Gtk::Range*                   scale_zoom_;
   Gtk::Statusbar*               statusbar_;
 
-  std::auto_ptr<Gtk::Window>    aboutdialog_;
+  std::unique_ptr<Gtk::Window>  aboutdialog_;
 
   std::vector<Solution>         solutions_;
-  std::auto_ptr<PuzzleThread>   puzzle_thread_;
+  std::unique_ptr<PuzzleThread> puzzle_thread_;
   Glib::Timer                   profile_timer_;
   sigc::connection              conn_cycle_;
   sigc::connection              conn_profile_;

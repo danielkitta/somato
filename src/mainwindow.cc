@@ -172,24 +172,17 @@ MainWindow::Actions::~Actions()
 
 MainWindow::MainWindow()
 :
-  ui_manager_       (Gtk::UIManager::create()),
-  actions_          (new Actions()),
-  window_           (),
-  vbox_main_        (0),
-  frame_scene_      (0),
-  cube_scene_       (0),
-  scale_speed_      (0),
-  scale_zoom_       (0),
-  statusbar_        (0),
-  aboutdialog_      (),
-  solutions_        (),
-  puzzle_thread_    (),
-  profile_timer_    (),
-  conn_cycle_       (),
-  conn_profile_     (),
-  cube_index_       (-1),
-  context_cube_     (0),
-  context_profile_  (0)
+  ui_manager_       {Gtk::UIManager::create()},
+  actions_          {new Actions()},
+  vbox_main_        {nullptr},
+  frame_scene_      {nullptr},
+  cube_scene_       {nullptr},
+  scale_speed_      {nullptr},
+  scale_zoom_       {nullptr},
+  statusbar_        {nullptr},
+  cube_index_       {-1},
+  context_cube_     {0},
+  context_profile_  {0}
 {
   load_ui();
 }
@@ -204,12 +197,12 @@ Gtk::Window* MainWindow::get_window()
 
 void MainWindow::run_puzzle_solver()
 {
-  std::auto_ptr<PuzzleThread> thread (new PuzzleThread());
+  std::unique_ptr<PuzzleThread> thread {new PuzzleThread()};
 
   thread->signal_done().connect(sigc::mem_fun(*this, &MainWindow::on_puzzle_thread_done));
   thread->run();
 
-  puzzle_thread_ = thread;
+  puzzle_thread_ = std::move(thread);
 }
 
 Glib::RefPtr<Gtk::ActionGroup> MainWindow::create_action_group()
@@ -355,10 +348,8 @@ void MainWindow::init_cube_scene()
 
 bool MainWindow::start_animation()
 {
-  {
-    // Now we may safely delete the puzzle thread object.
-    const std::auto_ptr<PuzzleThread> thread (puzzle_thread_);
-  }
+  // Now we may safely delete the puzzle thread object.
+  puzzle_thread_.reset();
 
   switch_cube(0);
   actions_->animation_pause->set_active(false);
@@ -479,7 +470,7 @@ void MainWindow::on_application_about()
   }
   else
   {
-    std::auto_ptr<Gtk::AboutDialog> dialog (new Gtk::AboutDialog());
+    std::unique_ptr<Gtk::AboutDialog> dialog {new Gtk::AboutDialog()};
 
     dialog->set_version(PACKAGE_VERSION);
 #ifndef GDK_WINDOWING_WIN32
@@ -489,7 +480,7 @@ void MainWindow::on_application_about()
     dialog->set_copyright("Copyright \302\251 2004-2008 Daniel Elstner");
     dialog->set_website("http://danielkitta.org/projects/somato");
 
-    const char* const program_authors[] = { "Daniel Elstner <daniel.kitta@gmail.com>", 0 };
+    const char* const program_authors[] = { "Daniel Elstner <daniel.kitta@gmail.com>", nullptr };
 
     dialog->set_authors(program_authors);
     dialog->set_license(program_license);
@@ -499,14 +490,13 @@ void MainWindow::on_application_about()
     dialog->show();
     dialog->signal_response().connect(sigc::mem_fun(*this, &MainWindow::on_aboutdialog_response));
 
-    aboutdialog_ = dialog;
+    aboutdialog_ = std::move(dialog);
   }
 }
 
 void MainWindow::on_aboutdialog_response(int)
 {
-  // Destroy by transferring ownership to local scope.
-  const std::auto_ptr<Gtk::Window> dialog (aboutdialog_);
+  aboutdialog_.reset();
 }
 
 /*
