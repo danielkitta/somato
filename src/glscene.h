@@ -53,8 +53,8 @@ struct UIVertex
   UIVertex& operator=(const UIVertex&) = default;
 };
 
-typedef std::vector<LayoutTexture*> LayoutVector;
-typedef std::vector<UIVertex>       GeometryVector;
+typedef std::vector<std::unique_ptr<LayoutTexture>> LayoutVector;
+typedef std::vector<UIVertex> GeometryVector;
 
 /*
  * Base GL widget class that implements all the generic stuff not specific
@@ -119,35 +119,35 @@ private:
   virtual GL::Extensions* gl_query_extensions();
   virtual void gl_reposition_layouts();
 
-  Math::Vector4                 focus_color_;
+  Math::Vector4     focus_color_;
 
-  void*                         gl_drawable_;
-  std::auto_ptr<GL::Extensions> gl_extensions_;
-  Glib::RefPtr<Pango::Context>  texture_context_;
+  void*                           gl_drawable_;
+  std::unique_ptr<GL::Extensions> gl_extensions_;
+  Glib::RefPtr<Pango::Context>    texture_context_;
 
-  GeometryVector                ui_geometry_;
-  LayoutVector                  ui_layouts_;
+  GeometryVector    ui_geometry_;
+  LayoutVector      ui_layouts_;
 
-  GL::ShaderProgram             label_shader_;
-  int                           label_uf_winsize_;
-  int                           label_uf_color_;
-  int                           label_uf_texture_;
+  GL::ShaderProgram label_shader_;
+  int               label_uf_winsize_;
+  int               label_uf_color_;
+  int               label_uf_texture_;
 
-  GL::ShaderProgram             focus_shader_;
-  int                           focus_uf_winsize_;
-  int                           focus_uf_color_;
+  GL::ShaderProgram focus_shader_;
+  int               focus_uf_winsize_;
+  int               focus_uf_color_;
 
-  unsigned int                  ui_buffer_;
-  unsigned int                  frame_counter_;
-  unsigned int                  triangle_counter_;
+  unsigned int ui_buffer_;
+  unsigned int frame_counter_;
+  unsigned int triangle_counter_;
 
-  bool                          exclusive_context_;
-  bool                          has_back_buffer_;
-  bool                          use_back_buffer_;
-  bool                          enable_vsync_;
-  bool                          vsync_enabled_;
-  bool                          show_focus_;
-  bool                          focus_drawable_;
+  bool exclusive_context_;
+  bool has_back_buffer_;
+  bool use_back_buffer_;
+  bool enable_vsync_;
+  bool vsync_enabled_;
+  bool show_focus_;
+  bool focus_drawable_;
 
   void on_signal_realize();
   void on_signal_unrealize();

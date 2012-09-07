@@ -74,8 +74,6 @@ class LayoutTexture
 private:
   friend class GL::Scene;
 
-  class Invalidate;
-
   enum { TRIANGLE_COUNT = 2, VERTEX_COUNT = 4 };
 
   Math::Vector4 color_;         // text foreground color
@@ -105,49 +103,30 @@ private:
   void gl_delete();
 
   // noncopyable
-  LayoutTexture(const LayoutTexture&);
-  LayoutTexture& operator=(const LayoutTexture&);
+  LayoutTexture(const LayoutTexture&) = delete;
+  LayoutTexture& operator=(const LayoutTexture&) = delete;
 
 public:
-  class IsDrawable;
-
   LayoutTexture();
   ~LayoutTexture();
 
   void set_content(const Glib::ustring& content);
   Glib::ustring get_content() const { return content_; }
 
-  inline       Math::Vector4& color()       { return color_; }
-  inline const Math::Vector4& color() const { return color_; }
+  Math::Vector4&       color()       { return color_; }
+  const Math::Vector4& color() const { return color_; }
 
-  inline bool need_update() const { return need_update_; }
-  inline bool drawable() const { return (tex_name_ != 0); }
+  void invalidate() { need_update_ = true; }
+  bool need_update() const { return need_update_; }
+  bool drawable() const { return (tex_name_ != 0); }
 
-  inline int get_width()  const { return log_width_;  }
-  inline int get_height() const { return log_height_; }
+  int get_width()  const { return log_width_;  }
+  int get_height() const { return log_height_; }
 
-  inline void set_window_pos(int x, int y) { window_x_ = x; window_y_ = y; }
+  void set_window_pos(int x, int y) { window_x_ = x; window_y_ = y; }
 
-  inline int get_window_x() const { return window_x_; }
-  inline int get_window_y() const { return window_y_; }
-};
-
-class LayoutTexture::Invalidate
-{
-public:
-  typedef LayoutTexture*  argument_type;
-  typedef void            result_type;
-
-  inline void operator()(LayoutTexture* layout) const { layout->need_update_ = true; }
-};
-
-class LayoutTexture::IsDrawable
-{
-public:
-  typedef const LayoutTexture*  argument_type;
-  typedef bool                  result_type;
-
-  inline bool operator()(const LayoutTexture* layout) const { return layout->drawable(); }
+  int get_window_x() const { return window_x_; }
+  int get_window_y() const { return window_y_; }
 };
 
 inline

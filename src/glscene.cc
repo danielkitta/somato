@@ -316,7 +316,7 @@ void LayoutTexture::gl_delete()
 Scene::Scene()
 :
   focus_color_        {1.0, 1.0, 1.0, 1.0},
-  gl_drawable_        (0),
+  gl_drawable_        {nullptr},
   gl_extensions_      (),
   texture_context_    (),
   ui_geometry_        (FOCUS_VERTEX_COUNT),
@@ -353,9 +353,7 @@ Scene::Scene()
 }
 
 Scene::~Scene()
-{
-  std::for_each(ui_layouts_.begin(), ui_layouts_.end(), Util::Delete<LayoutTexture*>());
-}
+{}
 
 void Scene::reset_counters()
 {
@@ -459,16 +457,16 @@ bool Scene::get_show_focus() const
 LayoutTexture* Scene::create_layout_texture()
 {
   // For now, layout textures may only be created at initialization time.
-  g_return_val_if_fail(ui_buffer_ == 0, 0);
+  g_return_val_if_fail(ui_buffer_ == 0, nullptr);
 
-  std::auto_ptr<LayoutTexture> layout (new LayoutTexture());
+  std::unique_ptr<LayoutTexture> layout {new LayoutTexture()};
 
   layout->array_offset_ = ui_geometry_.size();
   ui_geometry_.resize(layout->array_offset_ + LayoutTexture::VERTEX_COUNT);
 
-  ui_layouts_.push_back(layout.get());
+  ui_layouts_.push_back(std::move(layout));
 
-  return layout.release();
+  return ui_layouts_.back().get();
 }
 
 void Scene::gl_update_ui()
@@ -575,7 +573,7 @@ void Scene::gl_cleanup()
   }
 
   std::for_each(ui_layouts_.begin(), ui_layouts_.end(),
-                std::mem_fun(&LayoutTexture::gl_delete));
+                std::mem_fn(&LayoutTexture::gl_delete));
 
   label_uf_winsize_ = -1;
   label_uf_color_   = -1;
@@ -628,17 +626,17 @@ int Scene::gl_render()
 {
   int triangle_count = 0;
 
-  const LayoutVector::const_iterator pbegin = ui_layouts_.begin();
-  const LayoutVector::const_iterator pend   = ui_layouts_.end();
-
-  if (focus_drawable_ || std::find_if(pbegin, pend, LayoutTexture::IsDrawable()) != pend)
+  if (focus_drawable_ && ui_buffer_)
   {
-    if (ui_buffer_)
+    const auto pbegin = ui_layouts_.cbegin();
+    const auto pend   = ui_layouts_.cend();
+
+    if (std::find_if(pbegin, pend, std::mem_fn(&LayoutTexture::drawable)) != pend)
     {
       glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
 
       triangle_count = gl_render_ui();
-      
+
       glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
   }
@@ -669,10 +667,10 @@ int Scene::gl_render_layouts()
 {
   int triangle_count = 0;
 
-  const auto first = std::find_if(ui_layouts_.begin(), ui_layouts_.end(),
-                                  LayoutTexture::IsDrawable());
+  const auto first = std::find_if(ui_layouts_.cbegin(), ui_layouts_.cend(),
+                                  std::mem_fn(&LayoutTexture::drawable));
 
-  if (first != ui_layouts_.end() && label_shader_)
+  if (first != ui_layouts_.cend() && label_shader_)
   {
     label_shader_.use();
 
@@ -717,7 +715,7 @@ int Scene::gl_render_layouts()
  */
 int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 {
-  const LayoutTexture* layout = *first;
+  const LayoutTexture* layout = first->get();
 
   glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
   glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
@@ -726,9 +724,9 @@ int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 
   int triangle_count = LayoutTexture::TRIANGLE_COUNT;
 
-  while (++first != ui_layouts_.end())
+  while (++first != ui_layouts_.cend())
   {
-    layout = *first;
+    layout = first->get();
 
     if (layout->drawable())
     {
@@ -760,30 +758,26 @@ void Scene::gl_render_focus()
  */
 void Scene::gl_build_layouts()
 {
-  for (LayoutVector::iterator p = ui_layouts_.begin(); p != ui_layouts_.end(); ++p)
+  for (const auto& layout : ui_layouts_)
   {
-    const LayoutTexture *const layout = *p;
-
     if (layout->drawable())
     {
-      int offset = 1;
-      float s0 = -1.0;
-      float t0 = 0.0;
+      const float width  = layout->ink_width_  + 1;
+      const float height = layout->ink_height_ + 1;
 
-      const float width  = layout->ink_width_  + offset;
-      const float height = layout->ink_height_ + offset;
-
-      float s1 = s0 + width;
-      float t1 = t0 + height;
+      const float s0 = -1.0;
+      const float t0 = 0.0;
+      const float s1 = s0 + width;
+      const float t1 = t0 + height;
 
       const float x0 = layout->window_x_ + layout->ink_x_;
-      const float y0 = layout->window_y_ + layout->ink_y_ + 1 - offset;
+      const float y0 = layout->window_y_ + layout->ink_y_;
       const float x1 = x0 + width;
       const float y1 = y0 + height;
 
       g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_geometry_.size());
 
-      const GeometryVector::iterator geometry = ui_geometry_.begin() + layout->array_offset_;
+      const auto geometry = begin(ui_geometry_) + layout->array_offset_;
 
       geometry[0].set_vertex(x0, y0);
       geometry[0].set_texcoord(s0, t0);
@@ -818,7 +812,7 @@ void Scene::gl_build_focus()
       g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_geometry_.size());
 
       generate_focus_rect(width, height, focus_padding,
-                          ui_geometry_.begin() + FOCUS_ARRAY_OFFSET);
+                          begin(ui_geometry_) + FOCUS_ARRAY_OFFSET);
       focus_drawable_ = true;
     }
   }
@@ -855,8 +849,10 @@ void Scene::gl_update_color()
   const Gdk::Color fg = style->get_fg(state);
   const Gdk::Color bg = style->get_bg(state);
 
-  focus_color_ = Math::Vector4(fg.get_red(), fg.get_green(), fg.get_blue(), 0xFFFF)
-                 * (1.0f / 0xFFFF);
+  focus_color_ = Math::Vector4(fg.get_red(),
+                               fg.get_green(),
+                               fg.get_blue(),
+                               0xFFFF) * (1.0f / 0xFFFF);
 
   const float red   = float(bg.get_red())   * (1.0f / 0xFFFF);
   const float green = float(bg.get_green()) * (1.0f / 0xFFFF);
@@ -899,16 +895,12 @@ void Scene::gl_update_vsync_state()
 
 void Scene::gl_update_layouts()
 {
-  for (LayoutVector::iterator p = ui_layouts_.begin(); p != ui_layouts_.end(); ++p)
+  for (const auto& layout : ui_layouts_)
   {
-    LayoutTexture *const layout = *p;
-
     if (!layout->content_.empty())
     {
       if (!layout->tex_name_ || layout->need_update_)
-      {
         layout->gl_set_layout(create_texture_pango_layout(layout->content_));
-      }
     }
     else
     {
@@ -917,7 +909,6 @@ void Scene::gl_update_layouts()
       layout->log_width_  = 0;
       layout->log_height_ = 0;
     }
-
     layout->need_update_ = false;
   }
 }
@@ -969,7 +960,7 @@ void Scene::on_size_allocate(Gtk::Allocation& allocation)
 
   if (is_realized())
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     gl_update_viewport();
     gl_update_projection();
@@ -981,7 +972,7 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
 {
   if (is_realized())
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     gl_update_color();
     gl_update_ui();
@@ -995,11 +986,12 @@ void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
   // Avoid both reset() and clear()... it's all Murray's fault :-P
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
-  std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
+  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
+                std::mem_fn(&LayoutTexture::invalidate));
 
   if (is_realized())
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     gl_update_color();
     gl_update_ui();
@@ -1012,11 +1004,12 @@ void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
 {
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
-  std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
+  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
+                std::mem_fn(&LayoutTexture::invalidate));
 
   if (is_realized())
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     gl_update_ui();
   }
@@ -1028,7 +1021,7 @@ bool Scene::on_expose_event(GdkEventExpose*)
 {
   if (is_drawable())
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     unsigned int triangle_count = 0;
 
@@ -1057,7 +1050,7 @@ bool Scene::on_focus_in_event(GdkEventFocus* event)
 {
   if (show_focus_ && is_realized())
   {
-    ScopeContext context (*this);
+    ScopeContext context {*this};
 
     gl_update_ui();
   }
@@ -1087,16 +1080,17 @@ bool Scene::on_visibility_notify_event(GdkEventVisibility* event)
 
 void Scene::on_signal_realize()
 {
-  g_return_if_fail(gl_drawable_ == 0);
+  g_return_if_fail(gl_drawable_ == nullptr);
 
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
-  std::for_each(ui_layouts_.begin(), ui_layouts_.end(), LayoutTexture::Invalidate());
+
+  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
+                std::mem_fn(&LayoutTexture::invalidate));
 
   GtkWidget     *const glwidget = Gtk::Widget::gobj();
   GdkGLDrawable *const drawable = gtk_widget_get_gl_drawable(glwidget);
 
   gl_drawable_ = drawable;
-
   has_back_buffer_ = (gdk_gl_drawable_is_double_buffered(drawable) != 0);
 
   if (exclusive_context_)
@@ -1128,7 +1122,7 @@ void Scene::on_signal_unrealize()
   if (gl_drawable_)
   {
     {
-      ScopeContext context (*this);
+      ScopeContext context {*this};
 
       gl_cleanup();
       gl_extensions_.reset();
@@ -1137,7 +1131,7 @@ void Scene::on_signal_unrealize()
     if (exclusive_context_)
       gdk_gl_drawable_gl_end(static_cast<GdkGLDrawable*>(gl_drawable_));
 
-    gl_drawable_ = 0;
+    gl_drawable_ = nullptr;
 
     vsync_enabled_   = false;
     has_back_buffer_ = false;
