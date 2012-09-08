@@ -139,7 +139,7 @@ static const std::array<std::array<GLfloat, 4>, 8> piece_materials
 static
 void find_animation_axis(Cube cube, Cube piece, float* direction)
 {
-  static const struct
+  struct MovementData
   {
     // The axis index to be passed to Cube::shift() (X, Y or Z).
     unsigned char axis;
@@ -154,22 +154,24 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
     // of the cube piece.  In other words, (x, y, z) is the reverse of the
     // vector describing the direction of movement.
     float x, y, z;
-  }
-  movement_data[] = // directions listed first are prefered
-  {
+  };
+
+  // Directions listed first are prefered.
+  static const std::array<MovementData, 6> movement_data
+  {{
     { Cube::AXIS_Y, false,  0.0,  1.0,  0.0 }, // top->down
     { Cube::AXIS_Z, true,   0.0,  0.0,  1.0 }, // front->back
     { Cube::AXIS_X, true,  -1.0,  0.0,  0.0 }, // left->right
     { Cube::AXIS_X, false,  1.0,  0.0,  0.0 }, // right->left
     { Cube::AXIS_Z, false,  0.0,  0.0, -1.0 }, // back->front
     { Cube::AXIS_Y, true,   0.0, -1.0,  0.0 }  // bottom->up
-  };
+  }};
 
-  for (unsigned int i = 0; i < G_N_ELEMENTS(movement_data); ++i)
+  for (const auto& movement : movement_data)
   {
     // Swap fixed and moving pieces if backward shifting is indicated.
-    const Cube fixed  = (movement_data[i].backward) ? piece : cube;
-    Cube       moving = (movement_data[i].backward) ? cube : piece;
+    const Cube fixed  = (movement.backward) ? piece : cube;
+    Cube       moving = (movement.backward) ? cube : piece;
 
     // Now do the shifting until the moving piece has either
     // vanished from view or collided with the fixed piece.
@@ -177,12 +179,12 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
     {
       if (moving == Cube()) // if it vanished we have just found our solution
       {
-        direction[0] = movement_data[i].x;
-        direction[1] = movement_data[i].y;
-        direction[2] = movement_data[i].z;
+        direction[0] = movement.x;
+        direction[1] = movement.y;
+        direction[2] = movement.z;
         return;
       }
-      moving.shift(movement_data[i].axis, true);
+      moving.shift(movement.axis, true);
     }
     while ((fixed & moving) == Cube());
   }
