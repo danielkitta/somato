@@ -132,6 +132,7 @@ private:
   GL::ShaderProgram focus_shader_;
   int               focus_uf_color_;
 
+  unsigned int ui_vertex_count_;
   unsigned int ui_vertex_array_;
   unsigned int ui_buffer_;
   unsigned int frame_counter_;
@@ -157,8 +158,8 @@ private:
   void gl_update_layouts();
 
   void gl_update_ui_buffer();
-  void gl_build_focus(UIVertex* vertices, size_t max_vertices);
-  void gl_build_layouts(UIVertex* vertices, size_t max_vertices);
+  void gl_build_focus(UIVertex* vertices);
+  void gl_build_layouts(UIVertex* vertices);
 
   void gl_render_focus();
   int  gl_render_layouts(LayoutVector::const_iterator first);

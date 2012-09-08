@@ -306,6 +306,7 @@ Scene::Scene()
   label_uf_color_     {-1},
   label_uf_texture_   {-1},
   focus_uf_color_     {-1},
+  ui_vertex_count_    {0},
   ui_vertex_array_    {0},
   ui_buffer_          (0),
   frame_counter_      (0),
@@ -449,6 +450,8 @@ void Scene::gl_update_ui()
 
   if (!ui_vertex_array_ || !ui_buffer_)
   {
+    ui_vertex_count_ = 0;
+
     if (!ui_vertex_array_)
     {
       glGenVertexArrays(1, &ui_vertex_array_);
@@ -483,12 +486,17 @@ void Scene::gl_update_ui_buffer()
 {
   g_return_if_fail(ui_buffer_ != 0);
 
-  const size_t vertex_count =
+  glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
+
+  const unsigned int vertex_count =
     FOCUS_VERTEX_COUNT + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
 
-  glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
-  glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
-               nullptr, GL_DYNAMIC_DRAW);
+  if (vertex_count != ui_vertex_count_)
+  {
+    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
+                nullptr, GL_DYNAMIC_DRAW);
+    ui_vertex_count_ = vertex_count;
+  }
 
   void *const vertex_data =
     glMapBufferRange(GL_ARRAY_BUFFER,
@@ -500,8 +508,8 @@ void Scene::gl_update_ui_buffer()
   {
     UIVertex *const vertices = static_cast<UIVertex*>(vertex_data);
 
-    gl_build_focus(vertices, vertex_count);
-    gl_build_layouts(vertices, vertex_count);
+    gl_build_focus(vertices);
+    gl_build_layouts(vertices);
 
     if (!glUnmapBuffer(GL_ARRAY_BUFFER))
       g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
@@ -577,7 +585,8 @@ void Scene::gl_create_focus_shader()
 
 void Scene::gl_cleanup()
 {
-  focus_drawable_ = false;
+  ui_vertex_count_ = 0;
+  focus_drawable_  = false;
 
   if (ui_vertex_array_)
   {
@@ -714,7 +723,7 @@ void Scene::gl_render_focus()
 /*
  * Generate vertices and texture coordinates for the text layouts.
  */
-void Scene::gl_build_layouts(UIVertex* vertices, size_t max_vertices)
+void Scene::gl_build_layouts(UIVertex* vertices)
 {
   const int win_width  = Math::max(1, get_width());
   const int win_height = Math::max(1, get_height());
@@ -737,7 +746,7 @@ void Scene::gl_build_layouts(UIVertex* vertices, size_t max_vertices)
     const float x1 = float(2 * (win_x + width)  - win_width)  / win_width;
     const float y1 = float(2 * (win_y + height) - win_height) / win_height;
 
-    g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= max_vertices);
+    g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_vertex_count_);
 
     UIVertex *const geometry = vertices + layout->array_offset_;
 
@@ -755,9 +764,9 @@ void Scene::gl_build_layouts(UIVertex* vertices, size_t max_vertices)
   }
 }
 
-void Scene::gl_build_focus(UIVertex* vertices, size_t max_vertices)
+void Scene::gl_build_focus(UIVertex* vertices)
 {
-  g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= max_vertices);
+  g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_vertex_count_);
 
   bool interior_focus = false;
   int  focus_padding  = 0;
