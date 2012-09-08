@@ -43,8 +43,9 @@ namespace
 
 enum
 {
-  FOCUS_ARRAY_OFFSET = 0, // offset into geometry arrays
-  FOCUS_VERTEX_COUNT = 4
+  FOCUS_ARRAY_OFFSET   = 0, // offset into geometry arrays
+  FOCUS_VERTEX_COUNT   = 4,
+  LAYOUTS_ARRAY_OFFSET = FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT
 };
 
 enum
@@ -60,7 +61,7 @@ enum
  */
 static
 void generate_focus_rect(int width, int height, int padding,
-                         GL::GeometryVector::iterator geometry)
+                         GL::UIVertex* geometry)
 {
   const float x0 = padding + 0.5f;
   const float y0 = padding + 0.5f;
@@ -301,13 +302,13 @@ Scene::Scene()
   gl_drawable_        {nullptr},
   gl_extensions_      (),
   texture_context_    (),
-  ui_geometry_        (FOCUS_VERTEX_COUNT),
   ui_layouts_         (),
   label_uf_winsize_   {-1},
   label_uf_color_     {-1},
   label_uf_texture_   {-1},
   focus_uf_winsize_   {-1},
   focus_uf_color_     {-1},
+  ui_vertex_array_    {0},
   ui_buffer_          (0),
   frame_counter_      (0),
   triangle_counter_   (0),
@@ -355,7 +356,7 @@ unsigned int Scene::get_triangle_counter() const
 
 void Scene::set_exclusive_context(bool exclusive_context)
 {
-  g_return_if_fail(gl_drawable_ == 0);
+  g_return_if_fail(gl_drawable_ == nullptr);
 
   exclusive_context_ = exclusive_context;
 }
@@ -373,7 +374,7 @@ void Scene::set_use_back_buffer(bool use_back_buffer)
 
     if (has_back_buffer_ && is_realized())
     {
-      ScopeContext context (*this);
+      ScopeContext context {*this};
 
       glDrawBuffer((use_back_buffer_) ? GL_BACK : GL_FRONT);
     }
@@ -393,7 +394,7 @@ void Scene::set_enable_vsync(bool enable_vsync)
 
     if (is_realized())
     {
-      ScopeContext context (*this);
+      ScopeContext context {*this};
 
       gl_update_vsync_state();
     }
@@ -416,18 +417,8 @@ void Scene::set_show_focus(bool show_focus)
   {
     show_focus_ = show_focus;
 
-    if (has_focus())
-    {
-      if (is_realized())
-      {
-        ScopeContext context (*this);
-
-        gl_update_ui();
-      }
-
-      if (is_drawable())
-        queue_draw();
-    }
+    if (has_focus() && is_drawable())
+      queue_draw();
   }
 }
 
@@ -443,8 +434,8 @@ LayoutTexture* Scene::create_layout_texture()
 
   std::unique_ptr<LayoutTexture> layout {new LayoutTexture()};
 
-  layout->array_offset_ = ui_geometry_.size();
-  ui_geometry_.resize(layout->array_offset_ + LayoutTexture::VERTEX_COUNT);
+  layout->array_offset_ =
+    LAYOUTS_ARRAY_OFFSET + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
 
   ui_layouts_.push_back(std::move(layout));
 
@@ -458,23 +449,67 @@ void Scene::gl_update_ui()
   gl_update_layouts();
   gl_reposition_layouts();
 
-  gl_build_focus();
-  gl_build_layouts();
-
-  if (!ui_geometry_.empty())
+  if (!ui_vertex_array_ || !ui_buffer_)
   {
+    if (!ui_vertex_array_)
+    {
+      glGenVertexArrays(1, &ui_vertex_array_);
+      GL::Error::throw_if_fail(ui_vertex_array_ != 0);
+    }
     if (!ui_buffer_)
     {
       glGenBuffers(1, &ui_buffer_);
       GL::Error::throw_if_fail(ui_buffer_ != 0);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
-    glBufferData(GL_ARRAY_BUFFER, ui_geometry_.size() * sizeof(UIVertex),
-                 &ui_geometry_[0], GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    GL::Error::check();
+    glBindVertexArray(ui_vertex_array_);
+
+    gl_update_ui_buffer();
+
+    glVertexAttribPointer(ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex),
+                          GL::buffer_offset(offsetof(UIVertex, vertex)));
+    glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex),
+                          GL::buffer_offset(offsetof(UIVertex, texcoord)));
+    glEnableVertexAttribArray(ATTRIB_POSITION);
+    glEnableVertexAttribArray(ATTRIB_TEXCOORD);
+
+    glBindVertexArray(0);
   }
+  else
+    gl_update_ui_buffer();
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Scene::gl_update_ui_buffer()
+{
+  g_return_if_fail(ui_buffer_ != 0);
+
+  const size_t vertex_count =
+    FOCUS_VERTEX_COUNT + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
+
+  glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
+  glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
+               nullptr, GL_DYNAMIC_DRAW);
+
+  void *const vertex_data =
+    glMapBufferRange(GL_ARRAY_BUFFER,
+                     0, vertex_count * sizeof(UIVertex),
+                     GL_MAP_WRITE_BIT
+                     | GL_MAP_INVALIDATE_RANGE_BIT
+                     | GL_MAP_INVALIDATE_BUFFER_BIT);
+  if (vertex_data)
+  {
+    UIVertex *const vertices = static_cast<UIVertex*>(vertex_data);
+
+    gl_build_focus(vertices, vertex_count);
+    gl_build_layouts(vertices, vertex_count);
+
+    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
+      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
+  }
+  else
+    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
 }
 
 void Scene::gl_swap_buffers()
@@ -548,13 +583,18 @@ void Scene::gl_cleanup()
 {
   focus_drawable_ = false;
 
+  if (ui_vertex_array_)
+  {
+    glDeleteVertexArrays(1, &ui_vertex_array_);
+    ui_vertex_array_ = 0;
+  }
   if (ui_buffer_)
   {
     glDeleteBuffers(1, &ui_buffer_);
     ui_buffer_ = 0;
   }
 
-  std::for_each(ui_layouts_.begin(), ui_layouts_.end(),
+  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
                 std::mem_fn(&LayoutTexture::gl_delete));
 
   label_uf_winsize_ = -1;
@@ -573,8 +613,10 @@ void Scene::gl_cleanup()
  */
 void Scene::gl_reset_state()
 {
-  glDisableVertexAttribArray(ATTRIB_POSITION);
+  glBindVertexArray(0);
+
   glDisableVertexAttribArray(ATTRIB_TEXCOORD);
+  glDisableVertexAttribArray(ATTRIB_POSITION);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -586,71 +628,33 @@ void Scene::gl_reset_state()
 /*
  * Note that this method is pure virtual because at least a glClear() command
  * needs to be issued by an overriding method to make the whole thing work.
- *
- * On execution of the user interface code, all GL rasterization operations
- * not enabled by default are assumed to be disabled.  Further, for texture
- * unit 0 the default texture environment and texture matrix are assumed.
- * If these conditions hold true, execution of the user interface rendering
- * code invalidates the following GL state:
- *
- *   - modelview matrix (reset to identity)
- *   - current matrix mode
- *   - alpha test function
- *   - blend function
- *   - 1D texture binding
- *   - 2D or rectangle texture binding
- *   - array pointers and buffer binding
- *   - current color
- *   - current texture coordinates
- *   - current raster position
  */
 int Scene::gl_render()
 {
   int triangle_count = 0;
 
-  if (focus_drawable_ && ui_buffer_)
+  if (ui_vertex_array_)
   {
-    const auto pbegin = ui_layouts_.cbegin();
-    const auto pend   = ui_layouts_.cend();
-
-    if (std::find_if(pbegin, pend, std::mem_fn(&LayoutTexture::drawable)) != pend)
+    const auto first = std::find_if(ui_layouts_.cbegin(), ui_layouts_.cend(),
+                                    std::mem_fn(&LayoutTexture::drawable));
+    if (first != ui_layouts_.cend()
+        || (show_focus_ && focus_drawable_ && has_focus()))
     {
-      glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
+      glBindVertexArray(ui_vertex_array_);
 
-      triangle_count = gl_render_ui();
+      gl_render_focus();
+      triangle_count = gl_render_layouts(first);
 
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      GL::ShaderProgram::unuse();
+      glBindVertexArray(0);
     }
   }
   return triangle_count;
 }
 
-int Scene::gl_render_ui()
-{
-  glVertexAttribPointer(ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex),
-                        GL::buffer_offset(offsetof(UIVertex, vertex)));
-  glVertexAttribPointer(ATTRIB_TEXCOORD, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex),
-                        GL::buffer_offset(offsetof(UIVertex, texcoord)));
-  glEnableVertexAttribArray(ATTRIB_POSITION);
-  glEnableVertexAttribArray(ATTRIB_TEXCOORD);
-
-  gl_render_focus();
-  const int triangle_count = gl_render_layouts();
-
-  GL::ShaderProgram::unuse();
-
-  glDisableVertexAttribArray(ATTRIB_TEXCOORD);
-  glDisableVertexAttribArray(ATTRIB_POSITION);
-
-  return triangle_count;
-}
-
-int Scene::gl_render_layouts()
+int Scene::gl_render_layouts(LayoutVector::const_iterator first)
 {
   int triangle_count = 0;
-
-  const auto first = std::find_if(ui_layouts_.cbegin(), ui_layouts_.cend(),
-                                  std::mem_fn(&LayoutTexture::drawable));
 
   if (first != ui_layouts_.cend() && label_shader_)
   {
@@ -670,30 +674,9 @@ int Scene::gl_render_layouts()
 }
 
 /*
- * Render text layouts and shadow in a single pass.  The target must be
- * either GL_TEXTURE_RECTANGLE_NV or GL_TEXTURE_2D.  At least the first
- * element in the non-empty sequence [first, ui_layouts_.end()) must be
+ * Render text layouts and shadow in a single pass.  At least the first
+ * element in the non-empty sequence [first, ui_layouts_.cend()) must be
  * enabled and ready for drawing.
- *
- * Assumed GL state on entry:
- *
- *   - server active texture unit GL_TEXTURE0
- *   - identity texture matrix for texture units 0 and 1
- *   - GL_MODULATE texture environment for unit 0
- *   - vertex array set up and enabled
- *   - texture coordinate array set up for units 0 and 1
- *   - texture coordinate array enabled for unit 0
- *
- * Invalidated GL state (state on return within parentheses):
- *
- *   - client active texture unit (reset to GL_TEXTURE0)
- *   - GL_TEXTURE_COORD_ARRAY enable of unit 1 (disabled)
- *   - texture target enable of units 0 and 1 (used target disabled)
- *   - texture environment of unit 1
- *   - texture binding of units 0 and 1
- *   - current color
- *   - current texture coordinates
- *   - current raster position
  */
 int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 {
@@ -725,7 +708,7 @@ int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 
 void Scene::gl_render_focus()
 {
-  if (focus_drawable_ && focus_shader_)
+  if (show_focus_ && focus_drawable_ && focus_shader_ && has_focus())
   {
     focus_shader_.use();
     glUniform4fv(focus_uf_color_, 1, &focus_color_[0]);
@@ -738,66 +721,59 @@ void Scene::gl_render_focus()
  * Generate vertices and texture coordinates for the layout,
  * assuming a 1:1 projection to window coordinates.
  */
-void Scene::gl_build_layouts()
+void Scene::gl_build_layouts(UIVertex* vertices, size_t max_vertices)
 {
   for (const auto& layout : ui_layouts_)
   {
-    if (layout->drawable())
-    {
-      const float width  = layout->ink_width_  + 1;
-      const float height = layout->ink_height_ + 1;
+    const float width  = layout->ink_width_  + 1;
+    const float height = layout->ink_height_ + 1;
 
-      const float s0 = -1.0;
-      const float t0 = 0.0;
-      const float s1 = s0 + width;
-      const float t1 = t0 + height;
+    const float s0 = -1.0;
+    const float t0 = 0.0;
+    const float s1 = s0 + width;
+    const float t1 = t0 + height;
 
-      const float x0 = layout->window_x_ + layout->ink_x_;
-      const float y0 = layout->window_y_ + layout->ink_y_;
-      const float x1 = x0 + width;
-      const float y1 = y0 + height;
+    const float x0 = layout->window_x_ + layout->ink_x_;
+    const float y0 = layout->window_y_ + layout->ink_y_;
+    const float x1 = x0 + width;
+    const float y1 = y0 + height;
 
-      g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_geometry_.size());
+    g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= max_vertices);
 
-      const auto geometry = begin(ui_geometry_) + layout->array_offset_;
+    UIVertex *const geometry = vertices + layout->array_offset_;
 
-      geometry[0].set_vertex(x0, y0);
-      geometry[0].set_texcoord(s0, t0);
+    geometry[0].set_vertex(x0, y0);
+    geometry[0].set_texcoord(s0, t0);
 
-      geometry[1].set_vertex(x1, y0);
-      geometry[1].set_texcoord(s1, t0);
+    geometry[1].set_vertex(x1, y0);
+    geometry[1].set_texcoord(s1, t0);
 
-      geometry[2].set_vertex(x0, y1);
-      geometry[2].set_texcoord(s0, t1);
+    geometry[2].set_vertex(x0, y1);
+    geometry[2].set_texcoord(s0, t1);
 
-      geometry[3].set_vertex(x1, y1);
-      geometry[3].set_texcoord(s1, t1);
-    }
+    geometry[3].set_vertex(x1, y1);
+    geometry[3].set_texcoord(s1, t1);
   }
 }
 
-void Scene::gl_build_focus()
+void Scene::gl_build_focus(UIVertex* vertices, size_t max_vertices)
 {
-  if (show_focus_ && has_focus())
-  {
-    bool interior_focus = false;
-    int  focus_padding  = 0;
+  g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= max_vertices);
 
-    get_style_property("interior_focus", interior_focus);
-    get_style_property("focus_padding",  focus_padding);
+  bool interior_focus = false;
+  int  focus_padding  = 0;
 
-    const int width  = get_width();
-    const int height = get_height();
+  get_style_property("interior_focus", interior_focus);
+  get_style_property("focus_padding",  focus_padding);
 
-    if (interior_focus && width > 2 * focus_padding && height > 2 * focus_padding)
-    {
-      g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_geometry_.size());
+  const int width  = get_width();
+  const int height = get_height();
 
-      generate_focus_rect(width, height, focus_padding,
-                          begin(ui_geometry_) + FOCUS_ARRAY_OFFSET);
-      focus_drawable_ = true;
-    }
-  }
+  focus_drawable_ = (interior_focus
+                     && width  > 2 * focus_padding
+                     && height > 2 * focus_padding);
+
+  generate_focus_rect(width, height, focus_padding, vertices + FOCUS_ARRAY_OFFSET);
 }
 
 void Scene::gl_update_viewport()
@@ -1026,25 +1002,6 @@ bool Scene::on_expose_event(GdkEventExpose*)
   }
 
   return true;
-}
-
-bool Scene::on_focus_in_event(GdkEventFocus* event)
-{
-  if (show_focus_ && is_realized())
-  {
-    ScopeContext context {*this};
-
-    gl_update_ui();
-  }
-
-  return Gtk::DrawingArea::on_focus_in_event(event);
-}
-
-bool Scene::on_focus_out_event(GdkEventFocus* event)
-{
-  focus_drawable_ = false;
-
-  return Gtk::DrawingArea::on_focus_out_event(event);
 }
 
 bool Scene::on_visibility_notify_event(GdkEventVisibility* event)

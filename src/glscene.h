@@ -110,8 +110,6 @@ protected:
   virtual void on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style);
   virtual void on_direction_changed(Gtk::TextDirection previous_direction);
   virtual bool on_expose_event(GdkEventExpose* event);
-  virtual bool on_focus_in_event(GdkEventFocus* event);
-  virtual bool on_focus_out_event(GdkEventFocus* event);
   virtual bool on_visibility_notify_event(GdkEventVisibility* event);
 
 private:
@@ -125,7 +123,6 @@ private:
   std::unique_ptr<GL::Extensions> gl_extensions_;
   Glib::RefPtr<Pango::Context>    texture_context_;
 
-  GeometryVector    ui_geometry_;
   LayoutVector      ui_layouts_;
 
   GL::ShaderProgram label_shader_;
@@ -137,6 +134,7 @@ private:
   int               focus_uf_winsize_;
   int               focus_uf_color_;
 
+  unsigned int ui_vertex_array_;
   unsigned int ui_buffer_;
   unsigned int frame_counter_;
   unsigned int triangle_counter_;
@@ -160,12 +158,12 @@ private:
   void gl_update_vsync_state();
   void gl_update_layouts();
 
-  void gl_build_focus();
-  void gl_build_layouts();
+  void gl_update_ui_buffer();
+  void gl_build_focus(UIVertex* vertices, size_t max_vertices);
+  void gl_build_layouts(UIVertex* vertices, size_t max_vertices);
 
-  int  gl_render_ui();
   void gl_render_focus();
-  int  gl_render_layouts();
+  int  gl_render_layouts(LayoutVector::const_iterator first);
   int  gl_render_layout_arrays(LayoutVector::const_iterator first);
 };
 
