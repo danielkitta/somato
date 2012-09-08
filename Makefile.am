@@ -25,7 +25,6 @@ bin_PROGRAMS = src/somato
 src_somato_SOURCES =		\
 	src/appdata.cc		\
 	src/appdata.h		\
-	src/array.h		\
 	src/cube.cc		\
 	src/cube.h		\
 	src/cubescene.cc	\

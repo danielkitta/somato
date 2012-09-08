@@ -22,7 +22,6 @@
 
 #include "cubescene.h"
 #include "appdata.h"
-#include "array.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
 #include "mathutils.h"
@@ -1841,13 +1840,13 @@ void CubeScene::gl_init_cube_texture()
 
   enum { WIDTH = 512, HEIGHT = 512 };
 
-  const Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::
-      create_from_file(Util::locate_data_file("woodtexture.png"), WIDTH, HEIGHT, false);
+  const auto pixbuf = Gdk::Pixbuf::create_from_file(Util::locate_data_file("woodtexture.png"),
+                                                    WIDTH, HEIGHT, false);
 
   g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
   g_return_if_fail(pixbuf->get_bits_per_sample() == 8);
 
-  Util::MemChunk<GLubyte> tex_pixels (HEIGHT * WIDTH);
+  const std::unique_ptr<GLubyte[]> tex_pixels {new GLubyte[HEIGHT * WIDTH]};
 
   const guint8 *const buf_pixels = pixbuf->get_pixels();
 
