@@ -55,18 +55,18 @@ enum
 };
 
 /*
- * Generate vertices for drawing the focus indicator of the GL widget.  This
- * function assumes an orthographic projection that establishes a 1:1 mapping
- * to window coordinates.
+ * Generate vertices for drawing the focus indicator of the GL widget.
  */
 static
 void generate_focus_rect(int width, int height, int padding,
                          GL::UIVertex* geometry)
 {
-  const float x0 = padding + 0.5f;
-  const float y0 = padding + 0.5f;
-  const float x1 = width  - padding - 0.5f;
-  const float y1 = height - padding - 0.5f;
+  g_return_if_fail(width > 0 && height > 0);
+
+  const float x0 = float(2 * padding + 1 - width)  / width;
+  const float y0 = float(2 * padding + 1 - height) / height;
+  const float x1 = float(width  - 2 * padding - 1) / width;
+  const float y1 = float(height - 2 * padding - 1) / height;
 
   geometry[0].set_vertex(x0, y0);
   geometry[0].set_texcoord(0.0, 0.0);
@@ -303,10 +303,8 @@ Scene::Scene()
   gl_extensions_      (),
   texture_context_    (),
   ui_layouts_         (),
-  label_uf_winsize_   {-1},
   label_uf_color_     {-1},
   label_uf_texture_   {-1},
-  focus_uf_winsize_   {-1},
   focus_uf_color_     {-1},
   ui_vertex_array_    {0},
   ui_buffer_          (0),
@@ -554,7 +552,6 @@ void Scene::gl_create_label_shader()
   program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
   program.link();
 
-  label_uf_winsize_ = program.get_uniform_location("windowSize");
   label_uf_color_   = program.get_uniform_location("textColor");
   label_uf_texture_ = program.get_uniform_location("labelTexture");
 
@@ -573,7 +570,6 @@ void Scene::gl_create_focus_shader()
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 
-  focus_uf_winsize_ = program.get_uniform_location("windowSize");
   focus_uf_color_   = program.get_uniform_location("focusColor");
 
   focus_shader_ = std::move(program);
@@ -597,10 +593,8 @@ void Scene::gl_cleanup()
   std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
                 std::mem_fn(&LayoutTexture::gl_delete));
 
-  label_uf_winsize_ = -1;
   label_uf_color_   = -1;
   label_uf_texture_ = -1;
-  focus_uf_winsize_ = -1;
   focus_uf_color_   = -1;
 
   label_shader_.reset();
@@ -718,25 +712,30 @@ void Scene::gl_render_focus()
 }
 
 /*
- * Generate vertices and texture coordinates for the layout,
- * assuming a 1:1 projection to window coordinates.
+ * Generate vertices and texture coordinates for the text layouts.
  */
 void Scene::gl_build_layouts(UIVertex* vertices, size_t max_vertices)
 {
+  const int win_width  = Math::max(1, get_width());
+  const int win_height = Math::max(1, get_height());
+
   for (const auto& layout : ui_layouts_)
   {
-    const float width  = layout->ink_width_  + 1;
-    const float height = layout->ink_height_ + 1;
+    const int width  = layout->ink_width_  + 1;
+    const int height = layout->ink_height_ + 1;
 
     const float s0 = -1.0;
     const float t0 = 0.0;
-    const float s1 = s0 + width;
-    const float t1 = t0 + height;
+    const float s1 = width - 1;
+    const float t1 = height;
 
-    const float x0 = layout->window_x_ + layout->ink_x_;
-    const float y0 = layout->window_y_ + layout->ink_y_;
-    const float x1 = x0 + width;
-    const float y1 = y0 + height;
+    const int win_x = layout->window_x_ + layout->ink_x_;
+    const int win_y = layout->window_y_ + layout->ink_y_;
+
+    const float x0 = float(2 * win_x - win_width)  / win_width;
+    const float y0 = float(2 * win_y - win_height) / win_height;
+    const float x1 = float(2 * (win_x + width)  - win_width)  / win_width;
+    const float y1 = float(2 * (win_y + height) - win_height) / win_height;
 
     g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= max_vertices);
 
@@ -773,7 +772,8 @@ void Scene::gl_build_focus(UIVertex* vertices, size_t max_vertices)
                      && width  > 2 * focus_padding
                      && height > 2 * focus_padding);
 
-  generate_focus_rect(width, height, focus_padding, vertices + FOCUS_ARRAY_OFFSET);
+  generate_focus_rect(Math::max(1, width), Math::max(1, height),
+                      focus_padding, vertices + FOCUS_ARRAY_OFFSET);
 }
 
 void Scene::gl_update_viewport()
@@ -782,18 +782,6 @@ void Scene::gl_update_viewport()
   const int height = Math::max(1, get_height());
 
   glViewport(0, 0, width, height);
-
-  if (label_shader_)
-  {
-    label_shader_.use();
-    glUniform2f(label_uf_winsize_, width, height);
-  }
-  if (focus_shader_)
-  {
-    focus_shader_.use();
-    glUniform2f(focus_uf_winsize_, width, height);
-  }
-  GL::ShaderProgram::unuse();
 }
 
 void Scene::gl_update_projection()

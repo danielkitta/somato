@@ -126,12 +126,10 @@ private:
   LayoutVector      ui_layouts_;
 
   GL::ShaderProgram label_shader_;
-  int               label_uf_winsize_;
   int               label_uf_color_;
   int               label_uf_texture_;
 
   GL::ShaderProgram focus_shader_;
-  int               focus_uf_winsize_;
   int               focus_uf_color_;
 
   unsigned int ui_vertex_array_;
