@@ -141,10 +141,10 @@ sigc::signal<void>& MeshLoader::signal_done()
 
 MeshLoader::Node MeshLoader::lookup_node(const char* name) const
 {
-  g_return_val_if_fail(!pimpl_->thread.joinable(), nullptr);
-  g_return_val_if_fail(pimpl_->scene != nullptr, nullptr);
+  g_return_val_if_fail(!pimpl_->thread.joinable(), Node{});
+  g_return_val_if_fail(pimpl_->scene != nullptr, Node{});
 
-  return pimpl_->scene->mRootNode->FindNode(name);
+  return Node{pimpl_->scene->mRootNode->FindNode(name)};
 }
 
 MeshLoader::VertexTriangleCounts
@@ -152,7 +152,7 @@ MeshLoader::count_node_vertices_triangles(Node node) const
 {
   VertexTriangleCounts counts {0, 0};
 
-  g_return_val_if_fail(node != nullptr, counts);
+  g_return_val_if_fail(node, counts);
   g_return_val_if_fail(pimpl_->scene != nullptr, counts);
 
   for (unsigned int i = 0; i < node->mNumMeshes; ++i)

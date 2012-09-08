@@ -45,7 +45,19 @@ typedef uint16_t MeshIndex;
 class MeshLoader
 {
 public:
-  typedef const aiNode* Node;
+  class Node
+  {
+  private:
+    const aiNode* node_;
+
+  public:
+    Node() : node_ {nullptr} {}
+    explicit Node(const aiNode* node) : node_ {node} {}
+
+    explicit operator bool() const { return (node_ != nullptr); }
+    const aiNode* operator->() const { return node_; }
+  };
+
   typedef std::pair<unsigned int, unsigned int> VertexTriangleCounts;
 
   explicit MeshLoader(std::string filename);
