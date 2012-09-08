@@ -91,7 +91,7 @@ enum { TRACK_UNSET = G_MININT };
 /*
  * Single-precision factor used for conversion of angles.
  */
-static const float degrees_per_radian = 180.0 / G_PI;
+static const float rad_per_deg = G_PI / 180.0;
 
 /*
  * The time span, in seconds, to wait for further user input
@@ -557,33 +557,19 @@ int CubeScene::get_cube_vertex_count() const
 }
 
 /*
- * Rotate the cube around the axis which is currently closest to the one
- * specified via the axis parameter (where 0=x, 1=y, 2=z) in an unrotated
- * coordinate system.  In other words, pretend the cube has not been rotated
- * yet at all.
- *
- * Example:  If the cube was turned on its front side (rotated 270 degrees
- * counterclockwise around the x-axis), the next call to rotate() with axis = 1
- * will rotate the cube not around the y-axis but around the inverted z-axis
- * instead (as the latter is now pointing upwards).
+ * Rotate the camera around the given axis by an angle in deegrees.
  */
 void CubeScene::rotate(int axis, float angle)
 {
+  static const std::array<Math::Vector4::array_type, 3> axes
+  {{
+    { -1.0, 0.0, 0.0, 0.0 },
+    { 0.0, -1.0, 0.0, 0.0 },
+    { 0.0, 0.0, -1.0, 0.0 }
+  }};
   g_return_if_fail(axis >= Cube::AXIS_X && axis <= Cube::AXIS_Z);
 
-  const Math::Matrix4 matrix = Math::Quat::to_matrix(rotation_);
-  int imax = axis;
-
-  for (int i = 0; i < 3; ++i)
-  {
-    if (std::abs(matrix[i][axis]) > std::abs(matrix[imax][axis]))
-      imax = i;
-  }
-
-  Math::Vector4 a;
-  a[imax] = (matrix[imax][axis] < 0.0f) ? -1.0f : 1.0f;
-
-  set_rotation(rotation_ * Math::Quat::from_axis(a, angle / degrees_per_radian));
+  set_rotation(Math::Quat::from_axis(axes[axis], angle * rad_per_deg) * rotation_);
 }
 
 void CubeScene::gl_initialize()
