@@ -212,32 +212,23 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
   layout->get_pixel_extents(ink, logical);
 
   // Make sure the extents are within reasonable boundaries.
-  g_return_if_fail(ink.get_width() < 4096 && ink.get_height() < 4096);
+  g_return_if_fail(ink.get_width() < 4095 && ink.get_height() < 4095);
 
   // Pad up the margins to account for measurement inaccuracies.
   enum { PADDING = 1 };
 
   const int ink_width  = Math::max(0, ink.get_width())  + 2 * PADDING;
   const int ink_height = Math::max(0, ink.get_height()) + 2 * PADDING;
+  const int img_width  = aligned_stride(ink_width);
 
-  int img_height = ink_height;
-  int img_width  = aligned_stride(ink_width);
-
-  // The dimensions of the new image are often identical with the previous
-  // one's.  Exploit this by uploading only a sub-area of the texture image
-  // which covers the union of the new ink rectangle and the previous one.
-  const bool sub_image = (tex_name_ && tex_width_ == img_width && tex_height_ == img_height);
-
-  Util::MemChunk<GLubyte> tex_image (img_height * img_width);
-
-  std::memset(&tex_image[0], 0x00, tex_image.bytes());
+  std::vector<GLubyte> tex_image (ink_height * img_width);
 
   // Create a cairo surface to draw the layout directly into the texture
   // image -- upside-down and at the right position.  This rocking new
   // functionality allows us to get away without any buffer copies, yay!
   {
     cairo_surface_t *const surface = cairo_image_surface_create_for_data(
-        &tex_image[0], CAIRO_FORMAT_A8, img_width, img_height, img_width * sizeof(GLubyte));
+        &tex_image[0], CAIRO_FORMAT_A8, img_width, ink_height, img_width * sizeof(GLubyte));
 
     cairo_t *const context = cairo_create(surface);
 
@@ -264,28 +255,19 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
 
   glBindTexture(GL_TEXTURE_RECTANGLE, tex_name_);
 
-  if (sub_image)
+  if (tex_width_ == 0)
   {
-    glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, img_width, img_height,
-                    GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
-    GL::Error::check();
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
   }
-  else
-  {
-    if (tex_width_ == 0)
-    {
-      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-      glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    }
-    glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_R8, img_width, img_height,
-                 0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
-    GL::Error::check();
+  glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_R8, img_width, ink_height,
+               0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
+  GL::Error::check();
 
-    tex_width_  = img_width;
-    tex_height_ = img_height;
-  }
+  tex_width_  = img_width;
+  tex_height_ = ink_height;
 
   ink_width_  = ink_width;
   ink_height_ = ink_height;
