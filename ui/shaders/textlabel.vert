@@ -3,7 +3,7 @@
 in vec2 position;
 in vec2 texcoord;
 
-smooth out vec2 interpTexcoord;
+noperspective out vec2 interpTexcoord;
 
 void main()
 {

@@ -3,7 +3,7 @@
 uniform sampler2DRect labelTexture;
 uniform vec4 textColor;
 
-smooth in vec2 interpTexcoord;
+noperspective in vec2 interpTexcoord;
 
 out vec4 outputColor;
 
