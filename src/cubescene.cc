@@ -207,7 +207,8 @@ private:
   void query();
 
 public:
-  bool have_texture_filter_anisotropic;
+  float max_anisotropy;
+  bool  have_texture_filter_anisotropic;
 
   Extensions() { query(); }
   virtual ~Extensions();
@@ -218,10 +219,14 @@ CubeScene::Extensions::~Extensions()
 
 void CubeScene::Extensions::query()
 {
+  max_anisotropy = 1.0;
   have_texture_filter_anisotropic = false;
 
   if (GL::have_gl_extension("GL_EXT_texture_filter_anisotropic"))
+  {
     have_texture_filter_anisotropic = true;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+  }
 }
 
 inline
@@ -1875,7 +1880,8 @@ void CubeScene::gl_init_cube_texture()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
   if (gl_ext()->have_texture_filter_anisotropic)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                    Math::min(8.0f, gl_ext()->max_anisotropy));
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, WIDTH, HEIGHT, 0,
                GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
