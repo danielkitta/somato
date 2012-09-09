@@ -92,11 +92,7 @@ void generate_focus_rect(int width, int height, int padding,
 static inline
 int aligned_stride(int width)
 {
-#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1,5,8)
   return cairo_format_stride_for_width(CAIRO_FORMAT_A8, (width + 7) & ~7);
-#else
-  return (width + 7) & ~7;
-#endif
 }
 
 } // anonymous namespace
@@ -135,24 +131,23 @@ void Extensions::query()
 LayoutTexture::LayoutTexture()
 :
   color_        {1.0, 1.0, 1.0, 1.0},
-  content_      (),
-  need_update_  (false),
-  array_offset_ (G_MAXINT),
+  need_update_  {false},
+  array_offset_ {G_MAXINT},
 
-  tex_name_     (0),
-  tex_width_    (0),
-  tex_height_   (0),
+  tex_name_     {0},
+  tex_width_    {0},
+  tex_height_   {0},
 
-  ink_x_        (0),
-  ink_y_        (0),
-  ink_width_    (0),
-  ink_height_   (0),
+  ink_x_        {0},
+  ink_y_        {0},
+  ink_width_    {0},
+  ink_height_   {0},
 
-  log_width_    (0),
-  log_height_   (0),
+  log_width_    {0},
+  log_height_   {0},
 
-  window_x_     (0),
-  window_y_     (0)
+  window_x_     {0},
+  window_y_     {0}
 {}
 
 LayoutTexture::~LayoutTexture()
@@ -162,12 +157,7 @@ LayoutTexture::~LayoutTexture()
 
 void LayoutTexture::set_content(const Glib::ustring& content)
 {
-  // One would think that the std::string implementation short-cuts the
-  // comparison of strings of different length when testing for equality,
-  // thus rendering the optimization here superfluous.  Sadly, it ain't so,
-  // at least not with the libstdc++ that ships with GCC 4.1.2.
-
-  if (content.raw().size() != content_.raw().size() || content.raw() != content_.raw())
+  if (content.raw() != content_.raw())
   {
     content_ = content;
     need_update_ = true;
@@ -249,10 +239,8 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
     tex_height_ = 0;
 
     glGenTextures(1, &tex_name_);
-
     GL::Error::throw_if_fail(tex_name_ != 0);
   }
-
   glBindTexture(GL_TEXTURE_RECTANGLE, tex_name_);
 
   if (tex_width_ == 0)
@@ -299,24 +287,21 @@ Scene::Scene()
 :
   focus_color_        {1.0, 1.0, 1.0, 1.0},
   gl_drawable_        {nullptr},
-  gl_extensions_      (),
-  texture_context_    (),
-  ui_layouts_         (),
   label_uf_color_     {-1},
   label_uf_texture_   {-1},
   focus_uf_color_     {-1},
   ui_vertex_count_    {0},
   ui_vertex_array_    {0},
-  ui_buffer_          (0),
-  frame_counter_      (0),
-  triangle_counter_   (0),
-  exclusive_context_  (false),
-  has_back_buffer_    (false),
-  use_back_buffer_    (true),
-  enable_vsync_       (true),
-  vsync_enabled_      (false),
-  show_focus_         (true),
-  focus_drawable_     (false)
+  ui_buffer_          {0},
+  frame_counter_      {0},
+  triangle_counter_   {0},
+  exclusive_context_  {false},
+  has_back_buffer_    {false},
+  use_back_buffer_    {true},
+  enable_vsync_       {true},
+  vsync_enabled_      {false},
+  show_focus_         {true},
+  focus_drawable_     {false}
 {
   set_double_buffered(false);
 
@@ -493,7 +478,7 @@ void Scene::gl_update_ui_buffer()
   if (vertex_count != ui_vertex_count_)
   {
     glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
-                nullptr, GL_DYNAMIC_DRAW);
+                 nullptr, GL_DYNAMIC_DRAW);
     ui_vertex_count_ = vertex_count;
   }
 
@@ -797,8 +782,8 @@ void Scene::gl_update_projection()
 
 void Scene::gl_update_color()
 {
-  const Glib::RefPtr<Gtk::Style> style = get_style();
-  const Gtk::StateType           state = get_state();
+  const auto style = get_style();
+  const auto state = get_state();
 
   const Gdk::Color fg = style->get_fg(state);
   const Gdk::Color bg = style->get_bg(state);
