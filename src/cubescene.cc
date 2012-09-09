@@ -557,19 +557,14 @@ int CubeScene::get_cube_vertex_count() const
 }
 
 /*
- * Rotate the camera around the given axis by an angle in deegrees.
+ * Rotate the camera around the given axis by an angle in degrees.
  */
 void CubeScene::rotate(int axis, float angle)
 {
-  static const std::array<Math::Vector4::array_type, 3> axes
-  {{
-    { -1.0, 0.0, 0.0, 0.0 },
-    { 0.0, -1.0, 0.0, 0.0 },
-    { 0.0, 0.0, -1.0, 0.0 }
-  }};
   g_return_if_fail(axis >= Cube::AXIS_X && axis <= Cube::AXIS_Z);
 
-  set_rotation(Math::Quat::from_axis(axes[axis], angle * rad_per_deg) * rotation_);
+  const Math::Vector4 axis_vec {Math::Matrix4::identity[axis]};
+  set_rotation(Math::Quat::from_axis(axis_vec, angle * rad_per_deg) * rotation_);
 }
 
 void CubeScene::gl_initialize()
@@ -989,10 +984,10 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
     case 0:
       switch (event->keyval)
       {
-        case GDK_Left:  case GDK_KP_Left:   rotate(Cube::AXIS_Y, -rotation_step); return true;
-        case GDK_Right: case GDK_KP_Right:  rotate(Cube::AXIS_Y,  rotation_step); return true;
-        case GDK_Up:    case GDK_KP_Up:     rotate(Cube::AXIS_X, -rotation_step); return true;
-        case GDK_Down:  case GDK_KP_Down:   rotate(Cube::AXIS_X,  rotation_step); return true;
+        case GDK_Left:  case GDK_KP_Left:   rotate(Cube::AXIS_Y,  rotation_step); return true;
+        case GDK_Right: case GDK_KP_Right:  rotate(Cube::AXIS_Y, -rotation_step); return true;
+        case GDK_Up:    case GDK_KP_Up:     rotate(Cube::AXIS_X,  rotation_step); return true;
+        case GDK_Down:  case GDK_KP_Down:   rotate(Cube::AXIS_X, -rotation_step); return true;
         case GDK_Begin: case GDK_KP_Begin:
         case GDK_5:     case GDK_KP_5:      set_rotation(Math::Quat()); return true;
       }
