@@ -22,8 +22,6 @@
 
 #include <glib.h>
 #include <sigc++/sigc++.h>
-#include <glibmm/thread.h>
-
 #include <algorithm>
 #include <numeric>
 
@@ -294,8 +292,7 @@ namespace Somato
 #endif
 PuzzleThread::PuzzleThread()
 :
-  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &PuzzleThread::on_thread_exit))},
-  thread_      {nullptr}
+  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &PuzzleThread::on_thread_exit))}
 {}
 #ifdef _MSC_VER
 # pragma warning(pop)
@@ -307,8 +304,8 @@ PuzzleThread::~PuzzleThread()
 
   // Normally, the thread should not be running anymore at this point,
   // but in case it is we have to wait in order to ensure proper cleanup.
-  if (thread_)
-    thread_->join();
+  if (thread_.joinable())
+    thread_.join();
 }
 
 void PuzzleThread::set_on_done(std::function<void ()> func)
@@ -318,14 +315,14 @@ void PuzzleThread::set_on_done(std::function<void ()> func)
 
 void PuzzleThread::run()
 {
-  g_return_if_fail(thread_ == 0);
+  g_return_if_fail(!thread_.joinable());
 
-  thread_ = Glib::Thread::create(sigc::mem_fun(*this, &PuzzleThread::execute), true);
+  thread_ = std::thread{std::bind(&PuzzleThread::execute, this)};
 }
 
 void PuzzleThread::swap_result(std::vector<Solution>& result)
 {
-  g_return_if_fail(thread_ == 0);
+  g_return_if_fail(!thread_.joinable());
 
   solutions_.swap(result);
 }
@@ -348,14 +345,12 @@ void PuzzleThread::execute()
     signal_exit_(); // emit
     throw;
   }
-
   signal_exit_(); // emit
 }
 
 void PuzzleThread::on_thread_exit()
 {
-  thread_->join();
-  thread_ = 0;
+  thread_.join();
 
   if (done_func_)
     done_func_();

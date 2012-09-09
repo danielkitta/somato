@@ -27,11 +27,8 @@
 #include <glibmm/dispatcher.h>
 #include <array>
 #include <functional>
+#include <thread>
 #include <vector>
-
-#ifndef SOMATO_HIDE_FROM_INTELLISENSE
-namespace Glib { class Thread; }
-#endif
 
 namespace Somato
 {
@@ -55,7 +52,7 @@ private:
   std::function<void ()> done_func_;
   Glib::Dispatcher       signal_exit_;
   sigc::connection       thread_exit_;
-  Glib::Thread*          thread_;
+  std::thread            thread_;
 
   // noncopyable
   PuzzleThread(const PuzzleThread&) = delete;
