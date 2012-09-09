@@ -5,7 +5,7 @@ uniform vec4 diffuseMaterial;
 
 const vec3  dirToLight        = vec3(0.0, 0.242535625, 0.9701425);
 const float lightIntensity    = 0.8;
-const float ambientIntensity  = 0.25;
+const float ambientIntensity  = 0.2;
 const float specularIntensity = 0.1;
 
 smooth in vec3 interpPosition;
@@ -25,7 +25,7 @@ void main()
   float blinnTerm = pow(clamp(dot(normNormal, halfVec), 0.0, 1.0), 32);
   float specularReflection = (cosAngIncidence != 0.0) ? blinnTerm : 0.0;
 
-  float texIntensity = texture(pieceTexture, interpTexcoord).r;
+  float texIntensity = 0.5 * texture(pieceTexture, interpTexcoord).r + 0.375;
   float diffuseTerm = texIntensity * (lightIntensity * cosAngIncidence + ambientIntensity);
 
   outputColor = diffuseMaterial.rgb * diffuseTerm + specularIntensity * specularReflection;
