@@ -25,7 +25,7 @@ void main()
   float blinnTerm = pow(clamp(dot(normNormal, halfVec), 0.0, 1.0), 32);
   float specularReflection = (cosAngIncidence != 0.0) ? blinnTerm : 0.0;
 
-  float texIntensity = 0.5 * texture(pieceTexture, interpTexcoord).r + 0.375;
+  float texIntensity = 0.5 * texture(pieceTexture, interpTexcoord).r + 0.3;
   float diffuseTerm = texIntensity * (lightIntensity * cosAngIncidence + ambientIntensity);
 
   outputColor = diffuseMaterial.rgb * diffuseTerm + specularIntensity * specularReflection;
