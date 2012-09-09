@@ -199,7 +199,7 @@ void MainWindow::run_puzzle_solver()
 {
   std::unique_ptr<PuzzleThread> thread {new PuzzleThread()};
 
-  thread->signal_done().connect(sigc::mem_fun(*this, &MainWindow::on_puzzle_thread_done));
+  thread->set_on_done(std::bind(&MainWindow::on_puzzle_thread_done, this));
   thread->run();
 
   puzzle_thread_ = std::move(thread);

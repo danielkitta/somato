@@ -21,10 +21,10 @@
 #include "puzzle.h"
 
 #include <glib.h>
+#include <sigc++/sigc++.h>
 #include <glibmm/thread.h>
 
 #include <algorithm>
-#include <functional>
 #include <numeric>
 
 #include <config.h>
@@ -45,8 +45,8 @@ private:
   Somato::Solution              state_;
 
   // noncopyable
-  PuzzleSolver(const PuzzleSolver&);
-  PuzzleSolver& operator=(const PuzzleSolver&);
+  PuzzleSolver(const PuzzleSolver&) = delete;
+  PuzzleSolver& operator=(const PuzzleSolver&) = delete;
 
   void recurse(int col, Cube cube);
   void add_solution();
@@ -206,9 +206,7 @@ bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
 
 PuzzleSolver::PuzzleSolver()
 :
-  columns_    (Somato::CUBE_PIECE_COUNT),
-  solutions_  (),
-  state_      ()
+  columns_ (Somato::CUBE_PIECE_COUNT)
 {}
 
 PuzzleSolver::~PuzzleSolver()
@@ -296,11 +294,8 @@ namespace Somato
 #endif
 PuzzleThread::PuzzleThread()
 :
-  solutions_    (),
-  signal_done_  (),
-  signal_exit_  (),
-  thread_exit_  (signal_exit_.connect(sigc::mem_fun(*this, &PuzzleThread::on_thread_exit))),
-  thread_       (0)
+  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &PuzzleThread::on_thread_exit))},
+  thread_      {nullptr}
 {}
 #ifdef _MSC_VER
 # pragma warning(pop)
@@ -314,6 +309,11 @@ PuzzleThread::~PuzzleThread()
   // but in case it is we have to wait in order to ensure proper cleanup.
   if (thread_)
     thread_->join();
+}
+
+void PuzzleThread::set_on_done(std::function<void ()> func)
+{
+  done_func_ = std::move(func);
 }
 
 void PuzzleThread::run()
@@ -357,7 +357,8 @@ void PuzzleThread::on_thread_exit()
   thread_->join();
   thread_ = 0;
 
-  signal_done_(); // emit
+  if (done_func_)
+    done_func_();
 }
 
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)

@@ -26,6 +26,7 @@
 
 #include <glibmm/dispatcher.h>
 #include <array>
+#include <functional>
 #include <vector>
 
 #ifndef SOMATO_HIDE_FROM_INTELLISENSE
@@ -45,21 +46,20 @@ public:
   PuzzleThread();
   virtual ~PuzzleThread();
 
-  sigc::signal<void>& signal_done() { return signal_done_; }
-
+  void set_on_done(std::function<void ()> func);
   void run();
   void swap_result(std::vector<Solution>& result);
 
 private:
-  std::vector<Solution> solutions_;
-  sigc::signal<void>    signal_done_;
-  Glib::Dispatcher      signal_exit_;
-  sigc::connection      thread_exit_;
-  Glib::Thread*         thread_;
+  std::vector<Solution>  solutions_;
+  std::function<void ()> done_func_;
+  Glib::Dispatcher       signal_exit_;
+  sigc::connection       thread_exit_;
+  Glib::Thread*          thread_;
 
   // noncopyable
-  PuzzleThread(const PuzzleThread&);
-  PuzzleThread& operator=(const PuzzleThread&);
+  PuzzleThread(const PuzzleThread&) = delete;
+  PuzzleThread& operator=(const PuzzleThread&) = delete;
 
   void execute();
   void on_thread_exit();
