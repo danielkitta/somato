@@ -1177,11 +1177,11 @@ void CubeScene::update_animation_order()
     // 3) If not processed yet, generate and store a new animation data element.
     // 4) Write the piece's animation index to the piece cells vector.
 
-    const auto pcube = std::find_if(cube_pieces_.begin(), cube_pieces_.end(),
-                                    Util::DoesIntersect<Cube>(cell));
-    if (pcube != cube_pieces_.end())
+    const auto pcube = std::find_if(cube_pieces_.cbegin(), cube_pieces_.cend(),
+                                    [cell](Cube c) { return ((c & cell) != Cube{}); });
+    if (pcube != cube_pieces_.cend())
     {
-      const unsigned int cube_index = pcube - cube_pieces_.begin();
+      const unsigned int cube_index = pcube - cube_pieces_.cbegin();
       unsigned int       anim_index = 0;
 
       while (anim_index < count && animation_data_[anim_index].cube_index != cube_index)
@@ -1189,7 +1189,7 @@ void CubeScene::update_animation_order()
 
       if (anim_index == count)
       {
-        g_return_if_fail((cube & *pcube) == Cube());           // collision
+        g_return_if_fail((cube & *pcube) == Cube{});           // collision
         g_return_if_fail(anim_index < animation_data_.size()); // invalid input
 
         auto& anim = animation_data_[anim_index];

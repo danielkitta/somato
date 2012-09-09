@@ -157,34 +157,4 @@ bool Cube::SortPredicate::operator()(Cube a, Cube b) const
 
 } // namespace Somato
 
-namespace Util
-{
-
-template <class T>
-class Intersect
-{
-public:
-  typedef T first_argument_type;
-  typedef T second_argument_type;
-  typedef T result_type;
-
-  inline T operator()(T a, T b) const { return (a & b); }
-};
-
-template <class T>
-class DoesIntersect
-{
-private:
-  T value_;
-
-public:
-  typedef T    argument_type;
-  typedef bool result_type;
-
-  explicit inline DoesIntersect(T value) : value_ (value) {}
-  inline bool operator()(T a) const { return ((a & value_) != T()); }
-};
-
-} // namespace Util
-
 #endif /* SOMATO_CUBE_H_INCLUDED */

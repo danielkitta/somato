@@ -31,30 +31,30 @@ namespace
 {
 
 using Somato::Cube;
+using Somato::Solution;
 
-typedef std::vector<Cube>       PieceStore;
-typedef std::vector<PieceStore> ColumnStore;
+typedef std::vector<Cube> PieceStore;
+typedef std::array<PieceStore, Somato::CUBE_PIECE_COUNT> ColumnStore;
 
 class PuzzleSolver
 {
 private:
-  ColumnStore                   columns_;
-  std::vector<Somato::Solution> solutions_;
-  Somato::Solution              state_;
+  ColumnStore           columns_;
+  std::vector<Solution> solutions_;
+  Solution              state_;
 
   // noncopyable
   PuzzleSolver(const PuzzleSolver&) = delete;
   PuzzleSolver& operator=(const PuzzleSolver&) = delete;
 
   void recurse(int col, Cube cube);
-  void add_solution();
 
 public:
   PuzzleSolver();
   ~PuzzleSolver();
 
   void execute();
-  std::vector<Somato::Solution>& result() { return solutions_; }
+  std::vector<Solution>& result() { return solutions_; }
 };
 
 /*
@@ -63,8 +63,8 @@ public:
  * The cube piece at index 0 should be suitable for use as the anchor.
  */
 static
-const bool cube_piece_data[Somato::CUBE_PIECE_COUNT][3][3][3] =
-{
+const std::array<bool[3][3][3], Somato::CUBE_PIECE_COUNT> cube_piece_data
+{{
   { // Piece #6
     { {1,1,0}, {0,0,0}, {0,0,0} },
     { {0,1,0}, {0,1,0}, {0,0,0} },
@@ -100,7 +100,7 @@ const bool cube_piece_data[Somato::CUBE_PIECE_COUNT][3][3][3] =
     { {1,0,0}, {0,0,0}, {0,0,0} },
     { {0,0,0}, {0,0,0}, {0,0,0} }
   }
-};
+}};
 
 /*
  * Rotate the cube.  This takes care of all orientations possible.
@@ -138,9 +138,9 @@ void shuffle_cube_piece(Cube cube, PieceStore& store)
   // Make sure the piece is positioned where we expect it to be.
   g_return_if_fail(cube.get(0, 0, 0));
 
-  for (Cube z = cube; z != Cube(); z.shift(Cube::AXIS_Z))
-    for (Cube y = z; y != Cube(); y.shift(Cube::AXIS_Y))
-      for (Cube x = y; x != Cube(); x.shift(Cube::AXIS_X))
+  for (Cube z = cube; z != Cube{}; z.shift(Cube::AXIS_Z))
+    for (Cube y = z; y != Cube{}; y.shift(Cube::AXIS_Y))
+      for (Cube x = y; x != Cube{}; x.shift(Cube::AXIS_X))
       {
         compute_rotations(x, store);
       }
@@ -157,11 +157,11 @@ void filter_rotations(PieceStore& store)
 {
   g_return_if_fail(store.size() % 24 == 0);
 
-  PieceStore::iterator pdest = store.begin();
+  auto pdest = store.begin();
 
-  for (PieceStore::const_iterator p = store.begin(); p != store.end(); p += 24)
+  for (auto p = store.cbegin(); p != store.cend(); p += 24)
   {
-    *pdest++ = *std::min_element(p, p + 24, Cube::SortPredicate());
+    *pdest++ = *std::min_element(p, p + 24, Cube::SortPredicate{});
   }
 
   store.erase(pdest, store.end());
@@ -175,15 +175,15 @@ bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
 
   int z = 0;
 
-  for (Cube piece_z = piece; piece_z != Cube(); piece_z.shift_rev(Cube::AXIS_Z))
+  for (Cube piece_z = piece; piece_z != Cube{}; piece_z.shift_rev(Cube::AXIS_Z))
   {
     int y = 0;
 
-    for (Cube piece_y = piece_z; piece_y != Cube(); piece_y.shift_rev(Cube::AXIS_Y))
+    for (Cube piece_y = piece_z; piece_y != Cube{}; piece_y.shift_rev(Cube::AXIS_Y))
     {
       int x = 0;
 
-      for (Cube piece_x = piece_y; piece_x != Cube(); piece_x.shift_rev(Cube::AXIS_X))
+      for (Cube piece_x = piece_y; piece_x != Cube{}; piece_x.shift_rev(Cube::AXIS_X))
       {
         if (piece_x == original)
         {
@@ -203,8 +203,6 @@ bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
 }
 
 PuzzleSolver::PuzzleSolver()
-:
-  columns_ (Somato::CUBE_PIECE_COUNT)
 {}
 
 PuzzleSolver::~PuzzleSolver()
@@ -219,36 +217,36 @@ void PuzzleSolver::execute()
     PieceStore& store = columns_[i];
 
     store.reserve(256);
-    shuffle_cube_piece(Cube(cube_piece_data[i]), store);
+    shuffle_cube_piece(Cube{cube_piece_data[i]}, store);
 
     if (i == 0)
       filter_rotations(store);
 
-    std::sort(store.begin(), store.end(), Cube::SortPredicate());
+    std::sort(store.begin(), store.end(), Cube::SortPredicate{});
     store.erase(std::unique(store.begin(), store.end()), store.end());
   }
 
   const Cube common = std::accumulate(columns_[0].begin(), columns_[0].end(),
-                                      ~Cube(), Util::Intersect<Cube>());
+                                      ~Cube{}, std::bit_and<Cube>{});
 
-  if (common != Cube())
+  if (common != Cube{})
     for (int i = 1; i < Somato::CUBE_PIECE_COUNT; ++i)
     {
       columns_[i].erase(std::remove_if(columns_[i].begin(), columns_[i].end(),
-                                       Util::DoesIntersect<Cube>(common)),
+                                       [common](Cube c) { return ((c & common) != Cube{}); }),
                         columns_[i].end());
     }
 
   // Add zero-termination.
-  for (int i = 0; i < Somato::CUBE_PIECE_COUNT; ++i)
-    columns_[i].push_back(Cube());
+  for (auto& column : columns_)
+    column.push_back(Cube{});
 
-  recurse(0, Cube());
+  recurse(0, Cube{});
 }
 
 void PuzzleSolver::recurse(int col, Cube cube)
 {
-  PieceStore::const_iterator row = columns_[col].begin();
+  auto row = columns_[col].cbegin();
 
   for (;;)
   {
@@ -256,9 +254,9 @@ void PuzzleSolver::recurse(int col, Cube cube)
 
     ++row;
 
-    if ((cell & cube) == Cube())
+    if ((cell & cube) == Cube{})
     {
-      if (cell == Cube())
+      if (cell == Cube{})
         break;
 
       state_[col] = cell;
@@ -266,17 +264,9 @@ void PuzzleSolver::recurse(int col, Cube cube)
       if (col < Somato::CUBE_PIECE_COUNT - 1)
         recurse(col + 1, cube | cell);
       else
-        add_solution();
+        solutions_.push_back(state_);
     }
   }
-}
-
-void PuzzleSolver::add_solution()
-{
-  // This innocent line translates to quite a bit of code.  Moving this
-  // out of recurse() helps the compiler generate optimal code where it
-  // is actually needed.
-  solutions_.push_back(state_);
 }
 
 } // anonymous namespace
