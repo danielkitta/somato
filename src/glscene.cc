@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2012  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -577,7 +577,7 @@ void Scene::gl_create_focus_shader()
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 
-  focus_uf_color_   = program.get_uniform_location("focusColor");
+  focus_uf_color_ = program.get_uniform_location("focusColor");
 
   focus_shader_ = std::move(program);
 }
@@ -598,8 +598,8 @@ void Scene::gl_cleanup()
     ui_buffer_ = 0;
   }
 
-  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
-                std::mem_fn(&LayoutTexture::gl_delete));
+  for (const auto& layout : ui_layouts_)
+    layout->gl_delete();
 
   label_uf_color_   = -1;
   label_uf_texture_ = -1;
@@ -940,8 +940,8 @@ void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
   // Avoid both reset() and clear()... it's all Murray's fault :-P
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
-  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
-                std::mem_fn(&LayoutTexture::invalidate));
+  for (const auto& layout : ui_layouts_)
+    layout->invalidate();
 
   if (is_realized())
   {
@@ -958,8 +958,8 @@ void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
 {
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
-  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
-                std::mem_fn(&LayoutTexture::invalidate));
+  for (const auto& layout : ui_layouts_)
+    layout->invalidate();
 
   if (is_realized())
   {
@@ -1019,8 +1019,8 @@ void Scene::on_signal_realize()
 
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
-  std::for_each(ui_layouts_.cbegin(), ui_layouts_.cend(),
-                std::mem_fn(&LayoutTexture::invalidate));
+  for (const auto& layout : ui_layouts_)
+    layout->invalidate();
 
   GtkWidget     *const glwidget = Gtk::Widget::gobj();
   GdkGLDrawable *const drawable = gtk_widget_get_gl_drawable(glwidget);
