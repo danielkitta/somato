@@ -21,13 +21,15 @@
 #include "meshloader.h"
 
 #include <glib.h>
+#include <sigc++/sigc++.h>
 #include <glibmm/dispatcher.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#if 0
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
-#include <functional>
+#endif
 #include <thread>
 
 namespace GL
@@ -48,9 +50,9 @@ private:
   MeshLoader::Impl& operator=(const MeshLoader::Impl&) = delete;
 
 public:
-  sigc::signal<void> signal_done;
-  std::thread        thread;
-  const aiScene*     scene;
+  std::function<void ()> done_func;
+  std::thread            thread;
+  const aiScene*         scene;
 
   explicit Impl(std::string filename);
   ~Impl();
@@ -116,7 +118,8 @@ void MeshLoader::Impl::on_thread_exit()
 {
   thread.join();
 
-  signal_done(); // emit
+  if (done_func)
+    done_func();
 }
 
 MeshLoader::MeshLoader(std::string filename)
@@ -127,16 +130,16 @@ MeshLoader::MeshLoader(std::string filename)
 MeshLoader::~MeshLoader()
 {}
 
+void MeshLoader::set_on_done(std::function<void ()> func)
+{
+  pimpl_->done_func = std::move(func);
+}
+
 void MeshLoader::run()
 {
   g_return_if_fail(!pimpl_->thread.joinable());
 
   pimpl_->thread = std::thread{std::bind(&MeshLoader::Impl::execute, pimpl_.get())};
-}
-
-sigc::signal<void>& MeshLoader::signal_done()
-{
-  return pimpl_->signal_done;
 }
 
 MeshLoader::Node MeshLoader::lookup_node(const char* name) const

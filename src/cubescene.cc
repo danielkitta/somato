@@ -579,7 +579,7 @@ void CubeScene::gl_initialize()
     std::unique_ptr<GL::MeshLoader> loader
       {new GL::MeshLoader{Util::locate_data_file("puzzlepieces.dae")}};
 
-    loader->signal_done().connect(sigc::mem_fun(*this, &CubeScene::on_meshes_loaded));
+    loader->set_on_done(std::bind(&CubeScene::on_meshes_loaded, this));
     loader->run();
 
     mesh_loader_ = std::move(loader);

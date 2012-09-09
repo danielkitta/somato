@@ -21,7 +21,7 @@
 #ifndef SOMATO_MESHLOADER_H_INCLUDED
 #define SOMATO_MESHLOADER_H_INCLUDED
 
-#include <sigc++/sigc++.h>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -63,8 +63,8 @@ public:
   explicit MeshLoader(std::string filename);
   virtual ~MeshLoader();
 
+  void set_on_done(std::function<void ()> handler);
   void run();
-  sigc::signal<void>& signal_done();
 
   Node lookup_node(const char* name) const;
   VertexTriangleCounts count_node_vertices_triangles(Node node) const;
