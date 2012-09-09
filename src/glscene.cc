@@ -519,14 +519,14 @@ void Scene::gl_update_ui_buffer()
 
 void Scene::gl_swap_buffers()
 {
-  GdkGLDrawable *const drawable = static_cast<GdkGLDrawable*>(gl_drawable_);
+  const auto drawable = static_cast<GdkGLDrawable*>(gl_drawable_);
 
-  g_return_if_fail(drawable != 0);
+  g_return_if_fail(drawable != nullptr);
 
   if (has_back_buffer_ && use_back_buffer_)
     gdk_gl_drawable_swap_buffers(drawable);
-  else
-    glFinish();
+
+  glFinish();
 }
 
 void Scene::gl_initialize()
