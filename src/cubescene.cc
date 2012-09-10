@@ -1813,15 +1813,20 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last)
 
 void CubeScene::gl_init_cube_texture()
 {
-  g_return_if_fail(cube_texture_ == 0);
+  // Map from the number of color components minus one to the corresponding
+  // OpenGL texture image data format.  We'll let OpenGL do the conversion
+  // to the internal format on the fly, and flip the image through inverted
+  // texture coordinates in the vertex shader.
+  static const std::array<GLenum, 4> formats {{ GL_RED, GL_RG, GL_RGB, GL_RGBA }};
 
   // No matter what the real dimensions of the input image are, scale the
   // texture during load to the fixed size defined here.  Forcing a fixed
   // width and height actually enhances flexibility, as the user may drop
   // in whatever image file without wreaking havoc.  In essence, the size
   // of a texture is simply a quality setting unrelated to the input data.
-
   enum { WIDTH = 512, HEIGHT = 512 };
+
+  g_return_if_fail(cube_texture_ == 0);
 
   const auto pixbuf = Gdk::Pixbuf::create_from_file(Util::locate_data_file("woodtexture.png"),
                                                     WIDTH, HEIGHT, false);
@@ -1829,27 +1834,10 @@ void CubeScene::gl_init_cube_texture()
   g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
   g_return_if_fail(pixbuf->get_bits_per_sample() == 8);
 
-  const std::unique_ptr<GLubyte[]> tex_pixels {new GLubyte[HEIGHT * WIDTH]};
+  const int n_channels = pixbuf->get_n_channels();
 
-  const guint8 *const buf_pixels = pixbuf->get_pixels();
-
-  const std::ptrdiff_t buf_rowstride = pixbuf->get_rowstride();
-  const std::ptrdiff_t buf_channels  = pixbuf->get_n_channels();
-
-  for (int row = 0; row < HEIGHT; ++row)
-  {
-    const guint8* pbuf = &buf_pixels[(HEIGHT - 1 - row) * buf_rowstride];
-    GLubyte*      ptex = &tex_pixels[row * WIDTH];
-
-    for (int col = WIDTH; col != 0; --col)
-    {
-      // Read only the first channel, assuming gray-scale.
-      *ptex = *pbuf;
-
-      pbuf += buf_channels;
-      ptex += 1;
-    }
-  }
+  g_return_if_fail(n_channels >= 1 && n_channels <= int(formats.size()));
+  g_return_if_fail(pixbuf->get_rowstride() == n_channels * WIDTH);
 
   glGenTextures(1, &cube_texture_);
   GL::Error::throw_if_fail(cube_texture_ != 0);
@@ -1866,7 +1854,7 @@ void CubeScene::gl_init_cube_texture()
                     Math::min(8.0f, gl_ext()->max_anisotropy));
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, WIDTH, HEIGHT, 0,
-               GL_RED, GL_UNSIGNED_BYTE, &tex_pixels[0]);
+               formats[n_channels - 1], GL_UNSIGNED_BYTE, pixbuf->get_pixels());
 
   glGenerateMipmap(GL_TEXTURE_2D);
 
