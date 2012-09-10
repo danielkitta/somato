@@ -13,5 +13,5 @@ void main()
   float shadow = texture(labelTexture, interpTexcoord).r;
   float alpha = max(text, shadow);
 
-  outputColor = textColor * vec4(text, text, text, alpha);
+  outputColor = textColor * vec4(text.rrr, alpha);
 }
