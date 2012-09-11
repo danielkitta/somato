@@ -9,7 +9,7 @@ out vec4 outputColor;
 
 void main()
 {
-  float text = textureOffset(labelTexture, interpTexcoord, ivec2(1, -1)).r;
+  float text = textureOffset(labelTexture, interpTexcoord, ivec2(1, 1)).r;
   float shadow = texture(labelTexture, interpTexcoord).r;
   float alpha = max(text, shadow);
 

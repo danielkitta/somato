@@ -182,7 +182,6 @@ void LayoutTexture::prepare_pango_context(const Glib::RefPtr<Pango::Context>& co
 
   cairo_surface_destroy(surface); // drop reference
 
-  cairo_scale(cairo_context, 1.0, -1.0);
   pango_cairo_update_context(cairo_context, context->gobj());
 
   cairo_destroy(cairo_context);
@@ -213,9 +212,9 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
 
   std::vector<GLubyte> tex_image (ink_height * img_width);
 
-  // Create a cairo surface to draw the layout directly into the texture
-  // image -- upside-down and at the right position.  This rocking new
-  // functionality allows us to get away without any buffer copies, yay!
+  // Create a Cairo surface to draw the layout directly into the texture image.
+  // Note that the image will be upside-down from the point of view of OpenGL,
+  // thus the texture coordinates need to be adjusted accordingly.
   {
     cairo_surface_t *const surface = cairo_image_surface_create_for_data(
         &tex_image[0], CAIRO_FORMAT_A8, img_width, ink_height, img_width * sizeof(GLubyte));
@@ -224,10 +223,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
 
     cairo_surface_destroy(surface); // drop reference
 
-    cairo_scale(context, 1.0, -1.0);
-    cairo_move_to(context, PADDING - ink.get_x(),
-                         -(PADDING + ink.get_y() + ink.get_height()));
-
+    cairo_move_to(context, PADDING - ink.get_x(), PADDING - ink.get_y());
     pango_cairo_show_layout(context, layout->gobj());
 
     cairo_destroy(context);
@@ -718,9 +714,9 @@ void Scene::gl_build_layouts(UIVertex* vertices)
     const int height = layout->ink_height_ + 1;
 
     const float s0 = -1.0;
-    const float t0 = 0.0;
+    const float t0 = height;
     const float s1 = width - 1;
-    const float t1 = height;
+    const float t1 = 0.0;
 
     const int win_x = layout->window_x_ + layout->ink_x_;
     const int win_y = layout->window_y_ + layout->ink_y_;
