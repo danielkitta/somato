@@ -283,7 +283,7 @@ __m128 Matrix4::mul_(const __m128* a, __m128 b)
   const __m128 c2 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(2,2,2,2)), a[2]);
   const __m128 c3 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(3,3,3,3)), a[3]);
 
-  return _mm_add_ps(_mm_add_ps(_mm_add_ps(c0, c1), c2), c3);
+  return _mm_add_ps(_mm_add_ps(c0, c1), _mm_add_ps(c2, c3));
 }
 
 // static
@@ -306,12 +306,12 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
     const __m128 c2 = _mm_mul_ps(_mm_shuffle_ps(bi, bi, _MM_SHUFFLE(2,2,2,2)), a2);
     const __m128 c3 = _mm_mul_ps(_mm_shuffle_ps(bi, bi, _MM_SHUFFLE(3,3,3,3)), a3);
 
-    result[i] = _mm_add_ps(_mm_add_ps(_mm_add_ps(c0, c1), c2), c3);
+    result[i] = _mm_add_ps(_mm_add_ps(c0, c1), _mm_add_ps(c2, c3));
   }
 }
 
 // static
-const Quat::CastVec4 Quat::mask_xyz_ = { { -1, -1, -1, 0 } };
+const Quat::CastVec4 Quat::mask_xyz_ = {{ -1, -1, -1, 0 }};
 
 // static
 __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
