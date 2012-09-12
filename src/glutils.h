@@ -50,9 +50,9 @@ private:
 public:
   explicit Error(unsigned int error_code);
   explicit Error(const Glib::ustring& message);
-  virtual ~Error() throw();
+  virtual ~Error() noexcept;
 
-  Error(const Error& other) : what_ (other.what_), code_ (other.code_) {}
+  Error(const Error& other) : what_ {other.what_}, code_ {other.code_} {}
   Error& operator=(const Error& other) { what_ = other.what_; code_ = other.code_; return *this; }
 
   unsigned int  code() const { return code_; }
@@ -61,7 +61,7 @@ public:
   static void check();                // throw if glGetError() != GL_NO_ERROR
   static void fail() G_GNUC_NORETURN; // like check() but always throws
 
-  static inline void throw_if_fail(bool condition) { if (G_UNLIKELY(!condition)) fail(); }
+  static void throw_if_fail(bool condition) { if (G_UNLIKELY(!condition)) fail(); }
 };
 
 /*

@@ -160,7 +160,7 @@ GL::Error::Error(const Glib::ustring& message)
   code_ (0)
 {}
 
-GL::Error::~Error() throw()
+GL::Error::~Error() noexcept
 {}
 
 /*
