@@ -45,7 +45,7 @@ public:
 
   void set_on_done(std::function<void ()> func);
   void run();
-  void swap_result(std::vector<Solution>& result);
+  std::vector<Solution> acquire_results();
 
 private:
   std::vector<Solution>  solutions_;

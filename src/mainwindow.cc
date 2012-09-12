@@ -130,8 +130,8 @@ struct MainWindow::Actions
 
 private:
   // noncopyable
-  Actions(const Actions&);
-  Actions& operator=(const Actions&);
+  Actions(const Actions&) = delete;
+  Actions& operator=(const Actions&) = delete;
 };
 
 MainWindow::Actions::Actions()
@@ -146,7 +146,7 @@ MainWindow::Actions::Actions()
 
   animation_play    (Gtk::ToggleAction::create("animation_play",  Gtk::Stock::MEDIA_PLAY)),
   animation_pause   (Gtk::ToggleAction::create("animation_pause", Gtk::Stock::MEDIA_PAUSE,
-                                               Glib::ustring(), Glib::ustring(), true)),
+                                               {}, {}, true)),
 
   toggle_fullscreen (Gtk::ToggleAction::create("toggle_fullscreen", "_Fullscreen Mode")),
   toggle_outline    (Gtk::ToggleAction::create("toggle_outline",    "Show _Outline")),
@@ -173,7 +173,7 @@ MainWindow::Actions::~Actions()
 MainWindow::MainWindow()
 :
   ui_manager_       {Gtk::UIManager::create()},
-  actions_          {new Actions()},
+  actions_          {new Actions{}},
   vbox_main_        {nullptr},
   frame_scene_      {nullptr},
   cube_scene_       {nullptr},
@@ -197,7 +197,7 @@ Gtk::Window* MainWindow::get_window()
 
 void MainWindow::run_puzzle_solver()
 {
-  std::unique_ptr<PuzzleThread> thread {new PuzzleThread()};
+  std::unique_ptr<PuzzleThread> thread {new PuzzleThread{}};
 
   thread->set_on_done(std::bind(&MainWindow::on_puzzle_thread_done, this));
   thread->run();
@@ -207,7 +207,7 @@ void MainWindow::run_puzzle_solver()
 
 Glib::RefPtr<Gtk::ActionGroup> MainWindow::create_action_group()
 {
-  const Glib::RefPtr<Gtk::ActionGroup> group = Gtk::ActionGroup::create("main_window");
+  const auto group = Gtk::ActionGroup::create("main_window");
 
   group->add(actions_->application_about,
              sigc::mem_fun(*this, &MainWindow::on_application_about));
@@ -272,10 +272,9 @@ Glib::RefPtr<Gtk::ActionGroup> MainWindow::create_action_group()
 
 void MainWindow::load_ui()
 {
-  const Glib::RefPtr<Gnome::Glade::Xml> xml =
-      Gnome::Glade::Xml::create(Util::locate_data_file("mainwindow.glade"));
+  const auto xml = Gnome::Glade::Xml::create(Util::locate_data_file("mainwindow.glade"));
 
-  Gtk::Window* main_window = 0;
+  Gtk::Window* main_window = nullptr;
   window_.reset(xml->get_widget("main_window", main_window));
 
   vbox_main_ = dynamic_cast<Gtk::Box*>(window_->get_child());
@@ -385,7 +384,7 @@ void MainWindow::switch_cube(int index)
 
 void MainWindow::on_puzzle_thread_done()
 {
-  puzzle_thread_->swap_result(solutions_);
+  solutions_ = puzzle_thread_->acquire_results();
 
   if (!solutions_.empty())
     Glib::signal_idle().connect(sigc::mem_fun(*this, &MainWindow::start_animation));
@@ -632,7 +631,7 @@ bool MainWindow::on_scene_button_press_event(GdkEventButton* event)
 {
   if (event->type == GDK_BUTTON_PRESS && event->button == 3)
   {
-    if (Gtk::Menu *const menu = dynamic_cast<Gtk::Menu*>(ui_manager_->get_widget("/ScenePopup")))
+    if (const auto menu = dynamic_cast<Gtk::Menu*>(ui_manager_->get_widget("/ScenePopup")))
     {
       menu->popup(event->button, event->time);
       return true;

@@ -212,7 +212,7 @@ void PuzzleSolver::execute()
 {
   solutions_.reserve(512);
 
-  for (int i = 0; i < Somato::CUBE_PIECE_COUNT; ++i)
+  for (size_t i = 0; i < Somato::CUBE_PIECE_COUNT; ++i)
   {
     PieceStore& store = columns_[i];
 
@@ -228,9 +228,8 @@ void PuzzleSolver::execute()
 
   const Cube common = std::accumulate(columns_[0].begin(), columns_[0].end(),
                                       ~Cube{}, std::bit_and<Cube>{});
-
   if (common != Cube{})
-    for (int i = 1; i < Somato::CUBE_PIECE_COUNT; ++i)
+    for (size_t i = 1; i < Somato::CUBE_PIECE_COUNT; ++i)
     {
       columns_[i].erase(std::remove_if(columns_[i].begin(), columns_[i].end(),
                                        [common](Cube c) { return ((c & common) != Cube{}); }),
@@ -239,9 +238,9 @@ void PuzzleSolver::execute()
 
   // Add zero-termination.
   for (auto& column : columns_)
-    column.push_back(Cube{});
+    column.push_back({});
 
-  recurse(0, Cube{});
+  recurse(0, {});
 }
 
 void PuzzleSolver::recurse(int col, Cube cube)
@@ -310,11 +309,11 @@ void PuzzleThread::run()
   thread_ = std::thread{std::bind(&PuzzleThread::execute, this)};
 }
 
-void PuzzleThread::swap_result(std::vector<Solution>& result)
+std::vector<Solution> PuzzleThread::acquire_results()
 {
-  g_return_if_fail(!thread_.joinable());
+  g_warn_if_fail(!thread_.joinable());
 
-  solutions_.swap(result);
+  return std::move(solutions_);
 }
 
 /*
@@ -328,7 +327,7 @@ void PuzzleThread::execute()
     PuzzleSolver solver;
 
     solver.execute();
-    solver.result().swap(solutions_);
+    solutions_ = std::move(solver.result());
   }
   catch (...)
   {
@@ -350,12 +349,12 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 {
   using Math::Matrix4;
 
-  static const Matrix4::array_type rotate90[3] =
-  {
+  static const std::array<Matrix4::array_type, 3> rotate90
+  {{
     { {1, 0,  0, 0}, { 0, 0, -1, 0}, {0, 1, 0, 0}, {0, 0, 0, 1} }, // 90 deg around x
     { {0, 0, -1, 0}, { 0, 1,  0, 0}, {1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
     { {0, 1,  0, 0}, {-1, 0,  0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1} }  // 90 deg around z
-  };
+  }};
 
   Matrix4 transform {Matrix4::identity};
 
@@ -363,7 +362,7 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 
   const Cube original {cube_piece_data[piece_idx]};
 
-  for (unsigned int i = 0; i < 6; ++i)
+  for (size_t i = 0; i < 6; ++i)
   {
     // Add the 4 possible orientations of each cube side.
     for (int k = 0; k < 4; ++k)
