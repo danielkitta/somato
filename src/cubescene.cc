@@ -202,8 +202,8 @@ struct CubeScene::Extensions : public GL::Extensions
 {
 private:
   // noncopyable
-  Extensions(const CubeScene::Extensions&);
-  CubeScene::Extensions& operator=(const CubeScene::Extensions&);
+  Extensions(const CubeScene::Extensions&) = delete;
+  CubeScene::Extensions& operator=(const CubeScene::Extensions&) = delete;
 
   void query();
 
@@ -238,21 +238,9 @@ const CubeScene::Extensions* CubeScene::gl_ext() const
 
 CubeScene::CubeScene()
 :
-  rotation_               (),
-
-  cube_pieces_            (),
-  animation_data_         (),
   piece_cells_            (Cube::N * Cube::N * Cube::N),
-  depth_order_            (),
-
-  signal_cycle_finished_  (),
-  animation_timer_        (),
-  frame_trigger_          (),
-  delay_timeout_          (),
-  hide_cursor_timeout_    (),
-
-  heading_                (create_layout_texture()),
-  footing_                (create_layout_texture()),
+  heading_                {create_layout_texture()},
+  footing_                {create_layout_texture()},
 
   uf_modelview_           {-1},
   uf_projection_          {-1},
@@ -262,31 +250,31 @@ CubeScene::CubeScene()
   cage_uf_modelview_      {-1},
   cage_uf_projection_     {-1},
 
-  cube_texture_           (0),
+  cube_texture_           {0},
   mesh_buffers_           {0, 0},
   wireframe_buffers_      {0, 0},
   pieces_vertex_array_    {0},
   cage_vertex_array_      {0},
 
-  track_last_x_           (TRACK_UNSET),
-  track_last_y_           (TRACK_UNSET),
-  cursor_state_           (CURSOR_DEFAULT),
+  track_last_x_           {TRACK_UNSET},
+  track_last_y_           {TRACK_UNSET},
+  cursor_state_           {CURSOR_DEFAULT},
 
-  animation_piece_        (0),
-  exclusive_piece_        (0),
-  animation_seek_         (1.0),
-  animation_position_     (0.0),
-  animation_delay_        (1.0 / 3.0),
+  animation_piece_        {0},
+  exclusive_piece_        {0},
+  animation_seek_         {1.0},
+  animation_position_     {0.0},
+  animation_delay_        {1.0 / 3.0},
 
-  zoom_                   (1.0),
-  frames_per_sec_         (60.0),
-  pieces_per_sec_         (1.0),
+  zoom_                   {1.0},
+  frames_per_sec_         {60.0},
+  pieces_per_sec_         {1.0},
 
-  depth_order_changed_    (false),
-  animation_running_      (false),
-  show_wireframe_         (false),
-  show_outline_           (false),
-  zoom_visible_           (true)
+  depth_order_changed_    {false},
+  animation_running_      {false},
+  show_wireframe_         {false},
+  show_outline_           {false},
+  zoom_visible_           {true}
 {
   heading_->color().assign(0.85, 0.85, 0.85, 1.0);
   footing_->color().assign(0.65, 0.65, 0.65, 1.0);
@@ -309,7 +297,7 @@ void CubeScene::set_heading(const Glib::ustring& heading)
   {
     if (is_realized())
     {
-      ScopeContext context (*this);
+      ScopeContext context {*this};
 
       gl_update_ui();
     }
@@ -329,7 +317,7 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
   try
   {
     cube_pieces_   .assign(cube_pieces.begin(), cube_pieces.end());
-    animation_data_.assign(cube_pieces.size(), AnimationData());
+    animation_data_.assign(cube_pieces.size(), AnimationData{});
     depth_order_   .assign(cube_pieces.size(), 0);
 
     if (!cube_pieces.empty())
@@ -374,7 +362,7 @@ void CubeScene::set_zoom(float zoom)
 
     if (is_realized())
     {
-      ScopeContext context (*this);
+      ScopeContext context {*this};
 
       gl_update_projection();
 
@@ -481,7 +469,7 @@ void CubeScene::set_zoom_visible(bool zoom_visible)
     {
       if (is_realized())
       {
-        ScopeContext context (*this);
+        ScopeContext context {*this};
 
         gl_update_ui();
       }
@@ -505,7 +493,7 @@ void CubeScene::set_show_wireframe(bool show_wireframe)
 
     if (is_realized())
     {
-      ScopeContext context (*this);
+      ScopeContext context {*this};
 
       gl_update_wireframe();
     }
@@ -777,7 +765,6 @@ void CubeScene::gl_update_projection()
                       Vector4{0.0, near / top, 0.0, 0.0},
                       Vector4{0.0, 0.0, (far + near) / (near - far), -1.0},
                       Vector4{0.0, 0.0, 2.0f * far * near / (near - far), 0.0}};
-
   if (piece_shader_)
   {
     piece_shader_.use();
@@ -880,8 +867,8 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
 
 void CubeScene::on_meshes_loaded()
 {
-  static const char object_names[CUBE_PIECE_COUNT][16] =
-  {
+  static const std::array<char[16], CUBE_PIECE_COUNT> object_names
+  {{
     "PieceOrange",
     "PieceGreen",
     "PieceRed",
@@ -889,14 +876,14 @@ void CubeScene::on_meshes_loaded()
     "PieceBlue",
     "PieceLavender",
     "PieceCyan"
-  };
+  }};
 
   const auto loader = std::move(mesh_loader_);
   g_return_if_fail(loader);
 
   std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> nodes;
 
-  for (unsigned int i = 0; i < nodes.size(); ++i)
+  for (size_t i = 0; i < nodes.size(); ++i)
   {
     nodes[i] = loader->lookup_node(object_names[i]);
 
@@ -909,7 +896,7 @@ void CubeScene::on_meshes_loaded()
   unsigned int global_vertex_count   = 0;
   unsigned int global_triangle_count = 0;
 
-  for (unsigned int i = 0; i < nodes.size(); ++i)
+  for (size_t i = 0; i < nodes.size(); ++i)
   {
     if (const auto node = nodes[i])
     {
@@ -1144,23 +1131,23 @@ void CubeScene::update_animation_order()
 {
   enum { N = Cube::N };
 
-  static const unsigned char order[N*N*N][3] =
-  {
+  static const std::array<unsigned char[3], N*N*N> cell_order
+  {{
     {2,0,2}, {1,0,2}, {2,0,1}, {1,0,1}, {1,1,1}, {2,1,2}, {1,1,2},
     {2,1,1}, {0,0,2}, {2,0,0}, {2,2,2}, {0,0,1}, {1,0,0}, {0,1,2},
     {2,1,0}, {1,2,2}, {2,2,1}, {0,1,1}, {1,1,0}, {1,2,1}, {0,0,0},
     {0,2,2}, {2,2,0}, {0,1,0}, {0,2,1}, {1,2,0}, {0,2,0}
-  };
+  }};
 
   unsigned int count = 0;
   Cube         cube;
 
-  for (unsigned int i = 0; i < G_N_ELEMENTS(order); ++i)
+  for (const auto& order : cell_order)
   {
-    const unsigned int cell_index = N*N * order[i][0] + N * order[i][1] + order[i][2];
+    const unsigned int cell_index = N*N * order[0] + N * order[1] + order[2];
 
     Cube cell;
-    cell.put(order[i][0], order[i][1], order[i][2], true);
+    cell.put(order[0], order[1], order[2], true);
 
     g_return_if_fail(cell_index < piece_cells_.size());
 
@@ -1196,11 +1183,9 @@ void CubeScene::update_animation_order()
         cube |= *pcube;
         ++count;
       }
-
       piece_cells_[cell_index].piece = anim_index;
     }
   }
-
   g_return_if_fail(count == animation_data_.size()); // invalid input
 
   depth_order_changed_ = true;
@@ -1247,7 +1232,7 @@ void CubeScene::update_depth_order()
 
       g_return_if_fail(index < cube_pieces_.size());
 
-      if ((cube & cube_pieces_[index]) == Cube())
+      if ((cube & cube_pieces_[index]) == Cube{})
       {
         cube |= cube_pieces_[index];
         *pdepth = pc.piece;
@@ -1306,7 +1291,7 @@ void CubeScene::set_cursor(CubeScene::CursorState state)
 {
   if (state != cursor_state_ && is_realized())
   {
-    const Glib::RefPtr<Gdk::Window> window = get_window();
+    const auto window = get_window();
 
     switch (state)
     {
@@ -1315,18 +1300,18 @@ void CubeScene::set_cursor(CubeScene::CursorState state)
         break;
 
       case CURSOR_DRAGGING:
-        window->set_cursor(Gdk::Cursor(get_display(), Gdk::FLEUR));
+        window->set_cursor(Gdk::Cursor{get_display(), Gdk::FLEUR});
         break;
 
       case CURSOR_INVISIBLE:
         {
           const char *const bitmap_data = "";
 
-          const Glib::RefPtr<Gdk::Pixmap> bitmap = Gdk::Bitmap::create(window, bitmap_data, 1, 1);
+          const auto bitmap = Gdk::Bitmap::create(window, bitmap_data, 1, 1);
           const Gdk::Color color;
 
           // Use the empty 1x1 bitmap to set up an invisible cursor.
-          window->set_cursor(Gdk::Cursor(bitmap, bitmap, color, color, 0, 0));
+          window->set_cursor(Gdk::Cursor{bitmap, bitmap, color, color, 0, 0});
         }
         break;
 
