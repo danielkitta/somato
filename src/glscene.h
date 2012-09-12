@@ -181,8 +181,8 @@ private:
   static void end_(Scene& scene);
 
   // noncopyable
-  ScopeContext(const ScopeContext&);
-  ScopeContext& operator=(const ScopeContext&);
+  ScopeContext(const ScopeContext&) = delete;
+  ScopeContext& operator=(const ScopeContext&) = delete;
 
 public:
   explicit inline ScopeContext(Scene& scene) : scene_ (scene) { begin_(scene_); }
