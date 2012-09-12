@@ -64,9 +64,9 @@ typedef GLubyte WireframeIndex;
 
 enum
 {
-  WIREFRAME_INDEX_TYPE    = GL_UNSIGNED_BYTE,
-  WIREFRAME_VERTEX_COUNT  = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
-  WIREFRAME_LINE_COUNT    = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
+  WIREFRAME_INDEX_TYPE   = GL_UNSIGNED_BYTE,
+  WIREFRAME_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
+  WIREFRAME_LINE_COUNT   = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
 };
 
 enum
@@ -74,10 +74,20 @@ enum
   MESH_INDEX_TYPE = GL_UNSIGNED_SHORT
 };
 
+/* Vertex shader input attribute locations.
+ */
 enum
 {
   ATTRIB_POSITION = 0,
   ATTRIB_NORMAL   = 1
+};
+
+/* Index usage convention for arrays of buffer objects.
+ */
+enum
+{
+  VERTICES = 0,
+  INDICES  = 1
 };
 
 /*
@@ -177,7 +187,7 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
     // vanished from view or collided with the fixed piece.
     do
     {
-      if (moving == Cube()) // if it vanished we have just found our solution
+      if (moving == Cube{}) // if it vanished we have just found our solution
       {
         direction[0] = movement.x;
         direction[1] = movement.y;
@@ -186,7 +196,7 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
       }
       moving.shift(movement.axis, true);
     }
-    while ((fixed & moving) == Cube());
+    while ((fixed & moving) == Cube{});
   }
 
   // This should not happen as long as the input is correct.
@@ -661,11 +671,11 @@ void CubeScene::gl_cleanup()
     pieces_vertex_array_ = 0;
   }
 
-  if (mesh_buffers_[0] || mesh_buffers_[1])
+  if (mesh_buffers_[VERTICES] || mesh_buffers_[INDICES])
   {
     glDeleteBuffers(2, mesh_buffers_);
-    mesh_buffers_[0] = 0;
-    mesh_buffers_[1] = 0;
+    mesh_buffers_[VERTICES] = 0;
+    mesh_buffers_[INDICES]  = 0;
   }
 
   if (cube_texture_)
@@ -784,17 +794,17 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
                                        unsigned int global_triangle_count)
 {
   g_return_if_fail(pieces_vertex_array_ == 0);
-  g_return_if_fail(mesh_buffers_[0] == 0 && mesh_buffers_[1] == 0);
+  g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
 
   glGenVertexArrays(1, &pieces_vertex_array_);
   GL::Error::throw_if_fail(pieces_vertex_array_ != 0);
 
   glGenBuffers(2, mesh_buffers_);
-  GL::Error::throw_if_fail(mesh_buffers_[0] != 0 && mesh_buffers_[1] != 0);
+  GL::Error::throw_if_fail(mesh_buffers_[VERTICES] != 0 && mesh_buffers_[INDICES] != 0);
 
   glBindVertexArray(pieces_vertex_array_);
 
-  glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[0]);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[VERTICES]);
   glBufferData(GL_ARRAY_BUFFER,
                global_vertex_count * sizeof(GL::MeshVertex),
                nullptr, GL_STATIC_DRAW);
@@ -808,7 +818,7 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
                      | GL_MAP_UNSYNCHRONIZED_BIT);
   if (vertex_data)
   {
-    for (unsigned int i = 0; i < nodes.size(); ++i)
+    for (size_t i = 0; i < nodes.size(); ++i)
     {
       const auto& mesh = mesh_data_[i];
       const auto start = static_cast<GL::MeshVertex*>(vertex_data) + mesh.element_first;
@@ -829,7 +839,7 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   glEnableVertexAttribArray(ATTRIB_POSITION);
   glEnableVertexAttribArray(ATTRIB_NORMAL);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[1]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[INDICES]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                global_triangle_count * 3 * sizeof(GL::MeshIndex),
                nullptr, GL_STATIC_DRAW);
@@ -843,7 +853,7 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
                      | GL_MAP_UNSYNCHRONIZED_BIT);
   if (index_data)
   {
-    for (unsigned int i = 0; i < nodes.size(); ++i)
+    for (size_t i = 0; i < nodes.size(); ++i)
     {
       const auto& mesh = mesh_data_[i];
       const auto start = static_cast<GL::MeshIndex*>(index_data) + mesh.indices_offset;
@@ -976,7 +986,7 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
         case GDK_Up:    case GDK_KP_Up:     rotate(Cube::AXIS_X,  rotation_step); return true;
         case GDK_Down:  case GDK_KP_Down:   rotate(Cube::AXIS_X, -rotation_step); return true;
         case GDK_Begin: case GDK_KP_Begin:
-        case GDK_5:     case GDK_KP_5:      set_rotation(Math::Quat()); return true;
+        case GDK_5:     case GDK_KP_5:      set_rotation(Math::Quat{}); return true;
       }
       break;
 
@@ -1513,17 +1523,17 @@ void CubeScene::process_track_motion(int x, int y)
 void CubeScene::gl_create_wireframe()
 {
   g_return_if_fail(cage_vertex_array_ == 0);
-  g_return_if_fail(wireframe_buffers_[0] == 0 && wireframe_buffers_[1] == 0);
+  g_return_if_fail(wireframe_buffers_[VERTICES] == 0 && wireframe_buffers_[INDICES] == 0);
 
   glGenVertexArrays(1, &cage_vertex_array_);
   GL::Error::throw_if_fail(cage_vertex_array_ != 0);
 
   glGenBuffers(2, wireframe_buffers_);
-  GL::Error::throw_if_fail(wireframe_buffers_[0] != 0 && wireframe_buffers_[1] != 0);
+  GL::Error::throw_if_fail(wireframe_buffers_[VERTICES] != 0 && wireframe_buffers_[INDICES] != 0);
 
   glBindVertexArray(cage_vertex_array_);
 
-  glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[0]);
+  glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[VERTICES]);
   glBufferData(GL_ARRAY_BUFFER,
                WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
                nullptr, GL_STATIC_DRAW);
@@ -1567,7 +1577,7 @@ void CubeScene::gl_create_wireframe()
                         3 * sizeof(GLfloat), GL::buffer_offset(0));
   glEnableVertexAttribArray(ATTRIB_POSITION);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[1]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[INDICES]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
                nullptr, GL_STATIC_DRAW);
@@ -1622,11 +1632,11 @@ void CubeScene::gl_delete_wireframe()
     cage_vertex_array_ = 0;
   }
 
-  if (wireframe_buffers_[0] || wireframe_buffers_[1])
+  if (wireframe_buffers_[VERTICES] || wireframe_buffers_[INDICES])
   {
     glDeleteBuffers(2, wireframe_buffers_);
-    wireframe_buffers_[0] = 0;
-    wireframe_buffers_[1] = 0;
+    wireframe_buffers_[VERTICES] = 0;
+    wireframe_buffers_[INDICES]  = 0;
   }
 }
 
@@ -1635,7 +1645,8 @@ void CubeScene::gl_draw_wireframe()
   using Math::Matrix4;
   using Math::Vector4;
 
-  if (cage_shader_ && cage_vertex_array_ && wireframe_buffers_[0] && wireframe_buffers_[1])
+  if (cage_shader_ && cage_vertex_array_
+      && wireframe_buffers_[VERTICES] && wireframe_buffers_[INDICES])
   {
     cage_shader_.use();
     glBindVertexArray(cage_vertex_array_);
@@ -1646,7 +1657,6 @@ void CubeScene::gl_draw_wireframe()
                        Vector4{0.0, 0.0, view_z_offset, 1.0}};
 
     modelview *= Math::Quat::to_matrix(rotation_);
-
     modelview *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
                          Vector4{0.0, zoom_, 0.0, 0.0},
                          Vector4{0.0, 0.0, zoom_, 0.0},
@@ -1747,7 +1757,8 @@ int CubeScene::gl_draw_piece_buffer_range(int first, int last)
 {
   int triangle_count = 0;
 
-  if (piece_shader_ && pieces_vertex_array_ && mesh_buffers_[0] && mesh_buffers_[1])
+  if (piece_shader_ && pieces_vertex_array_
+      && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
   {
     piece_shader_.use();
     glBindVertexArray(pieces_vertex_array_);
@@ -1853,7 +1864,7 @@ void CubeScene::update_footing()
   if (zoom_visible_ && percentage != 100)
     footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
   else
-    footing_->set_content(Glib::ustring());
+    footing_->set_content({});
 }
 
 void CubeScene::gl_update_wireframe()
