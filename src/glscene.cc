@@ -411,7 +411,7 @@ LayoutTexture* Scene::create_layout_texture()
   // For now, layout textures may only be created at initialization time.
   g_return_val_if_fail(ui_buffer_ == 0, nullptr);
 
-  std::unique_ptr<LayoutTexture> layout {new LayoutTexture()};
+  std::unique_ptr<LayoutTexture> layout {new LayoutTexture{}};
 
   layout->array_offset_ =
     LAYOUTS_ARRAY_OFFSET + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
@@ -871,7 +871,7 @@ void Scene::setup_gl_context()
 
 GL::Extensions* Scene::gl_query_extensions()
 {
-  return new GL::Extensions();
+  return new GL::Extensions{};
 }
 
 void Scene::gl_reposition_layouts()
@@ -1007,7 +1007,7 @@ void Scene::on_signal_realize()
   GdkGLDrawable *const drawable = gtk_widget_get_gl_drawable(glwidget);
 
   gl_drawable_ = drawable;
-  has_back_buffer_ = (gdk_gl_drawable_is_double_buffered(drawable) != 0);
+  has_back_buffer_ = (gdk_gl_drawable_is_double_buffered(drawable) != FALSE);
 
   if (exclusive_context_)
   {
