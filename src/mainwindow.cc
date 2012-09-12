@@ -463,20 +463,20 @@ void MainWindow::on_animation_pause()
 
 void MainWindow::on_application_about()
 {
-  if (aboutdialog_.get())
+  if (aboutdialog_)
   {
     aboutdialog_->present(gtk_get_current_event_time());
   }
   else
   {
-    std::unique_ptr<Gtk::AboutDialog> dialog {new Gtk::AboutDialog()};
+    std::unique_ptr<Gtk::AboutDialog> dialog {new Gtk::AboutDialog{}};
 
     dialog->set_version(PACKAGE_VERSION);
 #ifndef GDK_WINDOWING_WIN32
     dialog->set_logo_icon_name(PACKAGE_TARNAME);
 #endif
-    dialog->set_comments("The best Soma puzzle solver ever. For real.");
-    dialog->set_copyright("Copyright \302\251 2004-2008 Daniel Elstner");
+    dialog->set_comments("An animated solver of the Soma puzzle by Piet Hein.");
+    dialog->set_copyright(u8"Copyright \u00A9 2004-2012 Daniel Elstner");
     dialog->set_website("http://danielkitta.org/projects/somato");
 
     const char* const program_authors[] = { "Daniel Elstner <daniel.kitta@gmail.com>", nullptr };
