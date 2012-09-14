@@ -1107,14 +1107,9 @@ bool CubeScene::on_motion_notify_event(GdkEventMotion* event)
   return GL::Scene::on_motion_notify_event(event);
 }
 
-void CubeScene::setup_gl_context()
-{
-  GL::configure_widget(*this, GDK_GL_MODE_RGBA | GDK_GL_MODE_DOUBLE);
-}
-
 GL::Extensions* CubeScene::gl_query_extensions()
 {
-  return new CubeScene::Extensions();
+  return new CubeScene::Extensions{};
 }
 
 void CubeScene::gl_reposition_layouts()

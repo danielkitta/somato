@@ -405,11 +405,17 @@ void Scene::set_multisample(int n_samples)
   const int samples_set = Math::min(aa_samples_, max_aa_samples_);
   aa_samples_ = n_samples;
 
-  if (n_samples != samples_set && is_realized())
+  if (n_samples != samples_set)
   {
-    ScopeContext context {*this};
+    if (is_realized())
+    {
+      ScopeContext context {*this};
 
-    gl_update_framebuffer();
+      gl_update_framebuffer();
+    }
+
+    if (is_drawable())
+      queue_draw();
   }
 }
 
@@ -962,11 +968,6 @@ Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustri
   return layout;
 }
 
-void Scene::setup_gl_context()
-{
-  GL::configure_widget(*this, GDK_GL_MODE_RGBA | GDK_GL_MODE_DOUBLE);
-}
-
 GL::Extensions* Scene::gl_query_extensions()
 {
   return new GL::Extensions{};
@@ -977,14 +978,13 @@ void Scene::gl_reposition_layouts()
 
 /*
  * Set up the widget for GL drawing as soon as a screen is available.
- * You can control the GL configuration by overriding setup_gl_context().
  */
 void Scene::on_screen_changed(const Glib::RefPtr<Gdk::Screen>& previous_screen)
 {
   Gtk::DrawingArea::on_screen_changed(previous_screen);
 
   if (has_screen() && !is_realized())
-    setup_gl_context();
+    GL::configure_widget(*this, GDK_GL_MODE_RGBA | GDK_GL_MODE_DOUBLE);
 }
 
 void Scene::on_size_allocate(Gtk::Allocation& allocation)

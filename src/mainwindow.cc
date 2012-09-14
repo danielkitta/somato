@@ -113,6 +113,7 @@ struct MainWindow::Actions
   Glib::RefPtr<Gtk::ToggleAction> toggle_fullscreen;
   Glib::RefPtr<Gtk::ToggleAction> toggle_outline;
   Glib::RefPtr<Gtk::ToggleAction> toggle_wireframe;
+  Glib::RefPtr<Gtk::ToggleAction> toggle_antialias;
   Glib::RefPtr<Gtk::ToggleAction> toggle_profile;
 
   Glib::RefPtr<Gtk::Action>       exit_fullscreen;
@@ -136,32 +137,33 @@ private:
 
 MainWindow::Actions::Actions()
 :
-  application_about (Gtk::Action::create("application_about", Gtk::Stock::ABOUT)),
-  application_quit  (Gtk::Action::create("application_quit",  Gtk::Stock::QUIT)),
+  application_about {Gtk::Action::create("application_about", Gtk::Stock::ABOUT)},
+  application_quit  {Gtk::Action::create("application_quit",  Gtk::Stock::QUIT)},
 
-  cube_goto_first   (Gtk::Action::create("cube_goto_first", Gtk::Stock::GOTO_FIRST)),
-  cube_go_back      (Gtk::Action::create("cube_go_back",    Gtk::Stock::GO_BACK)),
-  cube_go_forward   (Gtk::Action::create("cube_go_forward", Gtk::Stock::GO_FORWARD)),
-  cube_goto_last    (Gtk::Action::create("cube_goto_last",  Gtk::Stock::GOTO_LAST)),
+  cube_goto_first   {Gtk::Action::create("cube_goto_first", Gtk::Stock::GOTO_FIRST)},
+  cube_go_back      {Gtk::Action::create("cube_go_back",    Gtk::Stock::GO_BACK)},
+  cube_go_forward   {Gtk::Action::create("cube_go_forward", Gtk::Stock::GO_FORWARD)},
+  cube_goto_last    {Gtk::Action::create("cube_goto_last",  Gtk::Stock::GOTO_LAST)},
 
-  animation_play    (Gtk::ToggleAction::create("animation_play",  Gtk::Stock::MEDIA_PLAY)),
-  animation_pause   (Gtk::ToggleAction::create("animation_pause", Gtk::Stock::MEDIA_PAUSE,
-                                               {}, {}, true)),
+  animation_play    {Gtk::ToggleAction::create("animation_play",  Gtk::Stock::MEDIA_PLAY)},
+  animation_pause   {Gtk::ToggleAction::create("animation_pause", Gtk::Stock::MEDIA_PAUSE,
+                                               {}, {}, true)},
 
-  toggle_fullscreen (Gtk::ToggleAction::create("toggle_fullscreen", "_Fullscreen Mode")),
-  toggle_outline    (Gtk::ToggleAction::create("toggle_outline",    "Show _Outline")),
-  toggle_wireframe  (Gtk::ToggleAction::create("toggle_wireframe",  "Show _Wireframe")),
-  toggle_profile    (Gtk::ToggleAction::create("toggle_profile",    "_Profile Framerate")),
+  toggle_fullscreen {Gtk::ToggleAction::create("toggle_fullscreen", "_Fullscreen Mode")},
+  toggle_outline    {Gtk::ToggleAction::create("toggle_outline",    "Show _Outline")},
+  toggle_wireframe  {Gtk::ToggleAction::create("toggle_wireframe",  "Show _Wireframe")},
+  toggle_antialias  {Gtk::ToggleAction::create("toggle_antialias",  "_Anti-aliasing", {}, true)},
+  toggle_profile    {Gtk::ToggleAction::create("toggle_profile",    "_Profile Framerate")},
 
-  exit_fullscreen   (Gtk::Action::create("exit_fullscreen")),
+  exit_fullscreen   {Gtk::Action::create("exit_fullscreen")},
 
-  speed_plus        (Gtk::Action::create("speed_plus")),
-  speed_minus       (Gtk::Action::create("speed_minus")),
-  speed_reset       (Gtk::Action::create("speed_reset")),
+  speed_plus        {Gtk::Action::create("speed_plus")},
+  speed_minus       {Gtk::Action::create("speed_minus")},
+  speed_reset       {Gtk::Action::create("speed_reset")},
 
-  zoom_plus         (Gtk::Action::create("zoom_plus")),
-  zoom_minus        (Gtk::Action::create("zoom_minus")),
-  zoom_reset        (Gtk::Action::create("zoom_reset"))
+  zoom_plus         {Gtk::Action::create("zoom_plus")},
+  zoom_minus        {Gtk::Action::create("zoom_minus")},
+  zoom_reset        {Gtk::Action::create("zoom_reset")}
 {
   animation_play ->property_is_important() = true;
   animation_pause->property_is_important() = true;
@@ -242,6 +244,9 @@ Glib::RefPtr<Gtk::ActionGroup> MainWindow::create_action_group()
   group->add(actions_->toggle_wireframe, Gtk::AccelKey("w"),
              sigc::mem_fun(*this, &MainWindow::on_toggle_wireframe));
 
+  group->add(actions_->toggle_antialias, Gtk::AccelKey("a"),
+             sigc::mem_fun(*this, &MainWindow::on_toggle_antialias));
+
   group->add(actions_->toggle_profile, Gtk::AccelKey("<control>p"),
              sigc::mem_fun(*this, &MainWindow::on_toggle_profile));
 
@@ -317,7 +322,6 @@ void MainWindow::init_cube_scene()
   frame_scene_->add(*Gtk::manage(cube_scene_ = new CubeScene()));
 
   cube_scene_->set_exclusive_context(true);
-  cube_scene_->set_multisample(4);
   cube_scene_->set_name("cube_scene");
   cube_scene_->add_events(Gdk::BUTTON_PRESS_MASK | Gdk::SCROLL_MASK);
 
@@ -339,6 +343,7 @@ void MainWindow::init_cube_scene()
   on_zoom_value_changed();
   on_toggle_outline();
   on_toggle_wireframe();
+  on_toggle_antialias();
   on_animation_play();
   on_animation_pause();
 
@@ -560,6 +565,12 @@ void MainWindow::on_toggle_outline()
 void MainWindow::on_toggle_wireframe()
 {
   cube_scene_->set_show_wireframe(actions_->toggle_wireframe->get_active());
+}
+
+void MainWindow::on_toggle_antialias()
+{
+  enum { AA_SAMPLES = 4 };
+  cube_scene_->set_multisample((actions_->toggle_antialias->get_active()) ? AA_SAMPLES : 0);
 }
 
 void MainWindow::on_toggle_profile()

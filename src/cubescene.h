@@ -137,7 +137,6 @@ protected:
   virtual bool on_motion_notify_event(GdkEventMotion* event);
 
 private:
-  virtual void setup_gl_context();
   virtual GL::Extensions* gl_query_extensions();
   virtual void gl_reposition_layouts();
 

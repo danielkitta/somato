@@ -46,6 +46,7 @@
       <menuitem name="Fullscreen" action="toggle_fullscreen"/>
       <menuitem name="Outline" action="toggle_outline"/>
       <menuitem name="Wireframe" action="toggle_wireframe"/>
+      <menuitem name="Antialias" action="toggle_antialias"/>
       <separator/>
     </placeholder>
   </popup>
@@ -59,6 +60,7 @@
   <accelerator action="toggle_fullscreen"/>
   <accelerator action="toggle_outline"/>
   <accelerator action="toggle_wireframe"/>
+  <accelerator action="toggle_antialias"/>
   <accelerator action="toggle_profile"/>
   <accelerator action="exit_fullscreen"/>
   <accelerator action="speed_plus"/>

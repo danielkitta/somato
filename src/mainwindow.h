@@ -110,6 +110,7 @@ private:
   void on_exit_fullscreen();
   void on_toggle_outline();
   void on_toggle_wireframe();
+  void on_toggle_antialias();
   void on_toggle_profile();
 
   bool on_profile_idle();
