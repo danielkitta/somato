@@ -317,6 +317,7 @@ void MainWindow::init_cube_scene()
   frame_scene_->add(*Gtk::manage(cube_scene_ = new CubeScene()));
 
   cube_scene_->set_exclusive_context(true);
+  cube_scene_->set_multisample(4);
   cube_scene_->set_name("cube_scene");
   cube_scene_->add_events(Gdk::BUTTON_PRESS_MASK | Gdk::SCROLL_MASK);
 

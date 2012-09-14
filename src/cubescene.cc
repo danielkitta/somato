@@ -1109,7 +1109,7 @@ bool CubeScene::on_motion_notify_event(GdkEventMotion* event)
 
 void CubeScene::setup_gl_context()
 {
-  GL::configure_widget(*this, GDK_GL_MODE_RGBA | GDK_GL_MODE_DEPTH | GDK_GL_MODE_DOUBLE);
+  GL::configure_widget(*this, GDK_GL_MODE_RGBA | GDK_GL_MODE_DOUBLE);
 }
 
 GL::Extensions* CubeScene::gl_query_extensions()

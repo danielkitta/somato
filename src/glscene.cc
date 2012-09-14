@@ -53,6 +53,12 @@ enum
   ATTRIB_TEXCOORD = 2
 };
 
+enum
+{
+  COLOR = 0,
+  DEPTH = 1
+};
+
 /*
  * Generate vertices for drawing the focus indicator of the GL widget.
  */
@@ -286,6 +292,10 @@ Scene::Scene()
   label_uf_color_     {-1},
   label_uf_texture_   {-1},
   focus_uf_color_     {-1},
+  aa_samples_         {0},
+  max_aa_samples_     {0},
+  render_buffers_     {0, 0},
+  frame_buffer_       {0},
   ui_vertex_count_    {0},
   ui_vertex_array_    {0},
   ui_buffer_          {0},
@@ -388,6 +398,24 @@ bool Scene::get_enable_vsync() const
 bool Scene::vsync_enabled() const
 {
   return vsync_enabled_;
+}
+
+void Scene::set_multisample(int n_samples)
+{
+  const int samples_set = Math::min(aa_samples_, max_aa_samples_);
+  aa_samples_ = n_samples;
+
+  if (n_samples != samples_set && is_realized())
+  {
+    ScopeContext context {*this};
+
+    gl_update_framebuffer();
+  }
+}
+
+int Scene::get_multisample() const
+{
+  return aa_samples_;
 }
 
 void Scene::set_show_focus(bool show_focus)
@@ -500,6 +528,17 @@ void Scene::gl_update_ui_buffer()
 
 void Scene::gl_swap_buffers()
 {
+  GL::Error::check();
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, frame_buffer_);
+
+  const int width  = Math::max(1, get_width());
+  const int height = Math::max(1, get_height());
+
+  glBlitFramebuffer(0, 0, width, height, 0, 0, width, height,
+                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
   const auto drawable = static_cast<GdkGLDrawable*>(gl_drawable_);
 
   g_return_if_fail(drawable != nullptr);
@@ -508,6 +547,7 @@ void Scene::gl_swap_buffers()
     gdk_gl_drawable_swap_buffers(drawable);
 
   glFinish();
+  GL::Error::check();
 }
 
 void Scene::gl_initialize()
@@ -515,6 +555,7 @@ void Scene::gl_initialize()
   gl_create_label_shader();
   gl_create_focus_shader();
 
+  gl_update_framebuffer();
   gl_update_viewport();
   gl_update_projection();
   gl_update_color();
@@ -582,6 +623,8 @@ void Scene::gl_cleanup()
   for (const auto& layout : ui_layouts_)
     layout->gl_delete();
 
+  gl_delete_framebuffer();
+
   label_uf_color_   = -1;
   label_uf_texture_ = -1;
   focus_uf_color_   = -1;
@@ -606,6 +649,9 @@ void Scene::gl_reset_state()
   glDisable(GL_BLEND);
 
   GL::ShaderProgram::unuse();
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 /*
@@ -796,6 +842,58 @@ void Scene::gl_update_color()
   glClearColor(red, green, blue, 0.0);
 }
 
+void Scene::gl_update_framebuffer()
+{
+  gl_delete_framebuffer();
+
+  glGenRenderbuffers(2, render_buffers_);
+  GL::Error::throw_if_fail(render_buffers_[COLOR] != 0 && render_buffers_[DEPTH] != 0);
+
+  glGenFramebuffers(1, &frame_buffer_);
+  GL::Error::throw_if_fail(frame_buffer_ != 0);
+
+  const int width   = Math::max(1, get_width());
+  const int height  = Math::max(1, get_height());
+  const int samples = Math::min(aa_samples_, max_aa_samples_);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB, width, height);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[DEPTH]);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24, width, height);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
+
+  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                            GL_RENDERBUFFER, render_buffers_[COLOR]);
+  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            GL_RENDERBUFFER, render_buffers_[DEPTH]);
+
+  const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+
+  if (status != GL_FRAMEBUFFER_COMPLETE)
+    g_warning("Framebuffer status: %u\n", status);
+
+  GL::Error::check();
+}
+
+void Scene::gl_delete_framebuffer()
+{
+  if (frame_buffer_)
+  {
+    glDeleteFramebuffers(1, &frame_buffer_);
+    frame_buffer_ = 0;
+  }
+  if (render_buffers_[COLOR] || render_buffers_[DEPTH])
+  {
+    glDeleteRenderbuffers(2, render_buffers_);
+    render_buffers_[COLOR] = 0;
+    render_buffers_[DEPTH] = 0;
+  }
+}
+
 void Scene::gl_update_vsync_state()
 {
   if (has_back_buffer_ && gl_ext()->have_swap_control)
@@ -897,6 +995,7 @@ void Scene::on_size_allocate(Gtk::Allocation& allocation)
   {
     ScopeContext context {*this};
 
+    gl_update_framebuffer();
     gl_update_viewport();
     gl_update_projection();
     gl_update_ui();
@@ -962,6 +1061,8 @@ bool Scene::on_expose_event(GdkEventExpose*)
 
     try
     {
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
+
       triangle_count = gl_render();
       GL::Error::check();
     }
@@ -1023,6 +1124,9 @@ void Scene::on_signal_realize()
 
     if (GL::get_gl_version() < GL::make_version(3, 2))
       g_error("at least OpenGL 3.2 is required to run this program");
+
+    max_aa_samples_ = 0;
+    glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
 
     gl_update_vsync_state();
 

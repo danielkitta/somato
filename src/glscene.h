@@ -82,6 +82,9 @@ public:
   bool get_enable_vsync() const;
   bool vsync_enabled() const;
 
+  void set_multisample(int n_samples);
+  int  get_multisample() const;
+
   void set_show_focus(bool show_focus);
   bool get_show_focus() const;
 
@@ -132,6 +135,12 @@ private:
   GL::ShaderProgram focus_shader_;
   int               focus_uf_color_;
 
+  int          aa_samples_;
+  int          max_aa_samples_;
+
+  unsigned int render_buffers_[2];
+  unsigned int frame_buffer_;
+
   unsigned int ui_vertex_count_;
   unsigned int ui_vertex_array_;
   unsigned int ui_buffer_;
@@ -153,6 +162,9 @@ private:
 
   void gl_create_label_shader();
   void gl_create_focus_shader();
+
+  void gl_update_framebuffer();
+  void gl_delete_framebuffer();
 
   void gl_update_vsync_state();
   void gl_update_layouts();
