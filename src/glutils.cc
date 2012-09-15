@@ -120,6 +120,44 @@ Glib::ustring error_message_from_code(unsigned int error_code)
   return Glib::ustring();
 }
 
+static
+Glib::ustring framebuffer_message_from_code(unsigned int status_code)
+{
+  const char* message = "unknown status";
+
+  switch (status_code)
+  {
+    case GL_FRAMEBUFFER_COMPLETE:
+      message = "framebuffer complete";
+      break;
+    case GL_FRAMEBUFFER_UNDEFINED:
+      message = "framebuffer undefined";
+      break;
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+      message = "incomplete attachment";
+      break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+      message = "missing attachment";
+      break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+      message = "no draw buffer";
+      break;
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+      message = "no read buffer";
+      break;
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+      message = "unsupported configuration";
+      break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+      message = "inconsistent multisample setup";
+      break;
+    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+      message = "inconsistent layer targets";
+      break;
+  }
+  return Glib::ustring{message};
+}
+
 static inline
 int parse_version_digits(const unsigned char*& version)
 {
@@ -150,14 +188,20 @@ int parse_version_digits(const unsigned char*& version)
 
 GL::Error::Error(unsigned int error_code)
 :
-  what_ (error_message_from_code(error_code)),
-  code_ (error_code)
+  what_ {error_message_from_code(error_code)},
+  code_ {error_code}
 {}
 
 GL::Error::Error(const Glib::ustring& message)
 :
-  what_ (message),
-  code_ (0)
+  what_ {message},
+  code_ {0}
+{}
+
+GL::Error::Error(const Glib::ustring& message, unsigned int error_code)
+:
+  what_ {message},
+  code_ {error_code}
 {}
 
 GL::Error::~Error() noexcept
@@ -178,7 +222,7 @@ void GL::Error::check()
   const GLenum error_code = glGetError();
 
   if (error_code != GL_NO_ERROR)
-    throw GL::Error(error_code);
+    throw GL::Error{error_code};
 }
 
 #ifdef _MSC_VER
@@ -189,8 +233,16 @@ void GL::Error::fail()
 {
   check();
 
-  throw GL::Error("operation failed without error code");
+  throw GL::Error{"operation failed without error code"};
 }
+
+GL::FramebufferError::FramebufferError(unsigned int error_code)
+:
+  GL::Error{framebuffer_message_from_code(error_code), error_code}
+{}
+
+GL::FramebufferError::~FramebufferError() noexcept
+{}
 
 void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 {

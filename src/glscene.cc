@@ -880,7 +880,7 @@ void Scene::gl_update_framebuffer()
   const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 
   if (status != GL_FRAMEBUFFER_COMPLETE)
-    g_warning("Framebuffer status: %u\n", status);
+    throw GL::FramebufferError{status};
 
   GL::Error::check();
 }

@@ -62,6 +62,16 @@ public:
   static void fail() G_GNUC_NORETURN; // like check() but always throws
 
   static void throw_if_fail(bool condition) { if (G_UNLIKELY(!condition)) fail(); }
+
+protected:
+  Error(const Glib::ustring& message, unsigned int error_code);
+};
+
+class FramebufferError : public Error
+{
+public:
+  explicit FramebufferError(unsigned int error_code);
+  virtual ~FramebufferError() noexcept;
 };
 
 /*
