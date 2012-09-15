@@ -35,7 +35,6 @@
 # include <gdk/win32/gdkglwin32.h>
 #endif
 #include <GL/gl.h>
-#include <GL/glu.h>
 #ifdef GDK_WINDOWING_X11
 # include <gdk/x11/gdkglx.h> /* include last as it pulls in whacky X headers */
 #endif
@@ -101,23 +100,30 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
 static
 Glib::ustring error_message_from_code(unsigned int error_code)
 {
-  // According to the manual, the error string is always in ISO Latin 1.
-  // Although it is quite unlikely that the message will ever contain any
-  // characters outside the basic ASCII range, the code should be able to
-  // properly handle that eventuality.
-  //
-  // On Windows, we get the string in UTF-16 instead, by means of an
-  // extension which appears to be generally available on the platform.
+  const char* message = "unknown error";
 
-#ifdef GDK_WINDOWING_WIN32
-  if (const wchar_t *const message = gluErrorUnicodeStringEXT(error_code))
-    if (char *const buf = g_utf16_to_utf8(reinterpret_cast<const gunichar2*>(message), -1, 0, 0, 0))
-      return Glib::ScopedPtr<char>(buf).get();
-#else
-  if (const GLubyte *const message = gluErrorString(error_code))
-    return Glib::convert(reinterpret_cast<const char*>(message), "UTF-8", "ISO-8859-1");
-#endif
-  return Glib::ustring();
+  switch (error_code)
+  {
+    case GL_NO_ERROR:
+      message = "no error";
+      break;
+    case GL_INVALID_ENUM:
+      message = "invalid enumerant";
+      break;
+    case GL_INVALID_VALUE:
+      message = "invalid value";
+      break;
+    case GL_INVALID_OPERATION:
+      message = "invalid operation";
+      break;
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+      message = "invalid framebuffer operation";
+      break;
+    case GL_OUT_OF_MEMORY:
+      message = "out of memory";
+      break;
+  }
+  return Glib::ustring{message};
 }
 
 static
