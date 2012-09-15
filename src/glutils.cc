@@ -294,15 +294,14 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 #endif /* !GDK_WINDOWING_WIN32 */
 
   if (!config)
-    throw GL::Error("could not find OpenGL-capable visual");
+    throw GL::Error{"could not find OpenGL-capable visual"};
 
-  const int type = ((mode & GDK_GL_MODE_INDEX) != 0) ? GDK_GL_COLOR_INDEX_TYPE : GDK_GL_RGBA_TYPE;
-  const gboolean success = gtk_widget_set_gl_capability(widget, config, 0, TRUE, type);
-
+  const gboolean success = gtk_widget_set_gl_capability(widget, config, nullptr,
+                                                        TRUE, GDK_GL_RGBA_TYPE);
   g_object_unref(config);
 
   if (!success)
-    throw GL::Error("could not set GL capability on widget");
+    throw GL::Error{"could not set GL capability on widget"};
 }
 
 int GL::parse_version_string(const unsigned char* version)
@@ -360,9 +359,9 @@ bool GL::have_glx_extension(const char* name)
 {
   GdkGLDrawable *const drawable = gdk_gl_drawable_get_current();
 
-  g_return_val_if_fail(drawable != 0, false);
+  g_return_val_if_fail(drawable != nullptr, false);
 
-  return (gdk_x11_gl_query_glx_extension(gdk_gl_drawable_get_gl_config(drawable), name) != 0);
+  return (gdk_x11_gl_query_glx_extension(gdk_gl_drawable_get_gl_config(drawable), name) != FALSE);
 }
 
 #endif /* GDK_WINDOWING_X11 */
@@ -372,10 +371,10 @@ bool GL::have_glx_extension(const char* name)
 bool GL::have_wgl_extension(const char* name)
 {
   GdkGLDrawable *const drawable = gdk_gl_drawable_get_current();
+  
+  g_return_val_if_fail(drawable != nullptr, false);
 
-  g_return_val_if_fail(drawable != 0, false);
-
-  return (gdk_win32_gl_query_wgl_extension(gdk_gl_drawable_get_gl_config(drawable), name) != 0);
+  return (gdk_win32_gl_query_wgl_extension(gdk_gl_drawable_get_gl_config(drawable), name) != FALSE);
 }
 
 #endif /* GDK_WINDOWING_WIN32 */
