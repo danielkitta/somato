@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2012  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -58,12 +58,12 @@ __m128 vector3_mag(__m128 v)
 
 #if SOMATO_CUSTOM_ALLOC
 
-static void* v4_align_alloc(std::size_t size) throw() G_GNUC_MALLOC;
+static void* v4_align_alloc(std::size_t size) noexcept G_GNUC_MALLOC;
 
 # if SOMATO_HAVE_POSIX_MEMALIGN
 
 static
-void* v4_align_alloc(std::size_t size) throw()
+void* v4_align_alloc(std::size_t size) noexcept
 {
   if (size == 0)
     return std::malloc(1);
@@ -87,7 +87,7 @@ void* v4_align_alloc(std::size_t size) throw()
 }
 
 static inline
-void v4_align_free(void* p) throw()
+void v4_align_free(void* p) noexcept
 {
   std::free(p);
 }
@@ -95,7 +95,7 @@ void v4_align_free(void* p) throw()
 # else /* !SOMATO_HAVE_POSIX_MEMALIGN */
 
 static
-void* v4_align_alloc(std::size_t size) throw()
+void* v4_align_alloc(std::size_t size) noexcept
 {
   if (size == 0)
     size = 1;
@@ -106,7 +106,7 @@ void* v4_align_alloc(std::size_t size) throw()
 }
 
 static inline
-void v4_align_free(void* p) throw()
+void v4_align_free(void* p) noexcept
 {
   _mm_free(p);
 }
