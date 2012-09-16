@@ -73,8 +73,11 @@ GLuint compile_shader(GLenum type, const std::string& filename)
     GLsizei length = 0;
     glGetShaderInfoLog(shader.get(), bufsize, &length, buffer.get());
 
+    while (length > 0 && (buffer[length - 1] == '\n' || buffer[length - 1] == '\0'))
+      --length;
+
     buffer[length] = '\0';
-    g_printerr("%s\n", buffer.get());
+    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, "%s", buffer.get());
   }
 
   GLint success = GL_FALSE;
@@ -143,8 +146,11 @@ void ShaderProgram::link()
     GLsizei length = 0;
     glGetProgramInfoLog(program_, bufsize, &length, buffer.get());
 
+    while (length > 0 && (buffer[length - 1] == '\n' || buffer[length - 1] == '\0'))
+      --length;
+
     buffer[length] = '\0';
-    g_printerr("%s\n", buffer.get());
+    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, "%s", buffer.get());
   }
 
   GLint success = GL_FALSE;
