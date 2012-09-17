@@ -289,6 +289,7 @@ Scene::Scene()
 :
   focus_color_        {1.0, 1.0, 1.0, 1.0},
   gl_drawable_        {nullptr},
+  gl_context_         {nullptr},
   label_uf_color_     {-1},
   label_uf_texture_   {-1},
   focus_uf_color_     {-1},
@@ -534,8 +535,6 @@ void Scene::gl_update_ui_buffer()
 
 void Scene::gl_swap_buffers()
 {
-  GL::Error::check();
-
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glBindFramebuffer(GL_READ_FRAMEBUFFER, frame_buffer_);
 
@@ -545,12 +544,10 @@ void Scene::gl_swap_buffers()
   glBlitFramebuffer(0, 0, width, height, 0, 0, width, height,
                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-  const auto drawable = static_cast<GdkGLDrawable*>(gl_drawable_);
-
-  g_return_if_fail(drawable != nullptr);
+  g_return_if_fail(gl_drawable_ != nullptr);
 
   if (has_back_buffer_ && use_back_buffer_)
-    gdk_gl_drawable_swap_buffers(drawable);
+    gdk_gl_drawable_swap_buffers(gl_drawable_);
 
   glFinish();
   GL::Error::check();
@@ -1098,21 +1095,21 @@ bool Scene::on_visibility_notify_event(GdkEventVisibility* event)
 void Scene::on_signal_realize()
 {
   g_return_if_fail(gl_drawable_ == nullptr);
+  g_return_if_fail(gl_context_ == nullptr);
 
   Glib::RefPtr<Pango::Context>().swap(texture_context_);
 
   for (const auto& layout : ui_layouts_)
     layout->invalidate();
 
-  GtkWidget     *const glwidget = Gtk::Widget::gobj();
-  GdkGLDrawable *const drawable = gtk_widget_get_gl_drawable(glwidget);
+  gl_drawable_ = gtk_widget_get_gl_drawable(Gtk::Widget::gobj());
+  gl_context_  = GL::create_context(gl_drawable_);
 
-  gl_drawable_ = drawable;
-  has_back_buffer_ = (gdk_gl_drawable_is_double_buffered(drawable) != FALSE);
+  has_back_buffer_ = (gdk_gl_drawable_is_double_buffered(gl_drawable_) != FALSE);
 
   if (exclusive_context_)
   {
-    if (!gdk_gl_drawable_gl_begin(drawable, gtk_widget_get_gl_context(glwidget)))
+    if (!gdk_gl_drawable_gl_begin(gl_drawable_, gl_context_))
       throw GL::Error("rendering context could not be made current");
   }
 
@@ -1139,7 +1136,7 @@ void Scene::on_signal_realize()
 
 void Scene::on_signal_unrealize()
 {
-  if (gl_drawable_)
+  if (gl_drawable_ && gl_context_)
   {
     {
       ScopeContext context {*this};
@@ -1149,9 +1146,12 @@ void Scene::on_signal_unrealize()
     }
 
     if (exclusive_context_)
-      gdk_gl_drawable_gl_end(static_cast<GdkGLDrawable*>(gl_drawable_));
+      gdk_gl_drawable_gl_end(gl_drawable_);
+
+    GL::destroy_context(gl_context_);
 
     gl_drawable_ = nullptr;
+    gl_context_  = nullptr;
 
     vsync_enabled_   = false;
     has_back_buffer_ = false;
@@ -1165,9 +1165,7 @@ void Scene::ScopeContext::begin_(Scene& scene)
 {
   if (!scene.exclusive_context_)
   {
-    GdkGLContext *const context = gtk_widget_get_gl_context(scene.Gtk::Widget::gobj());
-
-    if (!gdk_gl_drawable_gl_begin(static_cast<GdkGLDrawable*>(scene.gl_drawable_), context))
+    if (!gdk_gl_drawable_gl_begin(scene.gl_drawable_, scene.gl_context_))
       throw GL::Error("rendering context could not be made current");
   }
 }
@@ -1176,7 +1174,7 @@ void Scene::ScopeContext::begin_(Scene& scene)
 void Scene::ScopeContext::end_(Scene& scene)
 {
   if (!scene.exclusive_context_)
-    gdk_gl_drawable_gl_end(static_cast<GdkGLDrawable*>(scene.gl_drawable_));
+    gdk_gl_drawable_gl_end(scene.gl_drawable_);
 }
 
 } // namespace GL

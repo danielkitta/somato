@@ -304,6 +304,21 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
     throw GL::Error{"could not set GL capability on widget"};
 }
 
+GdkGLContext* GL::create_context(GdkGLDrawable* drawable)
+{
+  GdkGLContext *const context =
+    gdk_gl_context_new(drawable, nullptr, TRUE, GDK_GL_RGBA_TYPE);
+
+  g_return_val_if_fail(context != nullptr, nullptr);
+
+  return context;
+}
+
+void GL::destroy_context(GdkGLContext* context)
+{
+  g_object_unref(context);
+}
+
 int GL::parse_version_string(const unsigned char* version)
 {
   if (version)

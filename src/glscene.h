@@ -22,6 +22,7 @@
 #define SOMATO_GLSCENE_H_INCLUDED
 
 #include "glshader.h"
+#include "glutils.h"
 #include "vectormath.h"
 
 #include <glibmm/ustring.h>
@@ -121,7 +122,9 @@ private:
 
   Math::Vector4     focus_color_;
 
-  void*                           gl_drawable_;
+  GdkGLDrawable*    gl_drawable_;
+  GdkGLContext*     gl_context_;
+
   std::unique_ptr<GL::Extensions> gl_extensions_;
   Glib::RefPtr<Pango::Context>    texture_context_;
 

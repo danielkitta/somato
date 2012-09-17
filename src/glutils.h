@@ -26,6 +26,12 @@
 #include <glibmm/ustring.h>
 #include <cstddef>
 
+extern "C"
+{
+  typedef struct _GdkGLContext  GdkGLContext;
+  typedef struct _GdkGLDrawable GdkGLDrawable;
+}
+
 #ifndef SOMATO_HIDE_FROM_INTELLISENSE
 namespace Gtk { class Widget; }
 #endif
@@ -80,6 +86,9 @@ public:
  * to a toplevel window.  GL::Error is thrown on failure.
  */
 void configure_widget(Gtk::Widget& target, unsigned int mode);
+
+GdkGLContext* create_context(GdkGLDrawable* drawable);
+void destroy_context(GdkGLContext* context);
 
 /*
  * Combine major and minor version number parts into a single
