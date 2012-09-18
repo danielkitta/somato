@@ -19,6 +19,7 @@
  */
 
 #define GL_GLEXT_PROTOTYPES 1
+#define GLX_GLXEXT_PROTOTYPES 1
 
 #include "glutils.h"
 
@@ -29,6 +30,7 @@
 #include <gtk/gtkwidget.h>
 #include <glibmm/convert.h>
 #include <gtkmm/widget.h>
+#include <array>
 #include <cstring>
 
 #ifdef GDK_WINDOWING_WIN32
@@ -37,6 +39,7 @@
 #include <GL/gl.h>
 #ifdef GDK_WINDOWING_X11
 # include <gdk/x11/gdkglx.h> /* include last as it pulls in whacky X headers */
+# include <GL/glx.h>
 #endif
 
 namespace
@@ -96,6 +99,61 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
   }
 }
 #endif /* GDK_WINDOWING_WIN32 */
+
+#ifdef GDK_WINDOWING_X11
+static
+GdkGLContext* create_glx_core_context(GdkGLConfig* config)
+{
+  const auto CreateContextAttribs = reinterpret_cast<PFNGLXCREATECONTEXTATTRIBSARBPROC>
+    (gdk_gl_get_proc_address("glXCreateContextAttribsARB"));
+
+  g_return_val_if_fail(CreateContextAttribs != nullptr, nullptr);
+
+  static const std::array<int, 8> query_attribs =
+  {{
+    GLX_DOUBLEBUFFER, GLX_STEREO,
+    GLX_RED_SIZE, GLX_GREEN_SIZE, GLX_BLUE_SIZE, GLX_ALPHA_SIZE,
+    GLX_DEPTH_SIZE, GLX_STENCIL_SIZE
+  }};
+  int  attribs[18];
+  int* pattrib = attribs;
+
+  for (const int attr : query_attribs)
+    if (gdk_gl_config_get_attrib(config, attr, pattrib + 1))
+    {
+      *pattrib = attr;
+      pattrib += 2;
+    }
+
+  *pattrib = None;
+
+  Display *const xdisplay = gdk_x11_gl_config_get_xdisplay(config);
+  const int screen = gdk_x11_gl_config_get_screen_number(config);
+
+  int n_fbconfigs = 0;
+  GLXFBConfig *const fbconfigs = glXChooseFBConfig(xdisplay, screen, attribs, &n_fbconfigs);
+
+  g_return_val_if_fail(fbconfigs != nullptr && n_fbconfigs > 0, nullptr);
+
+  attribs[0] = GLX_CONTEXT_MAJOR_VERSION_ARB;
+  attribs[1] = 3;
+  attribs[2] = GLX_CONTEXT_MINOR_VERSION_ARB;
+  attribs[3] = 2;
+  attribs[4] = GLX_CONTEXT_FLAGS_ARB;
+  attribs[5] = GLX_CONTEXT_DEBUG_BIT_ARB; // FIXME: make conditional
+  attribs[6] = GLX_CONTEXT_PROFILE_MASK_ARB;
+  attribs[7] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+  attribs[8] = None;
+
+  const GLXContext glx_context =
+    (*CreateContextAttribs)(xdisplay, fbconfigs[0], 0, True, attribs);
+
+  XFree(fbconfigs);
+  g_return_val_if_fail(glx_context, nullptr);
+
+  return gdk_x11_gl_context_foreign_new(config, nullptr, glx_context);
+}
+#endif /* GDK_WINDOWING_X11 */
 
 static
 Glib::ustring error_message_from_code(unsigned int error_code)
@@ -306,8 +364,16 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 
 GdkGLContext* GL::create_context(GdkGLDrawable* drawable)
 {
-  GdkGLContext *const context =
-    gdk_gl_context_new(drawable, nullptr, TRUE, GDK_GL_RGBA_TYPE);
+  GdkGLContext* context;
+
+#ifdef GDK_WINDOWING_X11
+  GdkGLConfig *const config = gdk_gl_drawable_get_gl_config(drawable);
+
+  if (gdk_x11_gl_query_glx_extension(config, "GLX_ARB_create_context_profile"))
+    context = create_glx_core_context(config);
+  else
+#endif
+    context = gdk_gl_context_new(drawable, nullptr, TRUE, GDK_GL_RGBA_TYPE);
 
   g_return_val_if_fail(context != nullptr, nullptr);
 
@@ -316,7 +382,26 @@ GdkGLContext* GL::create_context(GdkGLDrawable* drawable)
 
 void GL::destroy_context(GdkGLContext* context)
 {
+#ifdef GDK_WINDOWING_X11
+  Display* xdisplay = nullptr;
+  GLXContext glx_context = 0;
+
+  if (GdkGLConfig *const config = gdk_gl_context_get_gl_config(context))
+    if (gdk_x11_gl_query_glx_extension(config, "GLX_ARB_create_context_profile"))
+    {
+      xdisplay = gdk_x11_gl_config_get_xdisplay(config);
+      glx_context = gdk_x11_gl_context_get_glxcontext(context);
+    }
+#endif
   g_object_unref(context);
+
+#ifdef GDK_WINDOWING_X11
+  if (glx_context)
+  {
+    g_return_if_fail(xdisplay != nullptr);
+    glXDestroyContext(xdisplay, glx_context);
+  }
+#endif
 }
 
 int GL::parse_version_string(const unsigned char* version)
