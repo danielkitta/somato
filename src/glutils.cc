@@ -102,6 +102,15 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
 
 #ifdef GDK_WINDOWING_X11
 static
+unsigned int debug_flag_if_enabled()
+{
+  const char *const messages_debug = g_getenv("G_MESSAGES_DEBUG");
+  const GDebugKey debug_key {"OpenGL", GLX_CONTEXT_DEBUG_BIT_ARB};
+
+  return g_parse_debug_string(messages_debug, &debug_key, 1) & GLX_CONTEXT_DEBUG_BIT_ARB;
+}
+
+static
 GdkGLContext* create_glx_core_context(GdkGLConfig* config)
 {
   const auto CreateContextAttribs = reinterpret_cast<PFNGLXCREATECONTEXTATTRIBSARBPROC>
@@ -140,7 +149,7 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
   attribs[2] = GLX_CONTEXT_MINOR_VERSION_ARB;
   attribs[3] = 2;
   attribs[4] = GLX_CONTEXT_FLAGS_ARB;
-  attribs[5] = GLX_CONTEXT_DEBUG_BIT_ARB; // FIXME: make conditional
+  attribs[5] = debug_flag_if_enabled();
   attribs[6] = GLX_CONTEXT_PROFILE_MASK_ARB;
   attribs[7] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
   attribs[8] = None;

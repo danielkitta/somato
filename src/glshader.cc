@@ -77,7 +77,7 @@ GLuint compile_shader(GLenum type, const std::string& filename)
       --length;
 
     buffer[length] = '\0';
-    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, "%s", buffer.get());
+    g_log("OpenGL", G_LOG_LEVEL_INFO, "%s", buffer.get());
   }
 
   GLint success = GL_FALSE;
@@ -150,7 +150,7 @@ void ShaderProgram::link()
       --length;
 
     buffer[length] = '\0';
-    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, "%s", buffer.get());
+    g_log("OpenGL", G_LOG_LEVEL_INFO, "%s", buffer.get());
   }
 
   GLint success = GL_FALSE;
