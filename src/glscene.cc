@@ -59,6 +59,16 @@ enum
   DEPTH = 1
 };
 
+extern "C"
+{
+static GLAPIENTRY
+void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
+                         const GLchar* message, GLvoid*)
+{
+  g_log("OpenGL", G_LOG_LEVEL_DEBUG, "%s", message);
+}
+} // extern "C"
+
 /*
  * Generate vertices for drawing the focus indicator of the GL widget.
  */
@@ -111,13 +121,24 @@ Extensions::~Extensions()
 
 void Extensions::query()
 {
+  have_debug_output = false;
   have_swap_control = false;
+
+  DebugMessageControl  = nullptr;
+  DebugMessageCallback = nullptr;
 
 #if defined(GDK_WINDOWING_X11)
   SwapIntervalSGI = nullptr;
 #elif defined(GDK_WINDOWING_WIN32)
   SwapIntervalEXT = nullptr;
 #endif
+
+  if (GL::have_gl_extension("GL_ARB_debug_output"))
+  {
+    if (GL::get_proc_address(DebugMessageControl,  "glDebugMessageControlARB") &&
+        GL::get_proc_address(DebugMessageCallback, "glDebugMessageCallbackARB"))
+      have_debug_output = true;
+  }
 
 #if defined(GDK_WINDOWING_X11)
   if (GL::have_glx_extension("GLX_SGI_swap_control"))
@@ -254,7 +275,6 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
   }
   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_R8, img_width, ink_height,
                0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
-  GL::Error::check();
 
   tex_width_  = img_width;
   tex_height_ = ink_height;
@@ -550,7 +570,6 @@ void Scene::gl_swap_buffers()
     gdk_gl_drawable_swap_buffers(gl_drawable_);
 
   glFinish();
-  GL::Error::check();
 }
 
 void Scene::gl_initialize()
@@ -878,8 +897,6 @@ void Scene::gl_update_framebuffer()
 
   if (status != GL_FRAMEBUFFER_COMPLETE)
     throw GL::FramebufferError{status};
-
-  GL::Error::check();
 }
 
 void Scene::gl_delete_framebuffer()
@@ -1059,9 +1076,7 @@ bool Scene::on_expose_event(GdkEventExpose*)
     try
     {
       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
-
       triangle_count = gl_render();
-      GL::Error::check();
     }
     catch (...)
     {
@@ -1121,6 +1136,12 @@ void Scene::on_signal_realize()
 
     if (GL::get_gl_version() < GL::make_version(3, 2))
       g_error("at least OpenGL 3.2 is required to run this program");
+
+    if (gl_ext()->have_debug_output)
+    {
+      gl_ext()->DebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+      gl_ext()->DebugMessageCallback(&gl_on_debug_message, nullptr);
+    }
 
     max_aa_samples_ = 0;
     glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);

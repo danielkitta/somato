@@ -53,11 +53,15 @@ private:
   void query();
 
   // noncopyable
-  Extensions(const Extensions&);
-  Extensions& operator=(const Extensions&);
+  Extensions(const Extensions&) = delete;
+  Extensions& operator=(const Extensions&) = delete;
 
 public:
+  bool have_debug_output;
   bool have_swap_control;
+
+  PFNGLDEBUGMESSAGECONTROLARBPROC  DebugMessageControl;
+  PFNGLDEBUGMESSAGECALLBACKARBPROC DebugMessageCallback;
 
 #if defined(GDK_WINDOWING_X11)
   PFNGLXSWAPINTERVALSGIPROC SwapIntervalSGI;

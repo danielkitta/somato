@@ -871,8 +871,6 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  GL::Error::check();
 }
 
 void CubeScene::on_meshes_loaded()
@@ -1615,8 +1613,6 @@ void CubeScene::gl_create_wireframe()
   glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  GL::Error::check();
 }
 
 void CubeScene::gl_delete_wireframe()
@@ -1848,8 +1844,6 @@ void CubeScene::gl_init_cube_texture()
                formats[n_channels - 1], GL_UNSIGNED_BYTE, pixbuf->get_pixels());
 
   glGenerateMipmap(GL_TEXTURE_2D);
-
-  GL::Error::check();
 }
 
 void CubeScene::update_footing()
