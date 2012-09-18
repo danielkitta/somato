@@ -57,14 +57,15 @@ namespace
 
 using Somato::Cube;
 
-/*
- * The type of indices into the wireframe vertex array.
+/* The type of indices into the wireframe vertex array.
+ * Although GLubyte would suffice to represent the range of indices, it is
+ * not an optimal configuration with my current hardware (Radeon HD5670).
  */
-typedef GLubyte WireframeIndex;
+typedef GLushort WireframeIndex;
 
 enum
 {
-  WIREFRAME_INDEX_TYPE   = GL_UNSIGNED_BYTE,
+  WIREFRAME_INDEX_TYPE   = GL_UNSIGNED_SHORT,
   WIREFRAME_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
   WIREFRAME_LINE_COUNT   = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
 };
