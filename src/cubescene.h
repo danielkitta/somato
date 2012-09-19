@@ -237,8 +237,8 @@ private:
 
   int  gl_draw_cube();
   int  gl_draw_pieces();
+  int  gl_draw_pieces_range(int first, int last);
   void gl_draw_piece_elements(const AnimationData& data, Math::Vector4 animpos);
-  int  gl_draw_piece_buffer_range(int first, int last);
 
   void gl_init_cube_texture();
   void gl_update_wireframe();

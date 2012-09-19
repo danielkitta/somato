@@ -1707,10 +1707,60 @@ int CubeScene::gl_draw_pieces()
     first = last;
   }
 
+  if (last >= first)
+    return gl_draw_pieces_range(first, last);
+
+  return 0;
+}
+
+int CubeScene::gl_draw_pieces_range(int first, int last)
+{
   int triangle_count = 0;
 
-  if (last >= first)
-    triangle_count = gl_draw_piece_buffer_range(first, last);
+  if (piece_shader_ && pieces_vertex_array_
+      && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
+  {
+    piece_shader_.use();
+    glBindVertexArray(pieces_vertex_array_);
+
+    int last_fixed = last;
+
+    if (animation_position_ > 0.0f && last == animation_piece_ - 1)
+      --last_fixed;
+
+    if (last_fixed >= first)
+    {
+      for (int i : depth_order_)
+        if (i >= first && i <= last_fixed)
+        {
+          const auto& data = animation_data_[i];
+          const auto& mesh = mesh_data_[data.cube_index];
+          triangle_count += mesh.triangle_count;
+
+          gl_draw_piece_elements(data, Math::Matrix4::identity[3]);
+        }
+    }
+
+    if (last != last_fixed)
+    {
+      const auto& data = animation_data_[last];
+      const auto& mesh = mesh_data_[data.cube_index];
+      triangle_count += mesh.triangle_count;
+
+      // Distance in model units an animated cube piece has to travel.
+      const float animation_distance = 1.75 * Cube::N * cube_cell_size;
+      const float d = animation_position_ * animation_distance;
+
+      const Math::Vector4 translate {data.direction[0] * d,
+                                     data.direction[1] * d,
+                                     data.direction[2] * d,
+                                     1.0};
+      gl_draw_piece_elements(data, translate);
+    }
+
+    glBindVertexArray(0);
+    GL::ShaderProgram::unuse();
+  }
 
   return triangle_count;
 }
@@ -1743,60 +1793,6 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
   glDrawRangeElements(GL_TRIANGLES, mesh.element_first, mesh.element_last,
                       3 * mesh.triangle_count, MESH_INDEX_TYPE,
                       GL::buffer_offset(mesh.indices_offset * sizeof(GL::MeshIndex)));
-}
-
-int CubeScene::gl_draw_piece_buffer_range(int first, int last)
-{
-  int triangle_count = 0;
-
-  if (piece_shader_ && pieces_vertex_array_
-      && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
-  {
-    piece_shader_.use();
-    glBindVertexArray(pieces_vertex_array_);
-
-    int last_fixed = last;
-
-    if (animation_position_ > 0.0f && last == animation_piece_ - 1)
-      --last_fixed;
-
-    if (last_fixed >= first)
-    {
-      for (int i : depth_order_)
-      {
-        if (i >= first && i <= last_fixed)
-        {
-          const auto& data = animation_data_[i];
-          const auto& mesh = mesh_data_[data.cube_index];
-          triangle_count += mesh.triangle_count;
-
-          gl_draw_piece_elements(data, Math::Matrix4::identity[3]);
-        }
-      }
-    }
-
-    if (last != last_fixed)
-    {
-      const auto& data = animation_data_[last];
-      const auto& mesh = mesh_data_[data.cube_index];
-      triangle_count += mesh.triangle_count;
-
-      // Distance in model units an animated cube piece has to travel.
-      const float animation_distance = 1.75 * Cube::N * cube_cell_size;
-      const float d = animation_position_ * animation_distance;
-
-      const Math::Vector4 translate {data.direction[0] * d,
-                                     data.direction[1] * d,
-                                     data.direction[2] * d,
-                                     1.0};
-      gl_draw_piece_elements(data, translate);
-    }
-
-    glBindVertexArray(0);
-    GL::ShaderProgram::unuse();
-  }
-
-  return triangle_count;
 }
 
 void CubeScene::gl_init_cube_texture()
