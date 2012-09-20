@@ -40,12 +40,12 @@
 #endif
 #include <GL/gl.h>
 
-#include <cfloat>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
+#include <limits>
 
 #include <config.h>
 
@@ -394,7 +394,7 @@ float CubeScene::get_zoom() const
 void CubeScene::set_rotation(const Math::Quat& rotation)
 {
   rotation_ = rotation;
-  rotation_.renormalize(8.0f * FLT_EPSILON);
+  rotation_.renormalize(4.0f * std::numeric_limits<float>::epsilon());
 
   depth_order_changed_ = true;
 
