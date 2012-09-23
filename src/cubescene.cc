@@ -764,16 +764,17 @@ void CubeScene::gl_update_projection()
   // Set up a perspective projection with a field of view angle of 45 degrees
   // in the y-direction.  Place the far clipping plane so that the cube origin
   // will be positioned halfway between the near and far clipping planes.
-  const float near  = 1.0;
-  const float far   = -view_z_offset * 2.0f - near;
-  const float top   = G_SQRT2 - 1.0; // tan(pi/8) = near / cot(pi/8)
-  const float right = width / height * top;
+  const float near = 1.0;
+  const float far  = -view_z_offset * 2.0f - near;
+
+  const float topinv   = G_SQRT2 + 1.0; // cot(pi/8)
+  const float rightinv = height / width * topinv;
 
   using Math::Matrix4;
   using Math::Vector4;
 
-  Matrix4 projection {Vector4{near / right, 0.0, 0.0, 0.0},
-                      Vector4{0.0, near / top, 0.0, 0.0},
+  Matrix4 projection {Vector4{near * rightinv, 0.0, 0.0, 0.0},
+                      Vector4{0.0, near * topinv, 0.0, 0.0},
                       Vector4{0.0, 0.0, (far + near) / (near - far), -1.0},
                       Vector4{0.0, 0.0, 2.0f * far * near / (near - far), 0.0}};
   if (piece_shader_)
