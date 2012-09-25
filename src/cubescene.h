@@ -46,7 +46,10 @@ struct MeshData
   unsigned int element_first;  // minimum referenced element index
   unsigned int element_last;   // maximum referenced element index
 
-  MeshData() : triangle_count{0}, indices_offset{0}, element_first{0}, element_last{0} {}
+  MeshData() : triangle_count {0}, indices_offset {0}, element_first {0}, element_last {0} {}
+  MeshData(const MeshData&) = default;
+  MeshData& operator=(const MeshData&) = default;
+
   unsigned int element_count() const { return element_last - element_first + 1; }
 };
 
@@ -57,16 +60,18 @@ struct AnimationData
   float         direction[3]; // direction of cube animation movement
 
   AnimationData() : transform {}, cube_index {0}, direction {0.0, 0.0, 0.0} {}
+  AnimationData(const AnimationData&) = default;
+  AnimationData& operator=(const AnimationData&) = default;
 };
 
 struct PieceCell
 {
-  unsigned int piece;   // animation index of cube piece
-  unsigned int cell;    // linearized index of cube cell
+  unsigned int piece; // animation index of cube piece
+  unsigned int cell;  // linearized index of cube cell
 
-  PieceCell() : piece (0), cell (0) {}
-  PieceCell(const PieceCell& b) : piece (b.piece), cell (b.cell) {}
-  PieceCell& operator=(const PieceCell& b) { piece = b.piece; cell = b.cell; return *this; }
+  PieceCell() : piece {0}, cell {0} {}
+  PieceCell(const PieceCell&) = default;
+  PieceCell& operator=(const PieceCell&) = default;
 };
 
 typedef std::vector<PieceCell> PieceCellVector;
