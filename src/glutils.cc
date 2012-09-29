@@ -124,42 +124,6 @@ GQuark quark_glxcontext()
 }
 
 static
-void dump_glx_fbconfig(Display* display, GLXFBConfig config)
-{
-  int fbconfig_id    = 0;
-  int red_size       = 0;
-  int green_size     = 0;
-  int blue_size      = 0;
-  int alpha_size     = 0;
-  int depth_size     = 0;
-  int stencil_size   = 0;
-  int doublebuffer   = False;
-  int stereo         = False;
-  int sample_buffers = 0;
-  int samples        = 0;
-
-  glXGetFBConfigAttrib(display, config, GLX_FBCONFIG_ID,    &fbconfig_id);
-  glXGetFBConfigAttrib(display, config, GLX_RED_SIZE,       &red_size);
-  glXGetFBConfigAttrib(display, config, GLX_GREEN_SIZE,     &green_size);
-  glXGetFBConfigAttrib(display, config, GLX_BLUE_SIZE,      &blue_size);
-  glXGetFBConfigAttrib(display, config, GLX_ALPHA_SIZE,     &alpha_size);
-  glXGetFBConfigAttrib(display, config, GLX_DEPTH_SIZE,     &depth_size);
-  glXGetFBConfigAttrib(display, config, GLX_STENCIL_SIZE,   &stencil_size);
-  glXGetFBConfigAttrib(display, config, GLX_DOUBLEBUFFER,   &doublebuffer);
-  glXGetFBConfigAttrib(display, config, GLX_STEREO,         &stereo);
-  glXGetFBConfigAttrib(display, config, GLX_SAMPLE_BUFFERS, &sample_buffers);
-  glXGetFBConfigAttrib(display, config, GLX_SAMPLES,        &samples);
-
-  g_print("FBConfig %3d: "
-          "RGBA=%d:%d:%d:%d, depth=%d, stencil=%d, double=%d, stereo=%d, "
-          "sbuffers=%d, samples=%d\n",
-          fbconfig_id,
-          red_size, green_size, blue_size, alpha_size,
-          depth_size, stencil_size, doublebuffer, stereo,
-          sample_buffers, samples);
-}
-
-static
 GdkGLConfig* create_glx_fbconfig(GdkScreen* screen, GdkGLConfigMode mode)
 {
   int  attrlist[24];
@@ -211,11 +175,6 @@ GdkGLConfig* create_glx_fbconfig(GdkScreen* screen, GdkGLConfigMode mode)
                                                    GDK_SCREEN_XNUMBER(screen),
                                                    attrlist, &n_fbconfigs);
   g_return_val_if_fail(fbconfigs != nullptr && n_fbconfigs > 0, nullptr);
-
-  g_print("Framebuffer configurations offered:\n");
-
-  for (int i = 0; i < n_fbconfigs; ++i)
-    dump_glx_fbconfig(GDK_SCREEN_XDISPLAY(screen), fbconfigs[i]);
 
   const GLXFBConfig fbconfig = fbconfigs[0];
   XFree(fbconfigs);
