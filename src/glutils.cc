@@ -102,6 +102,127 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
 
 #ifdef GDK_WINDOWING_X11
 static
+GQuark quark_fbconfig()
+{
+  static GQuark quark = 0;
+
+  if (!quark)
+    quark = g_quark_from_static_string("somato-fbconfig");
+
+  return quark;
+}
+
+static
+void dump_glx_fbconfig(Display* display, GLXFBConfig config)
+{
+  int fbconfig_id    = 0;
+  int red_size       = 0;
+  int green_size     = 0;
+  int blue_size      = 0;
+  int alpha_size     = 0;
+  int depth_size     = 0;
+  int stencil_size   = 0;
+  int doublebuffer   = False;
+  int stereo         = False;
+  int sample_buffers = 0;
+  int samples        = 0;
+
+  glXGetFBConfigAttrib(display, config, GLX_FBCONFIG_ID,    &fbconfig_id);
+  glXGetFBConfigAttrib(display, config, GLX_RED_SIZE,       &red_size);
+  glXGetFBConfigAttrib(display, config, GLX_GREEN_SIZE,     &green_size);
+  glXGetFBConfigAttrib(display, config, GLX_BLUE_SIZE,      &blue_size);
+  glXGetFBConfigAttrib(display, config, GLX_ALPHA_SIZE,     &alpha_size);
+  glXGetFBConfigAttrib(display, config, GLX_DEPTH_SIZE,     &depth_size);
+  glXGetFBConfigAttrib(display, config, GLX_STENCIL_SIZE,   &stencil_size);
+  glXGetFBConfigAttrib(display, config, GLX_DOUBLEBUFFER,   &doublebuffer);
+  glXGetFBConfigAttrib(display, config, GLX_STEREO,         &stereo);
+  glXGetFBConfigAttrib(display, config, GLX_SAMPLE_BUFFERS, &sample_buffers);
+  glXGetFBConfigAttrib(display, config, GLX_SAMPLES,        &samples);
+
+  g_print("FBConfig %3d: "
+          "RGBA=%d:%d:%d:%d, depth=%d, stencil=%d, double=%d, stereo=%d, "
+          "sbuffers=%d, samples=%d\n",
+          fbconfig_id,
+          red_size, green_size, blue_size, alpha_size,
+          depth_size, stencil_size, doublebuffer, stereo,
+          sample_buffers, samples);
+}
+
+static
+GdkGLConfig* create_glx_fbconfig(GdkScreen* screen, GdkGLConfigMode mode)
+{
+  int  attrlist[24];
+  int* pattr = attrlist;
+
+  *pattr++ = GLX_RED_SIZE;
+  *pattr++ = 4;
+  *pattr++ = GLX_GREEN_SIZE;
+  *pattr++ = 4;
+  *pattr++ = GLX_BLUE_SIZE;
+  *pattr++ = 4;
+
+  if ((mode & GDK_GL_MODE_ALPHA) != 0)
+  {
+    *pattr++ = GLX_ALPHA_SIZE;
+    *pattr++ = 4;
+  }
+  if ((mode & GDK_GL_MODE_DEPTH) != 0)
+  {
+    *pattr++ = GLX_DEPTH_SIZE;
+    *pattr++ = 16;
+  }
+  if ((mode & GDK_GL_MODE_STENCIL) != 0)
+  {
+    *pattr++ = GLX_STENCIL_SIZE;
+    *pattr++ = 4;
+  }
+  if ((mode & GDK_GL_MODE_DOUBLE) != 0)
+  {
+    *pattr++ = GLX_DOUBLEBUFFER;
+    *pattr++ = True;
+  }
+  if ((mode & GDK_GL_MODE_STEREO) != 0)
+  {
+    *pattr++ = GLX_STEREO;
+    *pattr++ = True;
+  }
+  if ((mode & GDK_GL_MODE_MULTISAMPLE) != 0)
+  {
+    *pattr++ = GLX_SAMPLE_BUFFERS;
+    *pattr++ = 1;
+    *pattr++ = GLX_SAMPLES;
+    *pattr++ = 4;
+  }
+  *pattr = None;
+
+  int n_fbconfigs = 0;
+  GLXFBConfig *const fbconfigs = glXChooseFBConfig(GDK_SCREEN_XDISPLAY(screen),
+                                                   GDK_SCREEN_XNUMBER(screen),
+                                                   attrlist, &n_fbconfigs);
+  g_return_val_if_fail(fbconfigs != nullptr && n_fbconfigs > 0, nullptr);
+
+  g_print("Framebuffer configurations offered:\n");
+
+  for (int i = 0; i < n_fbconfigs; ++i)
+    dump_glx_fbconfig(GDK_SCREEN_XDISPLAY(screen), fbconfigs[i]);
+
+  const GLXFBConfig fbconfig = fbconfigs[0];
+  XFree(fbconfigs);
+
+  int visual_id = -1;
+  int result = glXGetFBConfigAttrib(GDK_SCREEN_XDISPLAY(screen), fbconfig,
+                                    GLX_VISUAL_ID, &visual_id);
+  g_return_val_if_fail(result == Success && visual_id >= 0, nullptr);
+
+  GdkGLConfig *const config =
+    gdk_x11_gl_config_new_from_visualid_for_screen(screen, visual_id);
+
+  g_object_set_qdata(G_OBJECT(config), quark_fbconfig(),
+                     reinterpret_cast<void*>(fbconfig));
+  return config;
+}
+
+static
 unsigned int debug_flag_if_enabled()
 {
   const char *const messages_debug = g_getenv("G_MESSAGES_DEBUG");
@@ -118,31 +239,14 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
 
   g_return_val_if_fail(CreateContextAttribs != nullptr, nullptr);
 
-  static const std::array<int, 8> query_attribs =
-  {{
-    GLX_DOUBLEBUFFER, GLX_STEREO,
-    GLX_RED_SIZE, GLX_GREEN_SIZE, GLX_BLUE_SIZE, GLX_ALPHA_SIZE,
-    GLX_DEPTH_SIZE, GLX_STENCIL_SIZE
-  }};
-  int  attribs[18];
-  int* pattrib = attribs;
+  const auto fbconfig = reinterpret_cast<GLXFBConfig>
+    (g_object_get_qdata(G_OBJECT(config), quark_fbconfig()));
 
-  for (const int attr : query_attribs)
-    if (gdk_gl_config_get_attrib(config, attr, pattrib + 1))
-    {
-      *pattrib = attr;
-      pattrib += 2;
-    }
-
-  *pattrib = None;
+  g_return_val_if_fail(fbconfig, nullptr);
 
   Display *const xdisplay = gdk_x11_gl_config_get_xdisplay(config);
-  const int screen = gdk_x11_gl_config_get_screen_number(config);
 
-  int n_fbconfigs = 0;
-  GLXFBConfig *const fbconfigs = glXChooseFBConfig(xdisplay, screen, attribs, &n_fbconfigs);
-
-  g_return_val_if_fail(fbconfigs != nullptr && n_fbconfigs > 0, nullptr);
+  int attribs[10];
 
   attribs[0] = GLX_CONTEXT_MAJOR_VERSION_ARB;
   attribs[1] = 3;
@@ -153,11 +257,11 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
   attribs[6] = GLX_CONTEXT_PROFILE_MASK_ARB;
   attribs[7] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
   attribs[8] = None;
+  attribs[9] = 0;
 
   const GLXContext glx_context =
-    (*CreateContextAttribs)(xdisplay, fbconfigs[0], 0, True, attribs);
+    (*CreateContextAttribs)(xdisplay, fbconfig, 0, True, attribs);
 
-  XFree(fbconfigs);
   g_return_val_if_fail(glx_context, nullptr);
 
   return gdk_x11_gl_context_foreign_new(config, nullptr, glx_context);
@@ -322,7 +426,7 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
   GtkWidget *const widget = target.gobj();
   GdkScreen *const screen = gtk_widget_get_screen(widget);
 
-#ifdef GDK_WINDOWING_WIN32
+#if defined(GDK_WINDOWING_WIN32)
   // Sigh... Looks like gdkglext's win32 implementation is completety
   // broken.  The setup logic always opts for the biggest and baddest
   // framebuffer layout available.  Like 64 bits accumulation buffer,
@@ -349,7 +453,12 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
         config = gdk_win32_gl_config_new_from_pixel_format(pixelformat);
     }
   }
-#else /* !GDK_WINDOWING_WIN32 */
+#elif defined(GDK_WINDOWING_X11)
+
+  GdkGLConfig* config = create_glx_fbconfig(screen, GdkGLConfigMode(mode));
+
+#else /* !GDK_WINDOWING_X11 */
+
   GdkGLConfig* config = gdk_gl_config_new_by_mode_for_screen(screen, GdkGLConfigMode(mode));
 
   // If no double-buffered visual is available, try a single-buffered one.
@@ -358,7 +467,7 @@ void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
     config = gdk_gl_config_new_by_mode_for_screen(screen,
                  GdkGLConfigMode(mode & ~unsigned(GDK_GL_MODE_DOUBLE)));
   }
-#endif /* !GDK_WINDOWING_WIN32 */
+#endif /* !GDK_WINDOWING_X11 */
 
   if (!config)
     throw GL::Error{"could not find OpenGL-capable visual"};
