@@ -113,6 +113,17 @@ GQuark quark_fbconfig()
 }
 
 static
+GQuark quark_glxcontext()
+{
+  static GQuark quark = 0;
+
+  if (!quark)
+    quark = g_quark_from_static_string("somato-glxcontext");
+
+  return quark;
+}
+
+static
 void dump_glx_fbconfig(Display* display, GLXFBConfig config)
 {
   int fbconfig_id    = 0;
@@ -264,7 +275,12 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
 
   g_return_val_if_fail(glx_context, nullptr);
 
-  return gdk_x11_gl_context_foreign_new(config, nullptr, glx_context);
+  GdkGLContext *const context =
+    gdk_x11_gl_context_foreign_new(config, nullptr, glx_context);
+
+  g_object_set_qdata(G_OBJECT(context), quark_glxcontext(),
+                     reinterpret_cast<void*>(glx_context));
+  return context;
 }
 #endif /* GDK_WINDOWING_X11 */
 
@@ -502,15 +518,15 @@ void GL::destroy_context(GdkGLContext* context)
 {
 #ifdef GDK_WINDOWING_X11
   Display* xdisplay = nullptr;
-  GLXContext glx_context = 0;
 
   if (GdkGLConfig *const config = gdk_gl_context_get_gl_config(context))
-    if (gdk_x11_gl_query_glx_extension(config, "GLX_ARB_create_context_profile"))
-    {
-      xdisplay = gdk_x11_gl_config_get_xdisplay(config);
-      glx_context = gdk_x11_gl_context_get_glxcontext(context);
-    }
+    xdisplay = GDK_GL_CONFIG_XDISPLAY(config);
+
+  // Get custom context not owned by the GdkGLContext, if any.
+  GLXContext glx_context = reinterpret_cast<GLXContext>
+    (g_object_get_qdata(G_OBJECT(context), quark_glxcontext()));
 #endif
+
   g_object_unref(context);
 
 #ifdef GDK_WINDOWING_X11
