@@ -216,19 +216,14 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
 
   Display *const xdisplay = gdk_x11_gl_config_get_xdisplay(config);
 
-  int attribs[10];
-
-  attribs[0] = GLX_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[1] = 3;
-  attribs[2] = GLX_CONTEXT_MINOR_VERSION_ARB;
-  attribs[3] = 2;
-  attribs[4] = GLX_CONTEXT_FLAGS_ARB;
-  attribs[5] = debug_flag_if_enabled();
-  attribs[6] = GLX_CONTEXT_PROFILE_MASK_ARB;
-  attribs[7] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
-  attribs[8] = None;
-  attribs[9] = 0;
-
+  const int attribs[] =
+  {
+    GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+    GLX_CONTEXT_MINOR_VERSION_ARB, 2,
+    GLX_CONTEXT_FLAGS_ARB, debug_flag_if_enabled(),
+    GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+    None, 0
+  };
   const GLXContext glx_context =
     (*CreateContextAttribs)(xdisplay, fbconfig, 0, True, attribs);
 
