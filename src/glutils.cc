@@ -187,8 +187,7 @@ GdkGLConfig* create_glx_fbconfig(GdkScreen* screen, GdkGLConfigMode mode)
   GdkGLConfig *const config =
     gdk_x11_gl_config_new_from_visualid_for_screen(screen, visual_id);
 
-  g_object_set_qdata(G_OBJECT(config), quark_fbconfig(),
-                     reinterpret_cast<void*>(fbconfig));
+  g_object_set_qdata(G_OBJECT(config), quark_fbconfig(), fbconfig);
   return config;
 }
 
@@ -209,7 +208,7 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
 
   g_return_val_if_fail(CreateContextAttribs != nullptr, nullptr);
 
-  const auto fbconfig = reinterpret_cast<GLXFBConfig>
+  const auto fbconfig = static_cast<GLXFBConfig>
     (g_object_get_qdata(G_OBJECT(config), quark_fbconfig()));
 
   g_return_val_if_fail(fbconfig, nullptr);
@@ -232,8 +231,7 @@ GdkGLContext* create_glx_core_context(GdkGLConfig* config)
   GdkGLContext *const context =
     gdk_x11_gl_context_foreign_new(config, nullptr, glx_context);
 
-  g_object_set_qdata(G_OBJECT(context), quark_glxcontext(),
-                     reinterpret_cast<void*>(glx_context));
+  g_object_set_qdata(G_OBJECT(context), quark_glxcontext(), glx_context);
   return context;
 }
 #endif /* GDK_WINDOWING_X11 */
@@ -477,7 +475,7 @@ void GL::destroy_context(GdkGLContext* context)
     xdisplay = GDK_GL_CONFIG_XDISPLAY(config);
 
   // Get custom context not owned by the GdkGLContext, if any.
-  GLXContext glx_context = reinterpret_cast<GLXContext>
+  const auto glx_context = static_cast<GLXContext>
     (g_object_get_qdata(G_OBJECT(context), quark_glxcontext()));
 #endif
 
