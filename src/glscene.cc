@@ -569,7 +569,7 @@ void Scene::gl_swap_buffers()
   if (has_back_buffer_ && use_back_buffer_)
     gdk_gl_drawable_swap_buffers(gl_drawable_);
 
-  glFinish();
+  gdk_gl_drawable_wait_gl(gl_drawable_);
 }
 
 void Scene::gl_initialize()
