@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2012  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -20,11 +20,21 @@
 
 #include "cube.h"
 
+namespace
+{
+
+using Somato::Cube;
+
+static
+const unsigned char shift_count[3] = { Cube::N * Cube::N, Cube::N, 1 };
+
+} // anonymous namespace
+
 namespace Somato
 {
 
 // static
-Cube::Bits Cube::from_array(const bool data[Cube::N][Cube::N][Cube::N])
+Cube::Bits Cube::from_array(const bool data[N][N][N])
 {
   const bool *const source = &data[0][0][0];
   Bits result = 0;
@@ -94,7 +104,6 @@ Cube& Cube::shift(int axis, bool clip)
     ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N   - 1)) * ~(~Bits(0) << (N-1)*N),
     ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N     - 1)) * ~(~Bits(0) << (N-1))
   };
-  static const unsigned char shift_count[3] = { N*N, N, 1 };
 
   const Bits source = shift_mask[axis] & data_;
 
@@ -114,7 +123,6 @@ Cube& Cube::shift_rev(int axis, bool clip)
     ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N   - 1)) * (~(~Bits(0) << (N-1)*N) << N),
     ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N     - 1)) * (~(~Bits(0) << (N-1)) << 1)
   };
-  static const unsigned char shift_count[3] = { N*N, N, 1 };
 
   const Bits source = shift_mask[axis] & data_;
 
