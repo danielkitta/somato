@@ -1,10 +1,10 @@
 #version 150
 
-smooth in vec4 interpColor;
+smooth in float interpIntensity;
 
-out vec4 outputColor;
+out vec3 outputColor;
 
 void main()
 {
-  outputColor = interpColor;
+  outputColor = interpIntensity.rrr;
 }
