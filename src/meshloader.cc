@@ -19,18 +19,17 @@
  */
 
 #include "meshloader.h"
+#include "glutils.h"
 #include "mathutils.h"
 
 #include <glib.h>
 #include <sigc++/sigc++.h>
 #include <glibmm/dispatcher.h>
+#include <glibmm/ustring.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
-#if 0
-#include <assimp/DefaultLogger.hpp>
-#include <assimp/LogStream.hpp>
-#endif
+#include <exception>
 #include <thread>
 
 namespace GL
@@ -52,6 +51,7 @@ private:
 
 public:
   std::function<void ()> done_func;
+  std::exception_ptr     error;
   std::thread            thread;
   const aiScene*         scene;
 
@@ -83,12 +83,7 @@ void MeshLoader::Impl::execute()
   try
   {
     importer_.reset(new Assimp::Importer{});
-#if 0
-    Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE,
-                                  aiDefaultLogStream_STDERR);
 
-    importer_->SetPropertyBool(AI_CONFIG_GLOB_MEASURE_TIME, true);
-#endif
     importer_->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
                                   aiComponent_TANGENTS_AND_BITANGENTS
                                   | aiComponent_COLORS
@@ -106,11 +101,12 @@ void MeshLoader::Impl::execute()
                                 | aiProcess_SortByPType
                                 | aiProcess_GenSmoothNormals
                                 | aiProcess_ImproveCacheLocality);
+    if (!scene)
+      throw GL::Error{importer_->GetErrorString()};
   }
   catch (...)
   {
-    signal_exit_(); // emit
-    throw;
+    error = std::current_exception();
   }
   signal_exit_(); // emit
 }
@@ -118,6 +114,9 @@ void MeshLoader::Impl::execute()
 void MeshLoader::Impl::on_thread_exit()
 {
   thread.join();
+
+  if (error != std::exception_ptr{})
+    std::rethrow_exception(error);
 
   if (done_func)
     done_func();
@@ -140,12 +139,17 @@ void MeshLoader::run()
 {
   g_return_if_fail(!pimpl_->thread.joinable());
 
+  pimpl_->error  = std::exception_ptr{};
   pimpl_->thread = std::thread{std::bind(&MeshLoader::Impl::execute, pimpl_.get())};
 }
 
 MeshLoader::Node MeshLoader::lookup_node(const char* name) const
 {
   g_return_val_if_fail(!pimpl_->thread.joinable(), Node{});
+
+  if (pimpl_->error != std::exception_ptr{})
+    std::rethrow_exception(pimpl_->error);
+
   g_return_val_if_fail(pimpl_->scene != nullptr, Node{});
 
   return Node{pimpl_->scene->mRootNode->FindNode(name)};
@@ -174,6 +178,9 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
                                      size_t max_vertices) const
 {
   size_t n_written = 0;
+
+  g_return_val_if_fail(node, n_written);
+  g_return_val_if_fail(buffer != nullptr, n_written);
 
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
@@ -206,6 +213,9 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
                                     MeshIndex* buffer, size_t max_indices) const
 {
   size_t n_written = 0;
+
+  g_return_val_if_fail(node, n_written);
+  g_return_val_if_fail(buffer != nullptr, n_written);
 
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
