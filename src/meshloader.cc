@@ -19,6 +19,7 @@
  */
 
 #include "meshloader.h"
+#include "mathutils.h"
 
 #include <glib.h>
 #include <sigc++/sigc++.h>
@@ -180,11 +181,10 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
 
     g_return_val_if_fail(mesh->HasNormals(), n_written);
 
-    for (unsigned int vert_idx = 0; vert_idx < mesh->mNumVertices; ++vert_idx)
-    {
-      if (n_written == max_vertices)
-        return n_written;
+    const size_t n_vertices = Math::min<size_t>(mesh->mNumVertices, max_vertices - n_written);
 
+    for (size_t vert_idx = 0; vert_idx < n_vertices; ++vert_idx)
+    {
       const auto& mesh_vertex = mesh->mVertices[vert_idx];
       const auto& mesh_normal = mesh->mNormals[vert_idx];
 
@@ -214,11 +214,10 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     g_return_val_if_fail(mesh->HasFaces(), n_written);
     g_return_val_if_fail(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE, n_written);
 
-    for (unsigned int face_idx = 0; face_idx < mesh->mNumFaces; ++face_idx)
-    {
-      if (n_written + 2 >= max_indices)
-        return n_written;
+    const size_t n_faces = Math::min<size_t>(mesh->mNumFaces, (max_indices - n_written) / 3);
 
+    for (size_t face_idx = 0; face_idx < n_faces; ++face_idx)
+    {
       const auto& face = mesh->mFaces[face_idx];
       g_return_val_if_fail(face.mNumIndices == 3, n_written);
 
