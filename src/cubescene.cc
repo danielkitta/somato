@@ -821,12 +821,13 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   if (vertex_data)
   {
     for (size_t i = 0; i < nodes.size(); ++i)
-    {
-      const auto& mesh = mesh_data_[i];
-      const auto start = static_cast<GL::MeshVertex*>(vertex_data) + mesh.element_first;
+      if (const auto node = nodes[i])
+      {
+        const auto& mesh = mesh_data_[i];
+        const auto start = static_cast<GL::MeshVertex*>(vertex_data) + mesh.element_first;
 
-      loader.get_node_vertices(nodes[i], start, mesh.element_count());
-    }
+        loader.get_node_vertices(node, start, mesh.element_count());
+      }
 
     if (!glUnmapBuffer(GL_ARRAY_BUFFER))
       g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
@@ -856,13 +857,14 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
   if (index_data)
   {
     for (size_t i = 0; i < nodes.size(); ++i)
-    {
-      const auto& mesh = mesh_data_[i];
-      const auto start = static_cast<GL::MeshIndex*>(index_data) + mesh.indices_offset;
+      if (const auto node = nodes[i])
+      {
+        const auto& mesh = mesh_data_[i];
+        const auto start = static_cast<GL::MeshIndex*>(index_data) + mesh.indices_offset;
 
-      loader.get_node_indices(nodes[i], mesh.element_first,
-                              start, 3 * mesh.triangle_count);
-    }
+        loader.get_node_indices(node, mesh.element_first,
+                                start, 3 * mesh.triangle_count);
+      }
 
     if (!glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
       g_warning("glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
@@ -907,7 +909,6 @@ void CubeScene::on_meshes_loaded()
   unsigned int global_triangle_count = 0;
 
   for (size_t i = 0; i < nodes.size(); ++i)
-  {
     if (const auto node = nodes[i])
     {
       const auto counts = loader->count_node_vertices_triangles(node);
@@ -925,7 +926,6 @@ void CubeScene::on_meshes_loaded()
         global_triangle_count += counts.second;
       }
     }
-  }
 
   if (is_realized())
   {
