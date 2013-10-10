@@ -20,10 +20,10 @@
 
 #include "mathutils.h"
 
-#include <cfloat>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -41,17 +41,19 @@ Math::Vector4 project_to_sphere(float x, float y, float r)
   // Inside sphere if d < t, otherwise on hyperbola.
   const float z = (d < t) ? std::sqrt(r * r - d) : (t / std::sqrt(d));
 
-  return Math::Vector4(x, y, z);
+  return Math::Vector4{x, y, z};
 }
 
 } // anonymous namespace
 
 Math::Quat Math::trackball_motion(float x1, float y1, float x2, float y2, float trackballsize)
 {
-  if (std::abs(x2 - x1) < FLT_EPSILON && std::abs(y2 - y1) < FLT_EPSILON)
+  const float epsilon = std::numeric_limits<float>::epsilon();
+
+  if (std::abs(x2 - x1) < epsilon && std::abs(y2 - y1) < epsilon)
   {
     // Zero rotation
-    return Math::Quat();
+    return Math::Quat{};
   }
   else
   {
@@ -60,13 +62,14 @@ Math::Quat Math::trackball_motion(float x1, float y1, float x2, float y2, float 
     const Math::Vector4 p1 = project_to_sphere(x1, y1, trackballsize);
     const Math::Vector4 p2 = project_to_sphere(x2, y2, trackballsize);
 
-    // Compute the the cross product of P1 and P2.
-    const Math::Vector4 axis = p1 % p2;
+    // Normalize to unit length.
+    const Math::Vector4 n1 = p1 / Math::Vector4::mag(p1);
+    const Math::Vector4 n2 = p2 / Math::Vector4::mag(p2);
 
-    // Figure out how much to rotate around that axis.
-    const float t   = Math::Vector4::mag(p2 - p1) / (2.0f * trackballsize);
-    const float phi = 2.0f * std::asin(Math::clamp(t, -1.0f, 1.0f));
+    // Determine axis of rotation and cosine of angle.
+    const Math::Vector4 axis = n1 % n2;
+    const float cosa = n1 * n2;
 
-    return Math::Quat::from_axis(axis, phi);
+    return Math::Quat{axis.x(), axis.y(), axis.z(), cosa};
   }
 }
