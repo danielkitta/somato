@@ -71,6 +71,8 @@ Cube& Cube::rotate(int axis)
 {
   // This table is specific to the N = 3 case and requires
   // modification for other values of N.
+  static_assert (N == 3, "shuffle_order only valid for N = 3");
+
   static const unsigned char shuffle_order[3][8 * sizeof(Bits)] =
   {
     {
