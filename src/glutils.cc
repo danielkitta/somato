@@ -192,7 +192,7 @@ GdkGLConfig* create_glx_fbconfig(GdkScreen* screen, GdkGLConfigMode mode)
 }
 
 static
-unsigned int debug_flag_if_enabled()
+int debug_flag_if_enabled()
 {
   const char *const messages_debug = g_getenv("G_MESSAGES_DEBUG");
   const GDebugKey debug_key {"OpenGL", GLX_CONTEXT_DEBUG_BIT_ARB};
