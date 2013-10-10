@@ -147,7 +147,7 @@ void v4_align_free(void* p) noexcept
 #  pragma warning(disable: 4290)
 # endif
 
-void* operator new(std::size_t size) throw(std::bad_alloc)
+void* operator new(std::size_t size)
 {
   if (void *const p = v4_align_alloc(size))
     return p;
@@ -155,7 +155,7 @@ void* operator new(std::size_t size) throw(std::bad_alloc)
     throw std::bad_alloc();
 }
 
-void* operator new[](std::size_t size) throw(std::bad_alloc)
+void* operator new[](std::size_t size)
 {
   if (void *const p = v4_align_alloc(size))
     return p;
