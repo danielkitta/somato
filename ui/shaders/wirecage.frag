@@ -6,5 +6,5 @@ out vec3 outputColor;
 
 void main()
 {
-  outputColor = interpIntensity.rrr;
+  outputColor = vec3(interpIntensity);
 }
