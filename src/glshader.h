@@ -22,6 +22,7 @@
 #define SOMATO_GLSHADER_H_INCLUDED
 
 #include <algorithm>
+#include <string>
 
 #include <config.h>
 
