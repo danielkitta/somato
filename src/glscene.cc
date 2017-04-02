@@ -63,7 +63,7 @@ extern "C"
 {
 static GLAPIENTRY
 void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
-                         const GLchar* message, GLvoid*)
+                         const GLchar* message, const GLvoid*)
 {
   g_log("OpenGL", G_LOG_LEVEL_DEBUG, "%s", message);
 }
