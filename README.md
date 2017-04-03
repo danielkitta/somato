@@ -15,3 +15,5 @@ fewer unit cubes, excluding all regular shapes (i.e., the 1x1x1, 1x1x2, 1x1x3,
 four-block pieces, of which two form an enantiomorphic pair. A similar puzzle
 consisting solely of all eight four-block pieces (including the cuboids) would
 contain 32 unit cubes and, thus, could not be assembled into a cube.
+
+![Screenshot](screenshot_somato.png?raw=true "Screenshot of Somato")
