@@ -349,12 +349,12 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 {
   using Math::Matrix4;
 
-  static const std::array<Matrix4::array_type, 3> rotate90
-  {{
+  static const Matrix4::array_type rotate90[3] =
+  {
     { {1, 0,  0, 0}, { 0, 0, -1, 0}, {0, 1, 0, 0}, {0, 0, 0, 1} }, // 90 deg around x
     { {0, 0, -1, 0}, { 0, 1,  0, 0}, {1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
     { {0, 1,  0, 0}, {-1, 0,  0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1} }  // 90 deg around z
-  }};
+  };
 
   Matrix4 transform {Matrix4::identity};
 
