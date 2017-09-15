@@ -234,6 +234,9 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     }
     n_written += 3 * n_faces;
   }
+  for (size_t n = n_written; n < max_indices; ++n)
+    buffer[n] = ~MeshIndex{0};
+
   return n_written;
 }
 

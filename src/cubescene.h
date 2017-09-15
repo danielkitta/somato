@@ -232,8 +232,8 @@ private:
   void on_meshes_loaded();
   void gl_create_mesh_buffers(GL::MeshLoader& loader,
                               const MeshNodeArray& nodes,
-                              unsigned int global_vertex_count,
-                              unsigned int global_triangle_count);
+                              unsigned int total_vertices,
+                              unsigned int indices_size);
   void gl_create_piece_shader();
   void gl_create_cage_shader();
   void gl_create_wireframe();

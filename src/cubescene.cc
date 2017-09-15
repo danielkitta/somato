@@ -792,8 +792,8 @@ void CubeScene::gl_update_projection()
 
 void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
                                        const MeshNodeArray& nodes,
-                                       unsigned int global_vertex_count,
-                                       unsigned int global_triangle_count)
+                                       unsigned int total_vertices,
+                                       unsigned int indices_size)
 {
   g_return_if_fail(pieces_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
@@ -808,12 +808,12 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
 
   glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[VERTICES]);
   glBufferData(GL_ARRAY_BUFFER,
-               global_vertex_count * sizeof(GL::MeshVertex),
+               total_vertices * sizeof(GL::MeshVertex),
                nullptr, GL_STATIC_DRAW);
 
   void *const vertex_data =
     glMapBufferRange(GL_ARRAY_BUFFER,
-                     0, global_vertex_count * sizeof(GL::MeshVertex),
+                     0, total_vertices * sizeof(GL::MeshVertex),
                      GL_MAP_WRITE_BIT
                      | GL_MAP_INVALIDATE_RANGE_BIT
                      | GL_MAP_INVALIDATE_BUFFER_BIT
@@ -844,12 +844,12 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[INDICES]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               global_triangle_count * 3 * sizeof(GL::MeshIndex),
+               indices_size * sizeof(GL::MeshIndex),
                nullptr, GL_STATIC_DRAW);
 
   void *const index_data =
     glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER,
-                     0, global_triangle_count * 3 * sizeof(GL::MeshIndex),
+                     0, indices_size * sizeof(GL::MeshIndex),
                      GL_MAP_WRITE_BIT
                      | GL_MAP_INVALIDATE_RANGE_BIT
                      | GL_MAP_INVALIDATE_BUFFER_BIT
@@ -862,8 +862,8 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
         const auto& mesh = mesh_data_[i];
         const auto start = static_cast<GL::MeshIndex*>(index_data) + mesh.indices_offset;
 
-        loader.get_node_indices(node, mesh.element_first,
-                                start, 3 * mesh.triangle_count);
+        loader.get_node_indices(node, mesh.element_first, start,
+                                GL::MeshLoader::aligned_index_count(3 * mesh.triangle_count));
       }
 
     if (!glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
@@ -893,6 +893,9 @@ void CubeScene::on_meshes_loaded()
   const auto loader = std::move(mesh_loader_);
   g_return_if_fail(loader);
 
+  if (!is_realized())
+    return;
+
   std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> nodes;
 
   for (size_t i = 0; i < nodes.size(); ++i)
@@ -905,8 +908,8 @@ void CubeScene::on_meshes_loaded()
 
   mesh_data_.assign(nodes.size(), MeshData{});
 
-  unsigned int global_vertex_count   = 0;
-  unsigned int global_triangle_count = 0;
+  unsigned int total_vertices = 0;
+  unsigned int indices_offset = 0;
 
   for (size_t i = 0; i < nodes.size(); ++i)
     if (const auto node = nodes[i])
@@ -918,20 +921,19 @@ void CubeScene::on_meshes_loaded()
         auto& mesh = mesh_data_[i];
 
         mesh.triangle_count = counts.second;
-        mesh.indices_offset = 3 * global_triangle_count;
-        mesh.element_first  = global_vertex_count;
-        mesh.element_last   = global_vertex_count + counts.first - 1;
+        mesh.indices_offset = indices_offset;
+        mesh.element_first  = total_vertices;
+        mesh.element_last   = total_vertices + counts.first - 1;
 
-        global_vertex_count   += counts.first;
-        global_triangle_count += counts.second;
+        total_vertices += counts.first;
+        indices_offset += GL::MeshLoader::aligned_index_count(3 * counts.second);
       }
     }
 
-  if (is_realized())
   {
     ScopeContext context {*this};
 
-    gl_create_mesh_buffers(*loader, nodes, global_vertex_count, global_triangle_count);
+    gl_create_mesh_buffers(*loader, nodes, total_vertices, indices_offset);
   }
 }
 

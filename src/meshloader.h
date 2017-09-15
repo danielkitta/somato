@@ -76,6 +76,9 @@ public:
   size_t get_node_indices(Node node, unsigned int base,
                           MeshIndex* buffer, size_t max_indices) const;
 
+  static unsigned int aligned_index_count(unsigned int count)
+    { return (count + 3) & ~3u; }
+
 private:
   class Impl;
 
