@@ -146,7 +146,7 @@ MeshLoader::Node MeshLoader::lookup_node(const char* name) const
   if (pimpl_->error)
     std::rethrow_exception(pimpl_->error);
 
-  g_return_val_if_fail(pimpl_->scene != nullptr, Node{});
+  g_return_val_if_fail(pimpl_->scene, Node{});
 
   return Node{pimpl_->scene->mRootNode->FindNode(name)};
 }
@@ -157,16 +157,17 @@ MeshLoader::count_node_vertices_triangles(Node node) const
   VertexTriangleCounts counts {0, 0};
 
   g_return_val_if_fail(node, counts);
-  g_return_val_if_fail(pimpl_->scene != nullptr, counts);
+  g_return_val_if_fail(pimpl_->scene, counts);
+
+  const aiMesh *const *const scene_meshes = pimpl_->scene->mMeshes;
 
   for (unsigned int i = 0; i < node->mNumMeshes; ++i)
   {
-    aiMesh *const mesh = pimpl_->scene->mMeshes[node->mMeshes[i]];
+    const aiMesh *const mesh = scene_meshes[node->mMeshes[i]];
 
     counts.first  += mesh->mNumVertices;
     counts.second += mesh->mNumFaces;
   }
-
   return counts;
 }
 
@@ -176,31 +177,26 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
   size_t n_written = 0;
 
   g_return_val_if_fail(node, n_written);
-  g_return_val_if_fail(buffer != nullptr, n_written);
+  g_return_val_if_fail(buffer, n_written);
+
+  const aiMesh *const *const scene_meshes = pimpl_->scene->mMeshes;
 
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
-    const auto mesh = pimpl_->scene->mMeshes[node->mMeshes[mesh_idx]];
+    const aiMesh *const mesh = scene_meshes[node->mMeshes[mesh_idx]];
 
     g_return_val_if_fail(mesh->HasNormals(), n_written);
 
+    const auto *const vertices = mesh->mVertices;
+    const auto *const normals  = mesh->mNormals;
     const size_t n_vertices = Math::min<size_t>(mesh->mNumVertices, max_vertices - n_written);
 
-    for (size_t vert_idx = 0; vert_idx < n_vertices; ++vert_idx)
+    for (size_t i = 0; i < n_vertices; ++i)
     {
-      const auto& mesh_vertex = mesh->mVertices[vert_idx];
-      const auto& mesh_normal = mesh->mNormals[vert_idx];
-
-      auto& element = buffer[n_written++];
-
-      element.vertex[0] = mesh_vertex.x;
-      element.vertex[1] = mesh_vertex.y;
-      element.vertex[2] = mesh_vertex.z;
-
-      element.normal[0] = mesh_normal.x;
-      element.normal[1] = mesh_normal.y;
-      element.normal[2] = mesh_normal.z;
+      buffer[n_written + i].set_vertex(vertices[i].x, vertices[i].y, vertices[i].z);
+      buffer[n_written + i].set_normal(normals[i].x, normals[i].y, normals[i].z);
     }
+    n_written += n_vertices;
   }
   return n_written;
 }
@@ -211,32 +207,32 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
   size_t n_written = 0;
 
   g_return_val_if_fail(node, n_written);
-  g_return_val_if_fail(buffer != nullptr, n_written);
+  g_return_val_if_fail(buffer, n_written);
+
+  const aiMesh *const *const scene_meshes = pimpl_->scene->mMeshes;
 
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
-    const auto mesh = pimpl_->scene->mMeshes[node->mMeshes[mesh_idx]];
+    const aiMesh *const mesh = scene_meshes[node->mMeshes[mesh_idx]];
 
-    g_return_val_if_fail(mesh->HasFaces(), n_written);
     g_return_val_if_fail(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE, n_written);
 
+    const aiFace *const faces = mesh->mFaces;
     const size_t n_faces = Math::min<size_t>(mesh->mNumFaces, (max_indices - n_written) / 3);
 
-    for (size_t face_idx = 0; face_idx < n_faces; ++face_idx)
+    for (size_t i = 0; i < n_faces; ++i)
     {
-      const auto& face = mesh->mFaces[face_idx];
-      g_return_val_if_fail(face.mNumIndices == 3, n_written);
+      const unsigned int *const indices = faces[i].mIndices;
 
-      const unsigned int i0 = face.mIndices[0];
-      const unsigned int i1 = face.mIndices[1];
-      const unsigned int i2 = face.mIndices[2];
+      const unsigned int i0 = base + indices[0];
+      const unsigned int i1 = base + indices[1];
+      const unsigned int i2 = base + indices[2];
 
-      buffer[n_written]     = base + i0;
-      buffer[n_written + 1] = base + i1;
-      buffer[n_written + 2] = base + i2;
-
-      n_written += 3;
+      buffer[n_written + 3*i]     = i0;
+      buffer[n_written + 3*i + 1] = i1;
+      buffer[n_written + 3*i + 2] = i2;
     }
+    n_written += 3 * n_faces;
   }
   return n_written;
 }

@@ -38,6 +38,9 @@ struct MeshVertex
 {
   float vertex[3];
   float normal[3];
+
+  void set_vertex(float x, float y, float z) { vertex[0] = x; vertex[1] = y; vertex[2] = z; }
+  void set_normal(float x, float y, float z) { normal[0] = x; normal[1] = y; normal[2] = z; }
 };
 
 typedef uint16_t MeshIndex;
