@@ -71,8 +71,7 @@ SOMATO_ARG_ENABLE_VECTOR_SIMD
 
 DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS],
                        [-Wall -w1],
-                       [-DGDK_MULTIHEAD_SAFE -pedantic -Wall -Wextra -w1],
-                       [PANGO G GDK GDK_PIXBUF GTK GLIBMM GDKMM])
+                       [-Wall -Wextra -w1])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
