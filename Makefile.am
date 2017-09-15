@@ -85,7 +85,8 @@ dist_noinst_DATA =			\
 	debian/changelog		\
 	debian/control			\
 	debian/copyright		\
-	debian/menu
+	debian/menu			\
+	screenshot.png
 
 iconthemedir	  = $(datadir)/icons/hicolor
 appicondir	  = $(iconthemedir)/48x48/apps
