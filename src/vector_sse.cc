@@ -25,7 +25,7 @@
 #include <cstdlib>
 #include <new>
 
-#if (G_MEM_ALIGN < 16)
+#if (ALIGNOF_MAX_ALIGN_T < 16)
 # define SOMATO_CUSTOM_ALLOC 1
 #endif
 

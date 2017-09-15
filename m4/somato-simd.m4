@@ -62,6 +62,10 @@ b = _mm_cvtss_f32(a);
 (void) b;
 ]])
 ])
+AC_CHECK_ALIGNOF([max_align_t])
+AS_IF([test "$ac_cv_alignof_max_align_t" -ge 16],
+      [somato_align_sufficient=yes], [somato_align_sufficient=no])
+
 DK_CHECK_FEATURE([_mm_malloc], [AC_LANG_PROGRAM(
 [[
 #include <xmmintrin.h>
@@ -94,7 +98,7 @@ AC_ARG_ENABLE([vector-simd], [AS_HELP_STRING(
 AC_MSG_CHECKING([which SIMD vector implementation to use])
 somato_result=none
 
-case $somato_cv_simd_sse_support.$SOMATO_FEATURE__MM_MALLOC.$SOMATO_FEATURE_POSIX_MEMALIGN in
+case $somato_cv_simd_sse_support.$somato_align_sufficient.$SOMATO_FEATURE__MM_MALLOC.$SOMATO_FEATURE_POSIX_MEMALIGN in
   yes.*yes*)
     {
       case $somato_enable_vector_simd.$somato_cv_simd_sse2_support in
