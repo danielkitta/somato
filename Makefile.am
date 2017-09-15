@@ -48,16 +48,11 @@ src_somato_SOURCES =		\
 	src/vectormath.cc	\
 	src/vectormath.h
 
-EXTRA_src_somato_SOURCES =		\
-	src/vector_classic.cc		\
-	src/vector_classic.h		\
-	src/vector_sse.cc		\
-	src/vector_sse.h		\
-	windows/config.h		\
-	windows/uncheckedvector.h	\
-	windows/resource.h		\
-	windows/stdafx.cc		\
-	windows/stdafx.h
+EXTRA_src_somato_SOURCES =	\
+	src/vector_classic.cc	\
+	src/vector_classic.h	\
+	src/vector_sse.cc	\
+	src/vector_sse.h
 
 dist_pkgdata_DATA =		\
 	ui/cubescene.gtkrc	\
