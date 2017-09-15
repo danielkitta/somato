@@ -115,4 +115,6 @@ dist-deb: distdir
 	cd "$(distdir)" && dpkg-buildpackage -nc -rfakeroot -uc -us
 	rm -rf "$(distdir)"
 
+README: README.md
+
 .PHONY: dist-deb install-update-icon-cache uninstall-update-icon-cache
