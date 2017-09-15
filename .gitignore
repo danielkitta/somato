@@ -5,9 +5,11 @@ stamp-h?
 /INSTALL
 /README
 /Makefile
+/Makefile.am.user
 /Makefile.in
 /aclocal.m4
 /autom4te.cache/
+/build/
 /config.h
 /config.h.in
 /config.log
