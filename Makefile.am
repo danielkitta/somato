@@ -76,11 +76,12 @@ dist_noinst_SCRIPTS =		\
 	debian/rules		\
 	autogen.sh
 
-dist_noinst_DATA =			\
-	debian/changelog		\
-	debian/control			\
-	debian/copyright		\
-	debian/menu			\
+dist_noinst_DATA =		\
+	debian/changelog	\
+	debian/control		\
+	debian/copyright	\
+	debian/menu		\
+	README.md		\
 	screenshot.png
 
 iconthemedir	  = $(datadir)/icons/hicolor
@@ -112,5 +113,6 @@ dist-deb: distdir
 	rm -rf "$(distdir)"
 
 README: README.md
+	cp -fp README.md $@
 
 .PHONY: dist-deb install-update-icon-cache uninstall-update-icon-cache
