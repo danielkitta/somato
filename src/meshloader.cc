@@ -51,9 +51,9 @@ private:
 
 public:
   std::function<void ()> done_func;
-  std::exception_ptr     error;
+  std::exception_ptr     error = nullptr;
   std::thread            thread;
-  const aiScene*         scene;
+  const aiScene*         scene = nullptr;
 
   explicit Impl(std::string filename);
   ~Impl();
@@ -64,8 +64,7 @@ public:
 MeshLoader::Impl::Impl(std::string filename)
 :
   filename_    {std::move(filename)},
-  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &MeshLoader::Impl::on_thread_exit))},
-  scene        {nullptr}
+  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &MeshLoader::Impl::on_thread_exit))}
 {}
 
 MeshLoader::Impl::~Impl()
@@ -115,9 +114,6 @@ void MeshLoader::Impl::on_thread_exit()
 {
   thread.join();
 
-  if (error != std::exception_ptr{})
-    std::rethrow_exception(error);
-
   if (done_func)
     done_func();
 }
@@ -139,7 +135,7 @@ void MeshLoader::run()
 {
   g_return_if_fail(!pimpl_->thread.joinable());
 
-  pimpl_->error  = std::exception_ptr{};
+  pimpl_->error  = nullptr;
   pimpl_->thread = std::thread{std::bind(&MeshLoader::Impl::execute, pimpl_.get())};
 }
 
@@ -147,7 +143,7 @@ MeshLoader::Node MeshLoader::lookup_node(const char* name) const
 {
   g_return_val_if_fail(!pimpl_->thread.joinable(), Node{});
 
-  if (pimpl_->error != std::exception_ptr{})
+  if (pimpl_->error)
     std::rethrow_exception(pimpl_->error);
 
   g_return_val_if_fail(pimpl_->scene != nullptr, Node{});
