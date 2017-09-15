@@ -17,7 +17,7 @@
 ## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 AC_INIT([Somato], [0.7], [daniel.kitta@gmail.com], [somato],
-        [http://danielkitta.org/projects/somato])
+        [https://github.com/danielkitta/somato])
 AC_PREREQ([2.58])
 
 AC_CONFIG_SRCDIR([src/cubescene.cc])
