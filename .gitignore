@@ -3,6 +3,7 @@
 stamp-h?
 /COPYING
 /INSTALL
+/README
 /Makefile
 /Makefile.in
 /aclocal.m4
@@ -17,5 +18,6 @@ stamp-h?
 /depcomp
 /install-sh
 /missing
+/somato-*.tar.*
 /src/*.o
 /src/somato
