@@ -283,7 +283,10 @@ __m128 Matrix4::mul_(const __m128* a, __m128 b)
   const __m128 c2 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(2,2,2,2)), a[2]);
   const __m128 c3 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(3,3,3,3)), a[3]);
 
-  return _mm_add_ps(_mm_add_ps(c0, c1), _mm_add_ps(c2, c3));
+  const __m128 s0 = _mm_add_ps(c0, c1);
+  const __m128 s2 = _mm_add_ps(c2, c3);
+
+  return _mm_add_ps(s0, s2);
 }
 
 // static
@@ -295,6 +298,7 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
   const __m128 a3 = a[3];
 
   for (int i = 0; i < 4; ++i)
+    
   {
     // It is assumed that b[] and result[] either refer to the same location
     // in memory or are completely distinct, i.e. not partially overlapping.
@@ -306,7 +310,10 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
     const __m128 c2 = _mm_mul_ps(_mm_shuffle_ps(bi, bi, _MM_SHUFFLE(2,2,2,2)), a2);
     const __m128 c3 = _mm_mul_ps(_mm_shuffle_ps(bi, bi, _MM_SHUFFLE(3,3,3,3)), a3);
 
-    result[i] = _mm_add_ps(_mm_add_ps(c0, c1), _mm_add_ps(c2, c3));
+    const __m128 s0 = _mm_add_ps(c0, c1);
+    const __m128 s2 = _mm_add_ps(c2, c3);
+
+    result[i] = _mm_add_ps(s0, s2);
   }
 }
 
@@ -378,10 +385,11 @@ void Quat::to_matrix_(__m128 quat, __m128* result)
 // static
 float Quat::angle_(__m128 quat)
 {
-  const float sine   = _mm_cvtss_f32(vector3_mag(quat));
-  const float cosine = _mm_cvtss_f32(_mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3)));
+  const __m128 cosine = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3));
+  const __m128 sine   = vector3_mag(quat);
 
-  return 2.0f * std::atan2(sine, cosine);
+  const float a = std::atan2(_mm_cvtss_f32(sine), _mm_cvtss_f32(cosine));
+  return 2.0f * a;
 }
 
 // static
