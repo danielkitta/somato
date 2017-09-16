@@ -17,7 +17,7 @@
 ## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 AUTOMAKE_OPTIONS = subdir-objects
-ACLOCAL_AMFLAGS  = -I m4 ${ACLOCAL_FLAGS}
+ACLOCAL_AMFLAGS  = -I m4
 DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 
 bin_PROGRAMS = src/somato

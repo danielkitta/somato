@@ -16,41 +16,32 @@
 ## along with Somato; if not, write to the Free Software Foundation, Inc.,
 ## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-AC_INIT([Somato], [0.7], [daniel.kitta@gmail.com], [somato],
+AC_INIT([Somato], [0.8], [daniel.kitta@gmail.com], [somato],
         [https://github.com/danielkitta/somato])
-AC_PREREQ([2.58])
+AC_PREREQ([2.63])
 
 AC_CONFIG_SRCDIR([src/cubescene.cc])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE([1.8 -Wall gnu no-define nostdinc])
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
-AC_ARG_VAR([ACLOCAL_FLAGS], [aclocal flags, e.g. -I <macro dir>])
+AM_INIT_AUTOMAKE([1.11 -Wall no-define nostdinc])
+AM_SILENT_RULES([yes])
 
 AC_PROG_CXX
 
 PKG_CHECK_MODULES([SOMATO_MODULES],
-                  [gthread-2.0 >= 2.8.0 pangocairo >= 1.10.0 gtk+-2.0 >= 2.8.0
-                   gtkglext-1.0 >= 1.0.0 assimp >= 3.0
-                   gtkmm-2.4 >= 2.6.0 libglademm-2.4 >= 2.6.0])
+                  [gthread-2.0 assimp >= 3.0 epoxy >= 1.3 gtkmm-3.0 >= 3.22])
 
-# Somato does not use the custom widget feature of libglade, thus there
-# is no need for --export-dynamic.  Remove it to avoid pointless bloat.
-# These days libglade no longer forces --export-dynamic by default, but
-# gdkglext-1.0 depends on gmodule-2.0 which does add it.  Darn.
-SOMATO_MODULES_LIBS=`expr " $SOMATO_MODULES_LIBS " |
-                       sed 's/ -Wl,--export-dynamic / /;s/^  *//;s/  *$//'`
+DK_PKG_CONFIG_SUBST([GLIB_COMPILE_RESOURCES],
+                    [--variable=glib_compile_resources gio-2.0],,
+                    [AC_MSG_FAILURE([[GLib resource compiler not found.]])])
 
-DK_PKG_PATH_PROG([GTK_UPDATE_ICON_CACHE], [gtk+-2.0], [gtk-update-icon-cache])
+DK_PKG_PATH_PROG([GTK_UPDATE_ICON_CACHE], [gtk+-3.0], [gtk-update-icon-cache])
 
 AC_LANG([C++])
-DK_PROG_CXX_CXX11
+DK_PROG_CXX_STD([14])
 
 DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
-
-# Note that this is only a compile-time requirement.
-DK_REQUIRE_GL_VERSION([3.2])
 
 # Before running any of the other tests, check whether it is necessary
 # to explicitely link -lm on this platform.

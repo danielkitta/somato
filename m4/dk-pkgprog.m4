@@ -16,7 +16,7 @@
 ## with danielk's Autostuff; if not, write to the Free Software Foundation,
 ## Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-#serial 20070105
+#serial 20170916
 
 ## DK_PKG_PATH_PROG(variable, package, executable)
 ##
@@ -43,4 +43,26 @@ Oops, could not find "]$3[".  This program is
 normally included with the ]$2[ package.  Please make sure
 that your installation of ]$2[ is set up correctly.
 ]])])
+])
+
+## DK_PKG_CONFIG_SUBST(variable, arguments, [action-if-found], [action-if-not-found])
+##
+## Run the pkg-config utility with the specified command-line <arguments>
+## and capture its standard output in the named shell <variable>.  If the
+## command exited successfully, execute <action-if-found> in the shell if
+## specified.  If the command failed, run <action-if-not-found> if given,
+## otherwise ignore the error.
+##
+AC_DEFUN([DK_PKG_CONFIG_SUBST],
+[dnl
+m4_assert([$# >= 2])[]dnl
+AC_REQUIRE([PKG_PROG_PKG_CONFIG])[]dnl
+AC_MSG_CHECKING([for $1])
+dnl
+AS_IF([test -z "[$]{$1+set}"],
+      [$1=`$PKG_CONFIG $2 2>&AS_MESSAGE_LOG_FD`
+       AS_IF([test "[$]?" -eq 0], [$3], [$4])])
+dnl
+AC_MSG_RESULT([[$]$1])
+AC_SUBST([$1])[]dnl
 ])
