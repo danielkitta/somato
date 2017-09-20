@@ -35,17 +35,16 @@ Right      | Rotate right   | Rotate cube rightwards
 Up         | Rotate up      | Rotate cube upwards
 Down       | Rotate down    | Rotate cube downwards
 5          | Reset rotation | Reset to frontal view
-P          | Play           | Toggle solution playback
-B          | Back           | Go to previous solution
-Shift B    | First          | Go to first solution
-N          | Next           | Go to next solution
-Shift N    | Last           | Go to last solution
+C          | Auto cycle     | Toggle cycling through solutions
+Home       | First          | Go to first solution
+Page Up    | Previous       | Go to previous solution
+Page Down  | Next           | Go to next solution
+End        | Last           | Go to last solution
 Ctrl Tab   | Cycle piece    | Cycle through cube pieces
 Alt 1..7   | Select piece   | Jump to cube piece 1..7
-F          | Fullscreen     | Toggle fullscreen mode
+F          | Full screen    | Toggle full-screen mode
 Esc        | Restore window | Exit full-screen mode
 O          | Outline        | Toggle geometry outline view
-W          | Wireframe      | Show/hide wire cage grid
+G          | Grid           | Toggle cube cell grid
 A          | Anti-alias     | Toggle multi-sample AA
-Ctrl P     | Profile        | Toggle profiling mode
-Q          | Quit           | Quit Somato application
+Ctrl Q     | Quit           | Quit Somato application
