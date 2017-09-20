@@ -18,8 +18,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#define GL_GLEXT_PROTOTYPES 1
-
 #include "cubescene.h"
 #include "appdata.h"
 #include "glsceneprivate.h"
@@ -30,15 +28,10 @@
 #include <glib.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
-#include <gdk/gdkgl.h>
 #include <glibmm.h>
 #include <gdkmm.h>
 #include <gtkmm/accelgroup.h>
-
-#ifdef GDK_WINDOWING_WIN32
-# include <windows.h>
-#endif
-#include <GL/gl.h>
+#include <epoxy/gl.h>
 
 #include <cmath>
 #include <cstddef>
@@ -90,14 +83,6 @@ enum
   VERTICES = 0,
   INDICES  = 1
 };
-
-/*
- * Special value used to mark tracked pointer coordinates as invalid.  This
- * constant is equivalent to the integer indeterminate value some machines
- * use to signal an error condition when converting from floating point to
- * integer.  Math::clamp_to_int() avoids this value.
- */
-enum { TRACK_UNSET = G_MININT };
 
 /*
  * Single-precision factor used for conversion of angles.
@@ -209,92 +194,21 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
 namespace Somato
 {
 
-struct CubeScene::Extensions : public GL::Extensions
-{
-private:
-  // noncopyable
-  Extensions(const CubeScene::Extensions&) = delete;
-  CubeScene::Extensions& operator=(const CubeScene::Extensions&) = delete;
-
-  void query();
-
-public:
-  float max_anisotropy;
-  bool  have_texture_filter_anisotropic;
-
-  Extensions() { query(); }
-  virtual ~Extensions();
-};
-
-CubeScene::Extensions::~Extensions()
-{}
-
-void CubeScene::Extensions::query()
-{
-  max_anisotropy = 1.0;
-  have_texture_filter_anisotropic = false;
-
-  if (GL::have_gl_extension("GL_EXT_texture_filter_anisotropic"))
-  {
-    have_texture_filter_anisotropic = true;
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-  }
-}
-
-inline
-const CubeScene::Extensions* CubeScene::gl_ext() const
-{
-  return static_cast<const CubeScene::Extensions*>(GL::Scene::gl_ext());
-}
-
-CubeScene::CubeScene()
+CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 :
-  piece_cells_            (Cube::N * Cube::N * Cube::N),
-  heading_                {create_layout_texture()},
-  footing_                {create_layout_texture()},
-
-  uf_modelview_           {-1},
-  uf_projection_          {-1},
-  uf_diffuse_material_    {-1},
-  uf_piece_texture_       {-1},
-
-  cage_uf_modelview_      {-1},
-  cage_uf_projection_     {-1},
-
-  cube_texture_           {0},
-  mesh_buffers_           {0, 0},
-  wireframe_buffers_      {0, 0},
-  pieces_vertex_array_    {0},
-  cage_vertex_array_      {0},
-
-  track_last_x_           {TRACK_UNSET},
-  track_last_y_           {TRACK_UNSET},
-  cursor_state_           {CURSOR_DEFAULT},
-
-  animation_piece_        {0},
-  exclusive_piece_        {0},
-  animation_seek_         {1.0},
-  animation_position_     {0.0},
-  animation_delay_        {1.0 / 3.0},
-
-  zoom_                   {1.0},
-  frames_per_sec_         {60.0},
-  pieces_per_sec_         {1.0},
-
-  depth_order_changed_    {false},
-  animation_running_      {false},
-  show_wireframe_         {false},
-  show_outline_           {false},
-  zoom_visible_           {true}
+  GL::Scene    {obj},
+  piece_cells_ (Cube::N * Cube::N * Cube::N),
+  heading_     {create_layout_texture()},
+  footing_     {create_layout_texture()}
 {
   heading_->color().assign(0.85, 0.85, 0.85, 1.0);
   footing_->color().assign(0.65, 0.65, 0.65, 1.0);
 
-  set_flags(Gtk::CAN_FOCUS);
+  set_can_focus(true);
 
   add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::BUTTON1_MOTION_MASK
-             | Gdk::POINTER_MOTION_MASK | Gdk::POINTER_MOTION_HINT_MASK | Gdk::KEY_PRESS_MASK
-             | Gdk::KEY_RELEASE_MASK | Gdk::ENTER_NOTIFY_MASK | Gdk::VISIBILITY_NOTIFY_MASK);
+             | Gdk::POINTER_MOTION_MASK | Gdk::KEY_PRESS_MASK | Gdk::KEY_RELEASE_MASK
+             | Gdk::ENTER_NOTIFY_MASK | Gdk::VISIBILITY_NOTIFY_MASK);
 }
 
 CubeScene::~CubeScene()
@@ -306,14 +220,10 @@ void CubeScene::set_heading(const Glib::ustring& heading)
 
   if (heading_->need_update())
   {
-    if (is_realized())
-    {
-      ScopeContext context {*this};
-
+    if (auto guard = scoped_make_current())
       gl_update_ui();
-    }
 
-    if (is_drawable())
+    if (get_is_drawable())
       queue_draw();
   }
 }
@@ -354,7 +264,7 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
     animation_position_ = 0.0;
   }
 
-  if (is_drawable())
+  if (get_is_drawable())
     queue_draw();
 
   continue_animation();
@@ -371,17 +281,14 @@ void CubeScene::set_zoom(float zoom)
     if (zoom_visible_)
       update_footing();
 
-    if (is_realized())
+    if (auto guard = scoped_make_current())
     {
-      ScopeContext context {*this};
-
       gl_update_projection();
 
       if (footing_->need_update())
         gl_update_ui();
     }
-
-    if (is_drawable())
+    if (get_is_drawable())
       queue_draw();
   }
 }
@@ -398,7 +305,7 @@ void CubeScene::set_rotation(const Math::Quat& rotation)
 
   depth_order_changed_ = true;
 
-  if (!animation_data_.empty() && is_drawable())
+  if (!animation_data_.empty() && get_is_drawable())
     queue_draw();
 }
 
@@ -478,14 +385,10 @@ void CubeScene::set_zoom_visible(bool zoom_visible)
 
     if (footing_->need_update())
     {
-      if (is_realized())
-      {
-        ScopeContext context {*this};
-
+      if (auto guard = scoped_make_current())
         gl_update_ui();
-      }
 
-      if (is_drawable())
+      if (get_is_drawable())
         queue_draw();
     }
   }
@@ -502,14 +405,10 @@ void CubeScene::set_show_wireframe(bool show_wireframe)
   {
     show_wireframe_ = show_wireframe;
 
-    if (is_realized())
-    {
-      ScopeContext context {*this};
-
+    if (auto guard = scoped_make_current())
       gl_update_wireframe();
-    }
 
-    if (is_drawable())
+    if (get_is_drawable())
       queue_draw();
   }
 }
@@ -525,7 +424,7 @@ void CubeScene::set_show_outline(bool show_outline)
   {
     show_outline_ = show_outline;
 
-    if (!animation_data_.empty() && is_drawable())
+    if (!animation_data_.empty() && get_is_drawable())
       queue_draw();
   }
 }
@@ -599,11 +498,6 @@ void CubeScene::gl_initialize()
   {
     const Glib::ustring message = error.what();
     g_warning("%s", message.c_str());
-  }
-  catch (const GL::Error& error)
-  {
-    const Glib::ustring message = error.what();
-    g_warning("GL error: %s", message.c_str());
   }
 
   piece_shader_.use();
@@ -758,8 +652,8 @@ void CubeScene::gl_update_projection()
 {
   GL::Scene::gl_update_projection();
 
-  const float width  = Math::max(1, get_width());
-  const float height = Math::max(1, get_height());
+  const float view_width  = get_viewport_width();
+  const float view_height = get_viewport_height();
 
   // Set up a perspective projection with a field of view angle of 45 degrees
   // in the y-direction.  Place the far clipping plane so that the cube origin
@@ -768,7 +662,7 @@ void CubeScene::gl_update_projection()
   const float far  = -view_z_offset * 2.0f - near;
 
   const float topinv   = G_SQRT2 + 1.0; // cot(pi/8)
-  const float rightinv = height / width * topinv;
+  const float rightinv = view_height / view_width * topinv;
 
   using Math::Matrix4;
   using Math::Vector4;
@@ -790,10 +684,8 @@ void CubeScene::gl_update_projection()
   GL::ShaderProgram::unuse();
 }
 
-void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader,
-                                       const MeshNodeArray& nodes,
-                                       unsigned int total_vertices,
-                                       unsigned int indices_size)
+void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArray& nodes,
+                                       unsigned int total_vertices, unsigned int indices_size)
 {
   g_return_if_fail(pieces_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
@@ -893,7 +785,7 @@ void CubeScene::on_meshes_loaded()
   const auto loader = std::move(mesh_loader_);
   g_return_if_fail(loader);
 
-  if (!is_realized())
+  if (!get_realized())
     return;
 
   std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> nodes;
@@ -930,11 +822,8 @@ void CubeScene::on_meshes_loaded()
       }
     }
 
-  {
-    ScopeContext context {*this};
-
+  if (auto guard = scoped_make_current())
     gl_create_mesh_buffers(*loader, nodes, total_vertices, indices_offset);
-  }
 }
 
 void CubeScene::on_size_allocate(Gtk::Allocation& allocation)
@@ -983,12 +872,12 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
     case 0:
       switch (event->keyval)
       {
-        case GDK_Left:  case GDK_KP_Left:   rotate(Cube::AXIS_Y,  rotation_step); return true;
-        case GDK_Right: case GDK_KP_Right:  rotate(Cube::AXIS_Y, -rotation_step); return true;
-        case GDK_Up:    case GDK_KP_Up:     rotate(Cube::AXIS_X,  rotation_step); return true;
-        case GDK_Down:  case GDK_KP_Down:   rotate(Cube::AXIS_X, -rotation_step); return true;
-        case GDK_Begin: case GDK_KP_Begin:
-        case GDK_5:     case GDK_KP_5:      set_rotation(Math::Quat{}); return true;
+        case GDK_KEY_Left:  case GDK_KEY_KP_Left:   rotate(Cube::AXIS_Y,  rotation_step); return true;
+        case GDK_KEY_Right: case GDK_KEY_KP_Right:  rotate(Cube::AXIS_Y, -rotation_step); return true;
+        case GDK_KEY_Up:    case GDK_KEY_KP_Up:     rotate(Cube::AXIS_X,  rotation_step); return true;
+        case GDK_KEY_Down:  case GDK_KEY_KP_Down:   rotate(Cube::AXIS_X, -rotation_step); return true;
+        case GDK_KEY_Begin: case GDK_KEY_KP_Begin:
+        case GDK_KEY_5:     case GDK_KEY_KP_5:      set_rotation(Math::Quat{}); return true;
       }
       break;
 
@@ -996,8 +885,8 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
     case GDK_CONTROL_MASK | GDK_SHIFT_MASK:
       switch (event->keyval)
       {
-        case GDK_Tab:          case GDK_KP_Tab:       cycle_exclusive( 1); return true;
-        case GDK_ISO_Left_Tab: case GDK_3270_BackTab: cycle_exclusive(-1); return true;
+        case GDK_KEY_Tab:          case GDK_KEY_KP_Tab:       cycle_exclusive( 1); return true;
+        case GDK_KEY_ISO_Left_Tab: case GDK_KEY_3270_BackTab: cycle_exclusive(-1); return true;
       }
       break;
 
@@ -1109,18 +998,15 @@ bool CubeScene::on_motion_notify_event(GdkEventMotion* event)
   return GL::Scene::on_motion_notify_event(event);
 }
 
-GL::Extensions* CubeScene::gl_query_extensions()
-{
-  return new CubeScene::Extensions{};
-}
-
 void CubeScene::gl_reposition_layouts()
 {
-  const int margin_x = get_width() / 10;
-  const int height   = get_height();
-  const int margin_y = height / 10;
+  const int view_width  = get_viewport_width();
+  const int view_height = get_viewport_height();
 
-  heading_->set_window_pos(margin_x, height - margin_y - heading_->get_height());
+  const int margin_x = view_width  / 10;
+  const int margin_y = view_height / 10;
+
+  heading_->set_window_pos(margin_x, view_height - margin_y - heading_->get_height());
   footing_->set_window_pos(margin_x, margin_y);
 }
 
@@ -1296,7 +1182,7 @@ void CubeScene::advance_animation()
 
 void CubeScene::set_cursor(CubeScene::CursorState state)
 {
-  if (state != cursor_state_ && is_realized())
+  if (state != cursor_state_ && get_realized())
   {
     const auto window = get_window();
 
@@ -1307,19 +1193,11 @@ void CubeScene::set_cursor(CubeScene::CursorState state)
         break;
 
       case CURSOR_DRAGGING:
-        window->set_cursor(Gdk::Cursor{get_display(), Gdk::FLEUR});
+        window->set_cursor(Gdk::Cursor::create(get_display(), "all-scroll"));
         break;
 
       case CURSOR_INVISIBLE:
-        {
-          const char *const bitmap_data = "";
-
-          const auto bitmap = Gdk::Bitmap::create(window, bitmap_data, 1, 1);
-          const Gdk::Color color;
-
-          // Use the empty 1x1 bitmap to set up an invisible cursor.
-          window->set_cursor(Gdk::Cursor{bitmap, bitmap, color, color, 0, 0});
-        }
+        window->set_cursor(Gdk::Cursor::create(get_display(), "none"));
         break;
 
       default:
@@ -1332,7 +1210,7 @@ void CubeScene::set_cursor(CubeScene::CursorState state)
 
 bool CubeScene::on_frame_trigger()
 {
-  if (animation_running_ && !animation_data_.empty() && is_drawable())
+  if (animation_running_ && !animation_data_.empty() && get_is_drawable())
   {
     queue_draw();
 
@@ -1370,12 +1248,12 @@ bool CubeScene::on_delay_timeout()
 
 void CubeScene::start_piece_animation()
 {
-  if (is_drawable() && !frame_trigger_.connected())
+  if (get_is_drawable() && !frame_trigger_.connected())
   {
     queue_draw();
 
     animation_seek_ = animation_position_;
-
+#if 0
     if (vsync_enabled())
     {
       frame_trigger_ = Glib::signal_idle().connect(
@@ -1383,6 +1261,7 @@ void CubeScene::start_piece_animation()
           Glib::PRIORITY_DEFAULT_IDLE);
     }
     else
+#endif
     {
       const int interval = int(1000.0f / frames_per_sec_ + 0.5f);
 
@@ -1403,7 +1282,7 @@ void CubeScene::pause_animation()
 
 void CubeScene::continue_animation()
 {
-  if (animation_running_ && !animation_data_.empty() && is_drawable()
+  if (animation_running_ && !animation_data_.empty() && get_is_drawable()
       && !frame_trigger_.connected() && !delay_timeout_.connected())
   {
     if (animation_position_ > 0.0f)
@@ -1439,7 +1318,7 @@ void CubeScene::reset_hide_cursor_timeout()
 bool CubeScene::on_hide_cursor_timeout()
 {
   if ((track_last_x_ == TRACK_UNSET || track_last_y_ == TRACK_UNSET)
-      && animation_running_ && is_realized())
+      && animation_running_ && get_realized())
   {
     set_cursor(CURSOR_INVISIBLE);
   }
@@ -1458,7 +1337,7 @@ void CubeScene::cycle_exclusive(int direction)
 
   exclusive_piece_ = piece;
 
-  if (is_drawable())
+  if (get_is_drawable())
     queue_draw();
 }
 
@@ -1475,7 +1354,7 @@ void CubeScene::select_piece(int piece)
   if (exclusive_piece_ > 0)
     exclusive_piece_ = piece;
 
-  if (is_drawable())
+  if (get_is_drawable())
     queue_draw();
 
   continue_animation();
@@ -1498,15 +1377,15 @@ void CubeScene::process_track_motion(int x, int y)
     const float cube_radius    = Cube::N * cube_cell_size / 2.0;
     const float trackball_size = (1.0 + G_SQRT2) / -view_z_offset * cube_radius;
 
-    const int   width  = get_width();
-    const int   height = get_height();
-    const float scale  = 1.0f / Math::max(1, height);
+    const int   width  = get_viewport_width();
+    const int   height = get_viewport_height();
+    const float scale  = 1.0f / height;
 
-    const Math::Quat track = Math::trackball_motion((2 * track_last_x_ - width + 1)  * scale,
-                                                    (height - 2 * track_last_y_ - 1) * scale,
-                                                    (2 * x - width + 1)  * scale,
-                                                    (height - 2 * y - 1) * scale,
-                                                    zoom_ * trackball_size);
+    const auto track = Math::trackball_motion((2 * track_last_x_ - width + 1)  * scale,
+                                              (height - 2 * track_last_y_ - 1) * scale,
+                                              (2 * x - width + 1)  * scale,
+                                              (height - 2 * y - 1) * scale,
+                                              zoom_ * trackball_size);
     set_rotation(track * rotation_);
   }
 }
@@ -1836,7 +1715,7 @@ void CubeScene::gl_init_cube_texture()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-  if (gl_ext()->have_texture_filter_anisotropic)
+  if (gl_ext()->texture_filter_anisotropic)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
                     Math::min(8.0f, gl_ext()->max_anisotropy));
 

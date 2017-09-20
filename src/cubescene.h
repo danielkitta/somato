@@ -36,6 +36,8 @@
 
 #include <config.h>
 
+namespace Gtk { class Builder; }
+
 namespace Somato
 {
 
@@ -79,10 +81,10 @@ typedef std::vector<PieceCell> PieceCellVector;
 class CubeScene : public GL::Scene
 {
 public:
-  CubeScene();
+  CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui);
   virtual ~CubeScene();
 
-  inline sigc::signal<void>& signal_cycle_finished();
+  sigc::signal<void>& signal_cycle_finished() { return signal_cycle_finished_; }
 
   void set_heading(const Glib::ustring& heading);
   Glib::ustring get_heading() const;
@@ -122,28 +124,23 @@ public:
   void rotate(int axis, float angle);
 
 protected:
-  struct Extensions;
+  void gl_initialize() override;
+  void gl_cleanup() override;
+  void gl_reset_state() override;
+  int  gl_render() override;
+  void gl_update_projection() override;
 
-  inline const CubeScene::Extensions* gl_ext() const;
-
-  virtual void gl_initialize();
-  virtual void gl_cleanup();
-  virtual void gl_reset_state();
-  virtual int  gl_render();
-  virtual void gl_update_projection();
-
-  virtual void on_size_allocate(Gtk::Allocation& allocation);
-  virtual bool on_visibility_notify_event(GdkEventVisibility* event);
-  virtual bool on_enter_notify_event(GdkEventCrossing* event);
-  virtual bool on_key_press_event(GdkEventKey* event);
-  virtual bool on_key_release_event(GdkEventKey* event);
-  virtual bool on_button_press_event(GdkEventButton* event);
-  virtual bool on_button_release_event(GdkEventButton* event);
-  virtual bool on_motion_notify_event(GdkEventMotion* event);
+  void on_size_allocate(Gtk::Allocation& allocation) override;
+  bool on_visibility_notify_event(GdkEventVisibility* event) override;
+  bool on_enter_notify_event(GdkEventCrossing* event) override;
+  bool on_key_press_event(GdkEventKey* event) override;
+  bool on_key_release_event(GdkEventKey* event) override;
+  bool on_button_press_event(GdkEventButton* event) override;
+  bool on_button_release_event(GdkEventButton* event) override;
+  bool on_motion_notify_event(GdkEventMotion* event) override;
 
 private:
-  virtual GL::Extensions* gl_query_extensions();
-  virtual void gl_reposition_layouts();
+  void gl_reposition_layouts() override;
 
   typedef std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> MeshNodeArray;
 
@@ -152,6 +149,9 @@ private:
     CURSOR_DEFAULT,
     CURSOR_DRAGGING,
     CURSOR_INVISIBLE
+  };
+  enum : int {
+    TRACK_UNSET = G_MININT  // integer indeterminate
   };
 
   Math::Quat                  rotation_;
@@ -174,40 +174,40 @@ private:
   GL::LayoutTexture*          footing_;
 
   GL::ShaderProgram           piece_shader_;
-  int                         uf_modelview_;
-  int                         uf_projection_;
-  int                         uf_diffuse_material_;
-  int                         uf_piece_texture_;
+  int                         uf_modelview_         = -1;
+  int                         uf_projection_        = -1;
+  int                         uf_diffuse_material_  = -1;
+  int                         uf_piece_texture_     = -1;
 
   GL::ShaderProgram           cage_shader_;
-  int                         cage_uf_modelview_;
-  int                         cage_uf_projection_;
+  int                         cage_uf_modelview_    = -1;
+  int                         cage_uf_projection_   = -1;
 
-  unsigned int                cube_texture_;
-  unsigned int                mesh_buffers_[2];
-  unsigned int                wireframe_buffers_[2];
-  unsigned int                pieces_vertex_array_;
-  unsigned int                cage_vertex_array_;
+  unsigned int                cube_texture_         = 0;
+  unsigned int                mesh_buffers_[2]      = {0, 0};
+  unsigned int                wireframe_buffers_[2] = {0, 0};
+  unsigned int                pieces_vertex_array_  = 0;
+  unsigned int                cage_vertex_array_    = 0;
 
-  int                         track_last_x_;
-  int                         track_last_y_;
-  CursorState                 cursor_state_;
+  int                         track_last_x_         = TRACK_UNSET;
+  int                         track_last_y_         = TRACK_UNSET;
+  CursorState                 cursor_state_         = CURSOR_DEFAULT;
 
-  int                         animation_piece_;
-  int                         exclusive_piece_;
-  float                       animation_seek_;
-  float                       animation_position_;
-  float                       animation_delay_;
+  int                         animation_piece_      = 0;
+  int                         exclusive_piece_      = 0;
+  float                       animation_seek_       = 1.;
+  float                       animation_position_   = 0.;
+  float                       animation_delay_      = 1. / 3.;
 
-  float                       zoom_;
-  float                       frames_per_sec_;
-  float                       pieces_per_sec_;
+  float                       zoom_                 = 1.;
+  float                       frames_per_sec_       = 60.;
+  float                       pieces_per_sec_       = 1.;
 
-  bool                        depth_order_changed_;
-  bool                        animation_running_;
-  bool                        show_wireframe_;
-  bool                        show_outline_;
-  bool                        zoom_visible_;
+  bool                        depth_order_changed_  = false;
+  bool                        animation_running_    = false;
+  bool                        show_wireframe_       = false;
+  bool                        show_outline_         = false;
+  bool                        zoom_visible_         = true;
 
   void update_footing();
   void update_animation_order();
@@ -230,10 +230,8 @@ private:
   void process_track_motion(int x, int y);
 
   void on_meshes_loaded();
-  void gl_create_mesh_buffers(GL::MeshLoader& loader,
-                              const MeshNodeArray& nodes,
-                              unsigned int total_vertices,
-                              unsigned int indices_size);
+  void gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArray& nodes,
+                              unsigned int total_vertices, unsigned int indices_size);
   void gl_create_piece_shader();
   void gl_create_cage_shader();
   void gl_create_wireframe();
@@ -248,12 +246,6 @@ private:
   void gl_init_cube_texture();
   void gl_update_wireframe();
 };
-
-inline
-sigc::signal<void>& CubeScene::signal_cycle_finished()
-{
-  return signal_cycle_finished_;
-}
 
 } // namespace Somato
 

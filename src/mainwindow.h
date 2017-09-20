@@ -23,72 +23,68 @@
 
 #include "puzzle.h"
 
-#include <gdk/gdkevents.h>
+#include <gdk/gdk.h>
 #include <sigc++/sigc++.h>
-#include <glibmm/refptr.h>
-#include <glibmm/timer.h>
+#include <glibmm.h>
+#include <gtkmm/applicationwindow.h>
 
 #include <memory>
 #include <vector>
 
-#ifndef SOMATO_HIDE_FROM_INTELLISENSE
+namespace Gio { class SimpleAction; }
+
 namespace Gtk
 {
-class ActionGroup;
-class Box;
-class Container;
-class Range;
-class Statusbar;
-class UIManager;
-class Widget;
-class Window;
+  class Adjustment;
+  class Builder;
 }
-#endif
 
 namespace Somato
 {
 
 class CubeScene;
 
-class MainWindow : public sigc::trackable
+class MainWindow : public Gtk::ApplicationWindow
 {
 public:
-  MainWindow();
+  MainWindow(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui);
   virtual ~MainWindow();
-
-  Gtk::Window* get_window();
 
   void run_puzzle_solver();
 
+protected:
+  bool on_window_state_event(GdkEventWindowState* event) override;
+
 private:
-  struct Actions;
+  Glib::RefPtr<Gtk::Adjustment>   zoom_;
+  Glib::RefPtr<Gtk::Adjustment>   speed_;
 
-  Glib::RefPtr<Gtk::UIManager>  ui_manager_;
-  std::unique_ptr<Actions>      actions_;
+  Glib::RefPtr<Gio::SimpleAction> action_first_,
+                                  action_prev_,
+                                  action_next_,
+                                  action_last_,
+                                  action_fullscreen_,
+                                  action_unfullscreen_,
+                                  action_opt_menu_,
+                                  action_pause_,
+                                  action_cycle_,
+                                  action_grid_,
+                                  action_outline_,
+                                  action_antialias_,
+                                  action_zoom_plus_,
+                                  action_zoom_minus_,
+                                  action_zoom_reset_,
+                                  action_speed_plus_,
+                                  action_speed_minus_,
+                                  action_speed_reset_;
 
-  std::unique_ptr<Gtk::Window>  window_;
-  Gtk::Box*                     vbox_main_;
-  Gtk::Container*               frame_scene_;
-  CubeScene*                    cube_scene_;
-  Gtk::Range*                   scale_speed_;
-  Gtk::Range*                   scale_zoom_;
-  Gtk::Statusbar*               statusbar_;
+  CubeScene*                      cube_scene_  = nullptr;
+  std::vector<Solution>           solutions_;
+  std::unique_ptr<PuzzleThread>   puzzle_thread_;
+  sigc::connection                conn_cycle_;
+  int                             cube_index_    = -1;
+  bool                            is_fullscreen_ = false;
 
-  std::unique_ptr<Gtk::Window>  aboutdialog_;
-
-  std::vector<Solution>         solutions_;
-  std::unique_ptr<PuzzleThread> puzzle_thread_;
-  Glib::Timer                   profile_timer_;
-  sigc::connection              conn_cycle_;
-  sigc::connection              conn_profile_;
-  int                           cube_index_;
-
-  unsigned int                  context_cube_;
-  unsigned int                  context_profile_;
-
-  Glib::RefPtr<Gtk::ActionGroup> create_action_group();
-
-  void load_ui();
   void init_cube_scene();
   bool start_animation();
   void switch_cube(int index);
@@ -97,23 +93,16 @@ private:
   void on_speed_value_changed();
   void on_zoom_value_changed();
 
-  void on_ui_add_widget(Gtk::Widget* widget);
   void on_cube_goto_first();
   void on_cube_go_back();
   void on_cube_go_forward();
   void on_cube_goto_last();
-  void on_animation_play();
-  void on_animation_pause();
-  void on_application_about();
-  void on_aboutdialog_response(int response_id);
+  void on_animation_play(const Glib::VariantBase& state);
+  void on_animation_pause(const Glib::VariantBase& state);
   void on_toggle_fullscreen();
-  void on_exit_fullscreen();
-  void on_toggle_outline();
-  void on_toggle_wireframe();
-  void on_toggle_antialias();
-  void on_toggle_profile();
-
-  bool on_profile_idle();
+  void on_toggle_outline(const Glib::VariantBase& state);
+  void on_toggle_wireframe(const Glib::VariantBase& state);
+  void on_toggle_antialias(const Glib::VariantBase& state);
 
   bool on_scene_button_press_event(GdkEventButton* event);
   bool on_scene_scroll_event(GdkEventScroll* event);

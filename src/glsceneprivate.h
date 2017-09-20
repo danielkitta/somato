@@ -21,57 +21,14 @@
 #ifndef SOMATO_GLSCENEPRIVATE_H_INCLUDED
 #define SOMATO_GLSCENEPRIVATE_H_INCLUDED
 
-#define GL_GLEXT_PROTOTYPES 1
-
 #include "glscene.h"
 #include "glutils.h"
 
-#include <gdk/gdk.h>
 #include <pangomm/context.h>
 #include <pangomm/layout.h>
 
-#ifdef GDK_WINDOWING_WIN32
-# include <windows.h>
-#endif
-#include <GL/gl.h>
-#ifdef GDK_WINDOWING_WIN32
-# include <gdk/glext/glext.h>
-# include <gdk/glext/wglext.h>
-#endif
-
-#ifdef GDK_WINDOWING_X11
-// Avoid including glx.h as that would pull in the macro-jammed X headers.
-extern "C" { typedef int (*PFNGLXSWAPINTERVALSGIPROC)(int); }
-#endif
-
 namespace GL
 {
-
-struct Extensions
-{
-private:
-  void query();
-
-  // noncopyable
-  Extensions(const Extensions&) = delete;
-  Extensions& operator=(const Extensions&) = delete;
-
-public:
-  bool have_debug_output;
-  bool have_swap_control;
-
-  PFNGLDEBUGMESSAGECONTROLARBPROC  DebugMessageControl;
-  PFNGLDEBUGMESSAGECALLBACKARBPROC DebugMessageCallback;
-
-#if defined(GDK_WINDOWING_X11)
-  PFNGLXSWAPINTERVALSGIPROC SwapIntervalSGI;
-#elif defined(GDK_WINDOWING_WIN32)
-  PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
-#endif
-
-  Extensions() { query(); }
-  virtual ~Extensions();
-};
 
 class LayoutTexture
 {
@@ -86,7 +43,7 @@ private:
 
   unsigned int  array_offset_;  // offset into geometry arrays
 
-  GLuint        tex_name_;      // GL name of texture object
+  unsigned int  tex_name_;      // GL name of texture object
   int           tex_width_;     // actual width of the GL texture
   int           tex_height_;    // actual height of the GL texture
 
@@ -132,12 +89,6 @@ public:
   int get_window_x() const { return window_x_; }
   int get_window_y() const { return window_y_; }
 };
-
-inline
-const GL::Extensions* Scene::gl_ext() const
-{
-  return gl_extensions_.get();
-}
 
 } // namespace GL
 

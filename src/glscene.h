@@ -21,37 +21,46 @@
 #ifndef SOMATO_GLSCENE_H_INCLUDED
 #define SOMATO_GLSCENE_H_INCLUDED
 
+#include <config.h>
+
 #include "glshader.h"
 #include "glutils.h"
 #include "vectormath.h"
 
 #include <glibmm/ustring.h>
-#include <pangomm/context.h>
-#include <pangomm/layout.h>
-#include <gtkmm/drawingarea.h>
+#include <gdkmm/glcontext.h>
+#include <gtkmm/glarea.h>
 #include <memory>
+#include <utility>
 #include <vector>
 
-#include <config.h>
+namespace Pango
+{
+  class Context;
+  class Layout;
+}
 
 namespace GL
 {
 
-struct Extensions;
-class  LayoutTexture;
+class LayoutTexture;
+
+struct Extensions
+{
+  bool  debug_output               = false;
+  bool  texture_filter_anisotropic = false;
+  float max_anisotropy             = 1.;
+
+  void gl_query();
+};
 
 struct UIVertex
 {
-  float vertex[2];
-  float texcoord[2];
+  float vertex[2]   = {0., 0.};
+  float texcoord[2] = {0., 0.};
 
   void set_vertex(float x, float y) { vertex[0] = x; vertex[1] = y; }
   void set_texcoord(float s, float t) { texcoord[0] = s; texcoord[1] = t; }
-
-  UIVertex() : vertex {0.0, 0.0}, texcoord {0.0, 0.0} {}
-
-  UIVertex(const UIVertex&) = default;
-  UIVertex& operator=(const UIVertex&) = default;
 };
 
 typedef std::vector<std::unique_ptr<LayoutTexture>> LayoutVector;
@@ -64,7 +73,7 @@ typedef std::vector<UIVertex> GeometryVector;
  * to never invoke unknown functions or signal handlers while a GL context is
  * active, as recursive activation is not allowed.
  */
-class Scene : public Gtk::DrawingArea
+class Scene : public Gtk::GLArea
 {
 public:
   virtual ~Scene();
@@ -73,16 +82,6 @@ public:
   unsigned int get_frame_counter() const;
   unsigned int get_triangle_counter() const;
 
-  void set_exclusive_context(bool exclusive_context);
-  bool get_exclusive_context() const;
-
-  void set_use_back_buffer(bool use_back_buffer);
-  bool get_use_back_buffer() const;
-
-  void set_enable_vsync(bool enable_vsync);
-  bool get_enable_vsync() const;
-  bool vsync_enabled() const;
-
   void set_multisample(int n_samples);
   int  get_multisample() const;
 
@@ -90,77 +89,53 @@ public:
   bool get_show_focus() const;
 
 protected:
-  class ScopeContext;
+  class ContextGuard
+  {
+  public:
+    explicit ContextGuard(bool current) : current_ {current} {}
+    ~ContextGuard() { if (current_) Gdk::GLContext::clear_current(); }
 
-  Scene();
+    ContextGuard(ContextGuard&& other)
+      : current_ {other.current_} { other.current_ = false; }
+    ContextGuard(const ContextGuard& other) = delete;
+    ContextGuard& operator=(const ContextGuard& other) = delete;
 
-  inline const GL::Extensions* gl_ext() const;
+    explicit operator bool() const { return current_; }
+
+  private:
+    bool current_;
+  };
+
+  explicit Scene(BaseObjectType* obj);
+
+  const GL::Extensions* gl_ext() const { return &gl_extensions_; }
+  ContextGuard scoped_make_current();
+
+  int get_viewport_width() const;
+  int get_viewport_height() const;
 
   LayoutTexture* create_layout_texture();
   void gl_update_ui();
-  void gl_swap_buffers();
 
   virtual void gl_initialize();
   virtual void gl_cleanup();
   virtual void gl_reset_state();
   virtual int  gl_render() = 0;
-  virtual void gl_update_viewport();
   virtual void gl_update_projection();
   virtual void gl_update_color();
 
-  virtual void on_screen_changed(const Glib::RefPtr<Gdk::Screen>& previous_screen);
-  virtual void on_size_allocate(Gtk::Allocation& allocation);
-  virtual void on_state_changed(Gtk::StateType previous_state);
-  virtual void on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style);
-  virtual void on_direction_changed(Gtk::TextDirection previous_direction);
-  virtual bool on_expose_event(GdkEventExpose* event);
-  virtual bool on_visibility_notify_event(GdkEventVisibility* event);
+  void on_realize() override;
+  void on_unrealize() override;
+  void on_size_allocate(Gtk::Allocation& allocation) override;
+  bool on_draw(const Cairo::RefPtr<Cairo::Context>& cr) override;
+  void on_style_updated() override;
+  void on_state_changed(Gtk::StateType previous_state) override;
+  void on_direction_changed(Gtk::TextDirection previous_direction) override;
+
+  Glib::RefPtr<Gdk::GLContext> on_create_context() override;
 
 private:
-  virtual GL::Extensions* gl_query_extensions();
   virtual void gl_reposition_layouts();
-
-  Math::Vector4     focus_color_;
-
-  GdkGLDrawable*    gl_drawable_;
-  GdkGLContext*     gl_context_;
-
-  std::unique_ptr<GL::Extensions> gl_extensions_;
-  Glib::RefPtr<Pango::Context>    texture_context_;
-
-  LayoutVector      ui_layouts_;
-
-  GL::ShaderProgram label_shader_;
-  int               label_uf_color_;
-  int               label_uf_texture_;
-
-  GL::ShaderProgram focus_shader_;
-  int               focus_uf_color_;
-
-  int          aa_samples_;
-  int          max_aa_samples_;
-
-  unsigned int render_buffers_[2];
-  unsigned int frame_buffer_;
-
-  unsigned int ui_vertex_count_;
-  unsigned int ui_vertex_array_;
-  unsigned int ui_buffer_;
-  unsigned int frame_counter_;
-  unsigned int triangle_counter_;
-
-  bool exclusive_context_;
-  bool has_back_buffer_;
-  bool use_back_buffer_;
-  bool enable_vsync_;
-  bool vsync_enabled_;
-  bool show_focus_;
-  bool focus_drawable_;
-
-  void on_signal_realize();
-  void on_signal_unrealize();
-
-  Glib::RefPtr<Pango::Layout> create_texture_pango_layout(const Glib::ustring& text);
 
   void gl_create_label_shader();
   void gl_create_focus_shader();
@@ -168,9 +143,7 @@ private:
   void gl_update_framebuffer();
   void gl_delete_framebuffer();
 
-  void gl_update_vsync_state();
   void gl_update_layouts();
-
   void gl_update_ui_buffer();
   void gl_build_focus(UIVertex* vertices);
   void gl_build_layouts(UIVertex* vertices);
@@ -178,29 +151,37 @@ private:
   void gl_render_focus();
   int  gl_render_layouts(LayoutVector::const_iterator first);
   int  gl_render_layout_arrays(LayoutVector::const_iterator first);
-};
 
-/*
- * Instantiating a GL::ScopeContext object makes the specified
- * widget's GL context current for the duration of its scope.
- */
-class Scene::ScopeContext
-{
-private:
-  Scene& scene_;
+  Glib::RefPtr<Pango::Layout> create_texture_pango_layout(const Glib::ustring& text);
 
-  // All non-inline methods are static, in order to enable
-  // the compiler to entirely optimize away the object instance.
-  static void begin_(Scene& scene);
-  static void end_(Scene& scene);
+  Math::Vector4     focus_color_ = {0.6, 0.6, 0.6, 1.};
 
-  // noncopyable
-  ScopeContext(const ScopeContext&) = delete;
-  ScopeContext& operator=(const ScopeContext&) = delete;
+  Glib::RefPtr<Pango::Context> texture_context_;
+  LayoutVector                 ui_layouts_;
 
-public:
-  explicit inline ScopeContext(Scene& scene) : scene_ (scene) { begin_(scene_); }
-  inline ~ScopeContext() { end_(scene_); }
+  GL::Extensions    gl_extensions_;
+
+  GL::ShaderProgram label_shader_;
+  int               label_uf_color_   = -1;
+  int               label_uf_texture_ = -1;
+
+  GL::ShaderProgram focus_shader_;
+  int               focus_uf_color_   = -1;
+
+  int          aa_samples_      = 0;
+  int          max_aa_samples_  = 0;
+
+  unsigned int render_buffers_[2] = {0, 0};
+  unsigned int frame_buffer_      = 0;
+
+  unsigned int ui_vertex_count_  = 0;
+  unsigned int ui_vertex_array_  = 0;
+  unsigned int ui_buffer_        = 0;
+  unsigned int frame_counter_    = 0;
+  unsigned int triangle_counter_ = 0;
+
+  bool show_focus_     = true;
+  bool focus_drawable_ = false;
 };
 
 } // namespace GL

@@ -25,6 +25,8 @@ bin_PROGRAMS = src/somato
 src_somato_SOURCES =		\
 	src/appdata.cc		\
 	src/appdata.h		\
+	src/application.cc	\
+	src/application.h	\
 	src/cube.cc		\
 	src/cube.h		\
 	src/cubescene.cc	\
@@ -55,10 +57,10 @@ EXTRA_src_somato_SOURCES =	\
 	src/vector_sse.h
 
 dist_pkgdata_DATA =		\
-	ui/cubescene.gtkrc	\
-	ui/puzzlepieces.dae	\
+	ui/app-menu.ui		\
+	ui/cubescene.css	\
 	ui/mainwindow.glade	\
-	ui/mainwindow-ui.xml	\
+	ui/puzzlepieces.dae	\
 	ui/woodtexture.png
 
 shaderdir = $(pkgdatadir)/shaders

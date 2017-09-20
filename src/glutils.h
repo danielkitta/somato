@@ -22,24 +22,12 @@
 #define SOMATO_GLUTILS_H_INCLUDED
 
 #include <glib.h>
-#include <gdk/gdk.h>
 #include <glibmm/ustring.h>
+#include <gdkmm/glcontext.h>
 #include <cstddef>
-
-extern "C"
-{
-  typedef struct _GdkGLContext  GdkGLContext;
-  typedef struct _GdkGLDrawable GdkGLDrawable;
-}
-
-#ifndef SOMATO_HIDE_FROM_INTELLISENSE
-namespace Gtk { class Widget; }
-#endif
 
 namespace GL
 {
-
-extern "C" { typedef void (* ProcAddress) (void); }
 
 /*
  * Exception class for errors reported by glGetError().  To simplify matters,
@@ -47,30 +35,25 @@ extern "C" { typedef void (* ProcAddress) (void); }
  * GL::Scene::ScopeContext to indicate failure.  For this usage code() is not
  * meaningful and will always be 0.
  */
-class Error
+class Error : public Gdk::GLError
 {
 private:
-  Glib::ustring what_;
-  unsigned int  code_;
+  unsigned int gl_code_;
 
 public:
   explicit Error(unsigned int error_code);
-  explicit Error(const Glib::ustring& message);
+  explicit Error(const Glib::ustring& message, unsigned int error_code = 0);
   virtual ~Error() noexcept;
 
-  Error(const Error& other) : what_ {other.what_}, code_ {other.code_} {}
-  Error& operator=(const Error& other) { what_ = other.what_; code_ = other.code_; return *this; }
+  Error(const Error& other) = default;
+  Error& operator=(const Error& other) = default;
 
-  unsigned int  code() const { return code_; }
-  Glib::ustring what() const { return what_; }
+  unsigned int gl_code() const { return gl_code_; }
 
   static void check();                // throw if glGetError() != GL_NO_ERROR
   static void fail() G_GNUC_NORETURN; // like check() but always throws
 
   static void throw_if_fail(bool condition) { if (G_UNLIKELY(!condition)) fail(); }
-
-protected:
-  Error(const Glib::ustring& message, unsigned int error_code);
 };
 
 class FramebufferError : public Error
@@ -79,74 +62,6 @@ public:
   explicit FramebufferError(unsigned int error_code);
   virtual ~FramebufferError() noexcept;
 };
-
-/*
- * Try to enable the OpenGL capability on the specified widget.
- * This function should be called after the widget has been added
- * to a toplevel window.  GL::Error is thrown on failure.
- */
-void configure_widget(Gtk::Widget& target, unsigned int mode);
-
-GdkGLContext* create_context(GdkGLDrawable* drawable);
-void destroy_context(GdkGLContext* context);
-
-/*
- * Combine major and minor version number parts into a single
- * integer for use with the GL version check functions below.
- */
-inline int make_version(int major, int minor)
-{
-  return (major << 16) + minor;
-}
-
-/*
- * Parse the version string and return the version number encoded as
- * integer of the form (major << 16) + minor, or -1 if parsing failed.
- * The format of the string should match glGetString(GL_VERSION).
- */
-int parse_version_string(const unsigned char* version);
-
-/*
- * Parse the string returned by glGetString(GL_VERSION) and return
- * the version number encoded as (major << 16) + minor.  Requires
- * an active GL context.
- */
-int get_gl_version();
-
-/*
- * Check for the presence of an OpenGL extension by name.
- * Requires an active GL context.
- */
-bool have_gl_extension(const char* name);
-
-#ifdef GDK_WINDOWING_X11
-/*
- * Check for the presence of an extension name in the list returned
- * by glXQueryExtensionsString().  Requires an active GL context.
- */
-bool have_glx_extension(const char* name);
-#endif
-
-#ifdef GDK_WINDOWING_WIN32
-/*
- * Check for the presence of an extension name in the list returned
- * by wglGetExtensionsStringARB().  Requires an active GL context.
- */
-bool have_wgl_extension(const char* name);
-#endif
-
-ProcAddress get_proc_address_(const char* name);
-
-/*
- * Dynamically retrieve the entry point of a GL function.  Requires an active
- * GL context.  Note that it is necessary to parse the GL extension string as
- * well, in order to determine whether an extension is actually supported.
- */
-template <class T>
-inline T get_proc_address(T& address, const char* name)
-{
-  return (address = reinterpret_cast<T>(GL::get_proc_address_(name)));
-}
 
 /*
  * Convert a VBO offset to a pointer.

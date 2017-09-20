@@ -18,15 +18,13 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#define GL_GLEXT_PROTOTYPES 1
-
 #include "glshader.h"
 #include "glutils.h"
 
 #include <glib.h>
 #include <glibmm/fileutils.h>
 #include <glibmm/ustring.h>
-#include <GL/gl.h>
+#include <epoxy/gl.h>
 
 #include <memory>
 

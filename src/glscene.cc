@@ -27,10 +27,8 @@
 #include <glib.h>
 #include <cairo.h>
 #include <pango/pangocairo.h>
-#include <gdk/gdkgl.h>
-#include <gtk/gtkgl.h>
 #include <gdkmm.h>
-#include <gtkmm/style.h>
+#include <epoxy/gl.h>
 
 #include <cstddef>
 #include <cstring>
@@ -115,45 +113,6 @@ int aligned_stride(int width)
 
 namespace GL
 {
-
-Extensions::~Extensions()
-{}
-
-void Extensions::query()
-{
-  have_debug_output = false;
-  have_swap_control = false;
-
-  DebugMessageControl  = nullptr;
-  DebugMessageCallback = nullptr;
-
-#if defined(GDK_WINDOWING_X11)
-  SwapIntervalSGI = nullptr;
-#elif defined(GDK_WINDOWING_WIN32)
-  SwapIntervalEXT = nullptr;
-#endif
-
-  if (GL::have_gl_extension("GL_ARB_debug_output"))
-  {
-    if (GL::get_proc_address(DebugMessageControl,  "glDebugMessageControlARB") &&
-        GL::get_proc_address(DebugMessageCallback, "glDebugMessageCallbackARB"))
-      have_debug_output = true;
-  }
-
-#if defined(GDK_WINDOWING_X11)
-  if (GL::have_glx_extension("GLX_SGI_swap_control"))
-  {
-    if (GL::get_proc_address(SwapIntervalSGI, "glXSwapIntervalSGI"))
-      have_swap_control = true;
-  }
-#elif defined(GDK_WINDOWING_WIN32)
-  if (GL::have_wgl_extension("WGL_EXT_swap_control"))
-  {
-    if (GL::get_proc_address(SwapIntervalEXT, "wglSwapIntervalEXT"))
-      have_swap_control = true;
-  }
-#endif
-}
 
 LayoutTexture::LayoutTexture()
 :
@@ -305,44 +264,25 @@ void LayoutTexture::gl_delete()
   ink_height_ = 0;
 }
 
-Scene::Scene()
-:
-  focus_color_        {1.0, 1.0, 1.0, 1.0},
-  gl_drawable_        {nullptr},
-  gl_context_         {nullptr},
-  label_uf_color_     {-1},
-  label_uf_texture_   {-1},
-  focus_uf_color_     {-1},
-  aa_samples_         {0},
-  max_aa_samples_     {0},
-  render_buffers_     {0, 0},
-  frame_buffer_       {0},
-  ui_vertex_count_    {0},
-  ui_vertex_array_    {0},
-  ui_buffer_          {0},
-  frame_counter_      {0},
-  triangle_counter_   {0},
-  exclusive_context_  {false},
-  has_back_buffer_    {false},
-  use_back_buffer_    {true},
-  enable_vsync_       {true},
-  vsync_enabled_      {false},
-  show_focus_         {true},
-  focus_drawable_     {false}
+void Extensions::gl_query()
 {
-  set_double_buffered(false);
+  g_log("OpenGL", G_LOG_LEVEL_INFO, "OpenGL version: %s, GLSL version: %s",
+        glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-  add_events(Gdk::EXPOSURE_MASK | Gdk::FOCUS_CHANGE_MASK | Gdk::VISIBILITY_NOTIFY_MASK);
+  debug_output = epoxy_has_gl_extension("GL_ARB_debug_output");
+  texture_filter_anisotropic = epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
 
-  // GtkGLExt itself connects to the realize and unrealize signals in order to
-  // manage the GL window.  The problem is that by the time the on_unrealize()
-  // default signal handler is invoked, the GL drawable is no longer available
-  // and we are thus unable to do our cleanup stage.  Fortunately it turns out
-  // that connecting to the signals instead of overriding the default handlers
-  // works around the problem.
+  if (texture_filter_anisotropic)
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+  else
+    max_anisotropy = 1.0;
+}
 
-  signal_realize()  .connect(sigc::mem_fun(*this, &Scene::on_signal_realize),   true);  // after
-  signal_unrealize().connect(sigc::mem_fun(*this, &Scene::on_signal_unrealize), false); // before
+Scene::Scene(BaseObjectType* obj)
+:
+  Gtk::GLArea{obj}
+{
+  add_events(Gdk::FOCUS_CHANGE_MASK);
 }
 
 Scene::~Scene()
@@ -364,63 +304,6 @@ unsigned int Scene::get_triangle_counter() const
   return triangle_counter_;
 }
 
-void Scene::set_exclusive_context(bool exclusive_context)
-{
-  g_return_if_fail(gl_drawable_ == nullptr);
-
-  exclusive_context_ = exclusive_context;
-}
-
-bool Scene::get_exclusive_context() const
-{
-  return exclusive_context_;
-}
-
-void Scene::set_use_back_buffer(bool use_back_buffer)
-{
-  if (use_back_buffer != use_back_buffer_)
-  {
-    use_back_buffer_ = use_back_buffer;
-
-    if (has_back_buffer_ && is_realized())
-    {
-      ScopeContext context {*this};
-
-      glDrawBuffer((use_back_buffer_) ? GL_BACK : GL_FRONT);
-    }
-  }
-}
-
-bool Scene::get_use_back_buffer() const
-{
-  return use_back_buffer_;
-}
-
-void Scene::set_enable_vsync(bool enable_vsync)
-{
-  if (enable_vsync != enable_vsync_)
-  {
-    enable_vsync_ = enable_vsync;
-
-    if (is_realized())
-    {
-      ScopeContext context {*this};
-
-      gl_update_vsync_state();
-    }
-  }
-}
-
-bool Scene::get_enable_vsync() const
-{
-  return enable_vsync_;
-}
-
-bool Scene::vsync_enabled() const
-{
-  return vsync_enabled_;
-}
-
 void Scene::set_multisample(int n_samples)
 {
   const int samples_set = Math::min(aa_samples_, max_aa_samples_);
@@ -428,14 +311,10 @@ void Scene::set_multisample(int n_samples)
 
   if (n_samples != samples_set)
   {
-    if (is_realized())
-    {
-      ScopeContext context {*this};
-
+    if (auto guard = scoped_make_current())
       gl_update_framebuffer();
-    }
 
-    if (is_drawable())
+    if (get_is_drawable())
       queue_draw();
   }
 }
@@ -451,7 +330,7 @@ void Scene::set_show_focus(bool show_focus)
   {
     show_focus_ = show_focus;
 
-    if (has_focus() && is_drawable())
+    if (has_visible_focus() && get_is_drawable())
       queue_draw();
   }
 }
@@ -459,6 +338,26 @@ void Scene::set_show_focus(bool show_focus)
 bool Scene::get_show_focus() const
 {
   return show_focus_;
+}
+
+Scene::ContextGuard Scene::scoped_make_current()
+{
+  const auto context = get_context();
+
+  if (context)
+    context->make_current();
+
+  return ContextGuard{!!context};
+}
+
+int Scene::get_viewport_width() const
+{
+  return Math::max(1, get_allocated_width() * get_scale_factor());
+}
+
+int Scene::get_viewport_height() const
+{
+  return Math::max(1, get_allocated_height() * get_scale_factor());
 }
 
 LayoutTexture* Scene::create_layout_texture()
@@ -517,68 +416,13 @@ void Scene::gl_update_ui()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Scene::gl_update_ui_buffer()
-{
-  g_return_if_fail(ui_buffer_ != 0);
-
-  glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
-
-  const unsigned int vertex_count =
-    FOCUS_VERTEX_COUNT + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
-
-  if (vertex_count != ui_vertex_count_)
-  {
-    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
-                 nullptr, GL_DYNAMIC_DRAW);
-    ui_vertex_count_ = vertex_count;
-  }
-
-  void *const vertex_data =
-    glMapBufferRange(GL_ARRAY_BUFFER,
-                     0, vertex_count * sizeof(UIVertex),
-                     GL_MAP_WRITE_BIT
-                     | GL_MAP_INVALIDATE_RANGE_BIT
-                     | GL_MAP_INVALIDATE_BUFFER_BIT);
-  if (vertex_data)
-  {
-    UIVertex *const vertices = static_cast<UIVertex*>(vertex_data);
-
-    gl_build_focus(vertices);
-    gl_build_layouts(vertices);
-
-    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
-      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
-  }
-  else
-    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
-}
-
-void Scene::gl_swap_buffers()
-{
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  glBindFramebuffer(GL_READ_FRAMEBUFFER, frame_buffer_);
-
-  const int width  = Math::max(1, get_width());
-  const int height = Math::max(1, get_height());
-
-  glBlitFramebuffer(0, 0, width, height, 0, 0, width, height,
-                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-  g_return_if_fail(gl_drawable_ != nullptr);
-
-  if (has_back_buffer_ && use_back_buffer_)
-    gdk_gl_drawable_swap_buffers(gl_drawable_);
-
-  gdk_gl_drawable_wait_gl(gl_drawable_);
-}
-
 void Scene::gl_initialize()
 {
   gl_create_label_shader();
   gl_create_focus_shader();
 
   gl_update_framebuffer();
-  gl_update_viewport();
+  glViewport(0, 0, get_viewport_width(), get_viewport_height());
   gl_update_projection();
   gl_update_color();
 
@@ -588,42 +432,6 @@ void Scene::gl_initialize()
     glUniform1i(label_uf_texture_, 0);
     GL::ShaderProgram::unuse();
   }
-}
-
-void Scene::gl_create_label_shader()
-{
-  GL::ShaderProgram program;
-
-  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  Util::locate_shader_file("textlabel.vert")});
-  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  Util::locate_shader_file("textlabel.frag")});
-
-  program.bind_attrib_location(ATTRIB_POSITION, "position");
-  program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
-  program.link();
-
-  label_uf_color_   = program.get_uniform_location("textColor");
-  label_uf_texture_ = program.get_uniform_location("labelTexture");
-
-  label_shader_ = std::move(program);
-}
-
-void Scene::gl_create_focus_shader()
-{
-  GL::ShaderProgram program;
-
-  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  Util::locate_shader_file("focusrect.vert")});
-  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  Util::locate_shader_file("focusrect.frag")});
-
-  program.bind_attrib_location(ATTRIB_POSITION, "position");
-  program.link();
-
-  focus_uf_color_ = program.get_uniform_location("focusColor");
-
-  focus_shader_ = std::move(program);
 }
 
 void Scene::gl_cleanup()
@@ -689,7 +497,7 @@ int Scene::gl_render()
     const auto first = std::find_if(ui_layouts_.cbegin(), ui_layouts_.cend(),
                                     std::mem_fn(&LayoutTexture::drawable));
     if (first != ui_layouts_.cend()
-        || (show_focus_ && focus_drawable_ && has_focus()))
+        || (show_focus_ && focus_drawable_ && has_visible_focus()))
     {
       glBindVertexArray(ui_vertex_array_);
 
@@ -701,6 +509,394 @@ int Scene::gl_render()
     }
   }
   return triangle_count;
+}
+
+void Scene::gl_update_projection()
+{}
+
+void Scene::gl_update_color()
+{
+#if 0
+  const auto style = get_style_context();
+  const auto state = style->get_state();
+
+  const Gdk::RGBA color = style->get_color(state);
+
+  focus_color_ = {static_cast<float>(color.get_red()),
+                  static_cast<float>(color.get_green()),
+                  static_cast<float>(color.get_blue()),
+                  1.f};
+#endif
+  glClearColor(0., 0., 0., 0.);
+}
+
+void Scene::on_realize()
+{
+  texture_context_.reset();
+
+  for (const auto& layout : ui_layouts_)
+    layout->invalidate();
+
+  Gtk::GLArea::on_realize();
+
+  if (auto guard = scoped_make_current())
+  {
+    gl_extensions_.gl_query();
+
+    if (gl_ext()->debug_output)
+    {
+      glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
+                               0, nullptr, GL_TRUE);
+      glDebugMessageCallbackARB(&gl_on_debug_message, nullptr);
+    }
+    max_aa_samples_ = 0;
+    glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
+
+    gl_initialize();
+  }
+}
+
+void Scene::on_unrealize()
+{
+  if (const auto context = get_context())
+  {
+    // No need for scoped acquisition here, as Gtk::GLArea's unrealize
+    // handler takes care of the final context clear.
+    context->make_current();
+    gl_cleanup();
+  }
+  Gtk::GLArea::on_unrealize();
+
+  texture_context_.reset();
+}
+
+void Scene::on_size_allocate(Gtk::Allocation& allocation)
+{
+  Gtk::GLArea::on_size_allocate(allocation);
+
+  if (auto guard = scoped_make_current())
+  {
+    gl_update_framebuffer();
+    glViewport(0, 0, get_viewport_width(), get_viewport_height());
+    gl_update_projection();
+    gl_update_ui();
+  }
+}
+
+/*
+ * Instead of hooking into Gtk::GLArea::on_render(), completely replace
+ * the drawing logic of Gtk::GLArea to bypass it. That way, we can create
+ * our own frame buffer configuration with multi-sample render buffers,
+ * without interference from Gtk::GLArea's hard-coded setup.
+ */
+bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
+{
+  if (auto guard = scoped_make_current())
+  {
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
+
+    unsigned int triangle_count = 0;
+    try
+    {
+      triangle_count = gl_render();
+    }
+    catch (...)
+    {
+      gl_reset_state();
+      throw;
+    }
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, frame_buffer_);
+
+    gdk_cairo_draw_from_gl(cr->cobj(), gtk_widget_get_window(Gtk::Widget::gobj()),
+                           render_buffers_[COLOR], GL_RENDERBUFFER,
+                           get_scale_factor(), 0, 0,
+                           get_viewport_width(), get_viewport_height());
+    ++frame_counter_;
+    triangle_counter_ += triangle_count;
+  }
+  return true;
+}
+
+void Scene::on_style_updated()
+{
+  texture_context_.reset();
+
+  for (const auto& layout : ui_layouts_)
+    layout->invalidate();
+
+  Gtk::GLArea::on_style_updated();
+
+  if (auto guard = scoped_make_current())
+  {
+    gl_update_color();
+    gl_update_ui();
+  }
+}
+
+void Scene::on_state_changed(Gtk::StateType previous_state)
+{
+  Gtk::GLArea::on_state_changed(previous_state);
+
+  if (auto guard = scoped_make_current())
+  {
+    gl_update_color();
+    gl_update_ui();
+  }
+}
+
+void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
+{
+  texture_context_.reset();
+
+  for (const auto& layout : ui_layouts_)
+    layout->invalidate();
+
+  Gtk::GLArea::on_direction_changed(previous_direction);
+
+  if (auto guard = scoped_make_current())
+    gl_update_ui();
+}
+
+Glib::RefPtr<Gdk::GLContext> Scene::on_create_context()
+{
+  if (const auto window = get_window())
+  {
+    try
+    {
+      auto context = window->create_gl_context();
+      g_warn_if_fail(context);
+
+      if (context && context->realize())
+        return std::move(context);
+    }
+    catch (const Glib::Error& error)
+    {
+      set_error(error);
+    }
+  }
+  return {};
+}
+
+void Scene::gl_reposition_layouts()
+{}
+
+void Scene::gl_create_label_shader()
+{
+  GL::ShaderProgram program;
+
+  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
+                                  Util::locate_shader_file("textlabel.vert")});
+  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
+                                  Util::locate_shader_file("textlabel.frag")});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
+  program.link();
+
+  label_uf_color_   = program.get_uniform_location("textColor");
+  label_uf_texture_ = program.get_uniform_location("labelTexture");
+
+  label_shader_ = std::move(program);
+}
+
+void Scene::gl_create_focus_shader()
+{
+  GL::ShaderProgram program;
+
+  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
+                                  Util::locate_shader_file("focusrect.vert")});
+  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
+                                  Util::locate_shader_file("focusrect.frag")});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.link();
+
+  focus_uf_color_ = program.get_uniform_location("focusColor");
+
+  focus_shader_ = std::move(program);
+}
+
+void Scene::gl_update_framebuffer()
+{
+  gl_delete_framebuffer();
+
+  glGenRenderbuffers(2, render_buffers_);
+  GL::Error::throw_if_fail(render_buffers_[COLOR] != 0 && render_buffers_[DEPTH] != 0);
+
+  glGenFramebuffers(1, &frame_buffer_);
+  GL::Error::throw_if_fail(frame_buffer_ != 0);
+
+  const int view_width  = get_viewport_width();
+  const int view_height = get_viewport_width();
+  const int samples = Math::min(aa_samples_, max_aa_samples_);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB8,
+                                   view_width, view_height);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[DEPTH]);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24,
+                                   view_width, view_height);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
+
+  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                            GL_RENDERBUFFER, render_buffers_[COLOR]);
+  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            GL_RENDERBUFFER, render_buffers_[DEPTH]);
+
+  const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+
+  if (status != GL_FRAMEBUFFER_COMPLETE)
+    throw GL::FramebufferError{status};
+}
+
+void Scene::gl_delete_framebuffer()
+{
+  if (frame_buffer_)
+  {
+    glDeleteFramebuffers(1, &frame_buffer_);
+    frame_buffer_ = 0;
+  }
+  if (render_buffers_[COLOR] || render_buffers_[DEPTH])
+  {
+    glDeleteRenderbuffers(2, render_buffers_);
+    render_buffers_[COLOR] = 0;
+    render_buffers_[DEPTH] = 0;
+  }
+}
+
+void Scene::gl_update_layouts()
+{
+  for (const auto& layout : ui_layouts_)
+  {
+    if (!layout->content_.empty())
+    {
+      if (!layout->tex_name_ || layout->need_update_)
+        layout->gl_set_layout(create_texture_pango_layout(layout->content_));
+    }
+    else
+    {
+      layout->gl_delete();
+
+      layout->log_width_  = 0;
+      layout->log_height_ = 0;
+    }
+    layout->need_update_ = false;
+  }
+}
+
+void Scene::gl_update_ui_buffer()
+{
+  g_return_if_fail(ui_buffer_ != 0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
+
+  const unsigned int vertex_count =
+    FOCUS_VERTEX_COUNT + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
+
+  if (vertex_count != ui_vertex_count_)
+  {
+    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
+                 nullptr, GL_DYNAMIC_DRAW);
+    ui_vertex_count_ = vertex_count;
+  }
+
+  void *const vertex_data =
+    glMapBufferRange(GL_ARRAY_BUFFER,
+                     0, vertex_count * sizeof(UIVertex),
+                     GL_MAP_WRITE_BIT
+                     | GL_MAP_INVALIDATE_RANGE_BIT
+                     | GL_MAP_INVALIDATE_BUFFER_BIT);
+  if (vertex_data)
+  {
+    UIVertex *const vertices = static_cast<UIVertex*>(vertex_data);
+
+    gl_build_focus(vertices);
+    gl_build_layouts(vertices);
+
+    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
+      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
+  }
+  else
+    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
+}
+
+void Scene::gl_build_focus(UIVertex* vertices)
+{
+  g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_vertex_count_);
+
+  bool interior_focus = false;
+  int  focus_padding  = 0;
+
+  get_style_property("interior_focus", interior_focus);
+  get_style_property("focus_padding",  focus_padding);
+
+  const int view_width  = get_viewport_width();
+  const int view_height = get_viewport_height();
+
+  focus_drawable_ = (interior_focus
+                     && view_width  > 2 * focus_padding
+                     && view_height > 2 * focus_padding);
+
+  generate_focus_rect(view_width, view_height, focus_padding,
+                      vertices + FOCUS_ARRAY_OFFSET);
+}
+
+/*
+ * Generate vertices and texture coordinates for the text layouts.
+ */
+void Scene::gl_build_layouts(UIVertex* vertices)
+{
+  const int view_width  = get_viewport_width();
+  const int view_height = get_viewport_height();
+
+  for (const auto& layout : ui_layouts_)
+  {
+    const int width  = layout->ink_width_  + 1;
+    const int height = layout->ink_height_ + 1;
+
+    const float s0 = -1.0;
+    const float t0 = height;
+    const float s1 = width - 1;
+    const float t1 = 0.0;
+
+    const int view_x = layout->window_x_ + layout->ink_x_;
+    const int view_y = layout->window_y_ + layout->ink_y_;
+
+    const float x0 = static_cast<float>(2 * view_x - view_width)  / view_width;
+    const float y0 = static_cast<float>(2 * view_y - view_height) / view_height;
+    const float x1 = static_cast<float>(2 * (view_x + width)  - view_width)  / view_width;
+    const float y1 = static_cast<float>(2 * (view_y + height) - view_height) / view_height;
+
+    g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_vertex_count_);
+
+    UIVertex *const geometry = vertices + layout->array_offset_;
+
+    geometry[0].set_vertex(x0, y0);
+    geometry[0].set_texcoord(s0, t0);
+
+    geometry[1].set_vertex(x1, y0);
+    geometry[1].set_texcoord(s1, t0);
+
+    geometry[2].set_vertex(x0, y1);
+    geometry[2].set_texcoord(s0, t1);
+
+    geometry[3].set_vertex(x1, y1);
+    geometry[3].set_texcoord(s1, t1);
+  }
+}
+
+void Scene::gl_render_focus()
+{
+  if (show_focus_ && focus_drawable_ && focus_shader_ && has_visible_focus())
+  {
+    focus_shader_.use();
+    glUniform4fv(focus_uf_color_, 1, &focus_color_[0]);
+
+    glDrawArrays(GL_LINE_LOOP, FOCUS_ARRAY_OFFSET, FOCUS_VERTEX_COUNT);
+  }
 }
 
 int Scene::gl_render_layouts(LayoutVector::const_iterator first)
@@ -757,215 +953,6 @@ int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
   return triangle_count;
 }
 
-void Scene::gl_render_focus()
-{
-  if (show_focus_ && focus_drawable_ && focus_shader_ && has_focus())
-  {
-    focus_shader_.use();
-    glUniform4fv(focus_uf_color_, 1, &focus_color_[0]);
-
-    glDrawArrays(GL_LINE_LOOP, FOCUS_ARRAY_OFFSET, FOCUS_VERTEX_COUNT);
-  }
-}
-
-/*
- * Generate vertices and texture coordinates for the text layouts.
- */
-void Scene::gl_build_layouts(UIVertex* vertices)
-{
-  const int win_width  = Math::max(1, get_width());
-  const int win_height = Math::max(1, get_height());
-
-  for (const auto& layout : ui_layouts_)
-  {
-    const int width  = layout->ink_width_  + 1;
-    const int height = layout->ink_height_ + 1;
-
-    const float s0 = -1.0;
-    const float t0 = height;
-    const float s1 = width - 1;
-    const float t1 = 0.0;
-
-    const int win_x = layout->window_x_ + layout->ink_x_;
-    const int win_y = layout->window_y_ + layout->ink_y_;
-
-    const float x0 = float(2 * win_x - win_width)  / win_width;
-    const float y0 = float(2 * win_y - win_height) / win_height;
-    const float x1 = float(2 * (win_x + width)  - win_width)  / win_width;
-    const float y1 = float(2 * (win_y + height) - win_height) / win_height;
-
-    g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_vertex_count_);
-
-    UIVertex *const geometry = vertices + layout->array_offset_;
-
-    geometry[0].set_vertex(x0, y0);
-    geometry[0].set_texcoord(s0, t0);
-
-    geometry[1].set_vertex(x1, y0);
-    geometry[1].set_texcoord(s1, t0);
-
-    geometry[2].set_vertex(x0, y1);
-    geometry[2].set_texcoord(s0, t1);
-
-    geometry[3].set_vertex(x1, y1);
-    geometry[3].set_texcoord(s1, t1);
-  }
-}
-
-void Scene::gl_build_focus(UIVertex* vertices)
-{
-  g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_vertex_count_);
-
-  bool interior_focus = false;
-  int  focus_padding  = 0;
-
-  get_style_property("interior_focus", interior_focus);
-  get_style_property("focus_padding",  focus_padding);
-
-  const int width  = get_width();
-  const int height = get_height();
-
-  focus_drawable_ = (interior_focus
-                     && width  > 2 * focus_padding
-                     && height > 2 * focus_padding);
-
-  generate_focus_rect(Math::max(1, width), Math::max(1, height),
-                      focus_padding, vertices + FOCUS_ARRAY_OFFSET);
-}
-
-void Scene::gl_update_viewport()
-{
-  const int width  = Math::max(1, get_width());
-  const int height = Math::max(1, get_height());
-
-  glViewport(0, 0, width, height);
-}
-
-void Scene::gl_update_projection()
-{}
-
-void Scene::gl_update_color()
-{
-  const auto style = get_style();
-  const auto state = get_state();
-
-  const Gdk::Color fg = style->get_fg(state);
-  const Gdk::Color bg = style->get_bg(state);
-
-  focus_color_ = Math::Vector4(fg.get_red(),
-                               fg.get_green(),
-                               fg.get_blue(),
-                               0xFFFF) * (1.0f / 0xFFFF);
-
-  const float red   = float(bg.get_red())   * (1.0f / 0xFFFF);
-  const float green = float(bg.get_green()) * (1.0f / 0xFFFF);
-  const float blue  = float(bg.get_blue())  * (1.0f / 0xFFFF);
-
-  glClearColor(red, green, blue, 0.0);
-}
-
-void Scene::gl_update_framebuffer()
-{
-  gl_delete_framebuffer();
-
-  glGenRenderbuffers(2, render_buffers_);
-  GL::Error::throw_if_fail(render_buffers_[COLOR] != 0 && render_buffers_[DEPTH] != 0);
-
-  glGenFramebuffers(1, &frame_buffer_);
-  GL::Error::throw_if_fail(frame_buffer_ != 0);
-
-  const int width   = Math::max(1, get_width());
-  const int height  = Math::max(1, get_height());
-  const int samples = Math::min(aa_samples_, max_aa_samples_);
-
-  glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB, width, height);
-
-  glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[DEPTH]);
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24, width, height);
-
-  glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
-
-  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                            GL_RENDERBUFFER, render_buffers_[COLOR]);
-  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                            GL_RENDERBUFFER, render_buffers_[DEPTH]);
-
-  const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
-
-  if (status != GL_FRAMEBUFFER_COMPLETE)
-    throw GL::FramebufferError{status};
-}
-
-void Scene::gl_delete_framebuffer()
-{
-  if (frame_buffer_)
-  {
-    glDeleteFramebuffers(1, &frame_buffer_);
-    frame_buffer_ = 0;
-  }
-  if (render_buffers_[COLOR] || render_buffers_[DEPTH])
-  {
-    glDeleteRenderbuffers(2, render_buffers_);
-    render_buffers_[COLOR] = 0;
-    render_buffers_[DEPTH] = 0;
-  }
-}
-
-void Scene::gl_update_vsync_state()
-{
-  if (has_back_buffer_ && gl_ext()->have_swap_control)
-  {
-#if defined(GDK_WINDOWING_X11)
-
-    // Once enabled, the GLX_SGI_swap_control extension does not provide a way
-    // to turn off synchronization with the vertical retrace.  In fact even the
-    // explicit enable is a stretch of the API specification, as vertical sync
-    // is supposed to be enabled by default.
-
-    if (enable_vsync_ && gl_ext()->SwapIntervalSGI(1) == 0)
-      vsync_enabled_ = true;
-
-#elif defined(GDK_WINDOWING_WIN32)
-
-    if (gl_ext()->SwapIntervalEXT((enable_vsync_) ? 1 : 0) != 0)
-      vsync_enabled_ = enable_vsync_;
-
-#endif /* defined(GDK_WINDOWING_WIN32) */
-  }
-  else
-  {
-    // It is necessary to assume vertical sync to be disabled whenever we
-    // cannot know for sure.  That's because if the synchronization really
-    // doesn't take place, timeouts must be used instead of idle handlers
-    // to schedule frames, in order to avoid exhausting either CPU or GPU
-    // by drawing, like, 10000 frames per second.
-    vsync_enabled_ = false;
-  }
-}
-
-void Scene::gl_update_layouts()
-{
-  for (const auto& layout : ui_layouts_)
-  {
-    if (!layout->content_.empty())
-    {
-      if (!layout->tex_name_ || layout->need_update_)
-        layout->gl_set_layout(create_texture_pango_layout(layout->content_));
-    }
-    else
-    {
-      layout->gl_delete();
-
-      layout->log_width_  = 0;
-      layout->log_height_ = 0;
-    }
-    layout->need_update_ = false;
-  }
-}
-
 Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustring& text)
 {
   if (!texture_context_)
@@ -973,229 +960,13 @@ Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustri
     auto context = create_pango_context();
     LayoutTexture::prepare_pango_context(context);
 
-    swap(texture_context_, context);
+    texture_context_ = std::move(context);
   }
 
   const auto layout = Pango::Layout::create(texture_context_);
   layout->set_text(text);
 
   return layout;
-}
-
-GL::Extensions* Scene::gl_query_extensions()
-{
-  return new GL::Extensions{};
-}
-
-void Scene::gl_reposition_layouts()
-{}
-
-/*
- * Set up the widget for GL drawing as soon as a screen is available.
- */
-void Scene::on_screen_changed(const Glib::RefPtr<Gdk::Screen>& previous_screen)
-{
-  Gtk::DrawingArea::on_screen_changed(previous_screen);
-
-  if (has_screen() && !is_realized())
-    GL::configure_widget(*this, GDK_GL_MODE_RGBA | GDK_GL_MODE_DOUBLE);
-}
-
-void Scene::on_size_allocate(Gtk::Allocation& allocation)
-{
-  Gtk::DrawingArea::on_size_allocate(allocation);
-
-  if (is_realized())
-  {
-    ScopeContext context {*this};
-
-    gl_update_framebuffer();
-    gl_update_viewport();
-    gl_update_projection();
-    gl_update_ui();
-  }
-}
-
-void Scene::on_state_changed(Gtk::StateType previous_state)
-{
-  if (is_realized())
-  {
-    ScopeContext context {*this};
-
-    gl_update_color();
-    gl_update_ui();
-  }
-
-  Gtk::DrawingArea::on_state_changed(previous_state);
-}
-
-void Scene::on_style_changed(const Glib::RefPtr<Gtk::Style>& previous_style)
-{
-  // Avoid both reset() and clear()... it's all Murray's fault :-P
-  Glib::RefPtr<Pango::Context>().swap(texture_context_);
-
-  for (const auto& layout : ui_layouts_)
-    layout->invalidate();
-
-  if (is_realized())
-  {
-    ScopeContext context {*this};
-
-    gl_update_color();
-    gl_update_ui();
-  }
-
-  Gtk::DrawingArea::on_style_changed(previous_style);
-}
-
-void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
-{
-  Glib::RefPtr<Pango::Context>().swap(texture_context_);
-
-  for (const auto& layout : ui_layouts_)
-    layout->invalidate();
-
-  if (is_realized())
-  {
-    ScopeContext context {*this};
-
-    gl_update_ui();
-  }
-
-  Gtk::DrawingArea::on_direction_changed(previous_direction);
-}
-
-bool Scene::on_expose_event(GdkEventExpose*)
-{
-  if (is_drawable())
-  {
-    ScopeContext context {*this};
-
-    unsigned int triangle_count = 0;
-
-    try
-    {
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
-      triangle_count = gl_render();
-    }
-    catch (...)
-    {
-      gl_reset_state();
-      throw;
-    }
-
-    gl_swap_buffers();
-
-    // Rely on quiet modulo overflow of unsigned integer arithmetic.
-    ++frame_counter_;
-    triangle_counter_ += triangle_count;
-  }
-
-  return true;
-}
-
-bool Scene::on_visibility_notify_event(GdkEventVisibility* event)
-{
-  // Explicitely invalidating the window at this point helps to avoid some
-  // of the situations in which garbage is displayed due to a missing update.
-  // This is obviously a hack.  A proper solution would require locating the
-  // actual source of the misbehavior.
-
-  if (event->state != GDK_VISIBILITY_FULLY_OBSCURED && is_drawable())
-    queue_draw();
-
-  return Gtk::DrawingArea::on_visibility_notify_event(event);
-}
-
-void Scene::on_signal_realize()
-{
-  g_return_if_fail(gl_drawable_ == nullptr);
-  g_return_if_fail(gl_context_ == nullptr);
-
-  Glib::RefPtr<Pango::Context>().swap(texture_context_);
-
-  for (const auto& layout : ui_layouts_)
-    layout->invalidate();
-
-  gl_drawable_ = gtk_widget_get_gl_drawable(Gtk::Widget::gobj());
-  gl_context_  = GL::create_context(gl_drawable_);
-
-  has_back_buffer_ = (gdk_gl_drawable_is_double_buffered(gl_drawable_) != FALSE);
-
-  if (exclusive_context_)
-  {
-    if (!gdk_gl_drawable_gl_begin(gl_drawable_, gl_context_))
-      throw GL::Error("rendering context could not be made current");
-  }
-
-  {
-    ScopeContext context {*this};
-
-    gl_extensions_.reset(gl_query_extensions());
-    g_return_if_fail(gl_ext() != nullptr);
-
-    if (GL::get_gl_version() < GL::make_version(3, 2))
-      g_error("at least OpenGL 3.2 is required to run this program");
-
-    if (gl_ext()->have_debug_output)
-    {
-      gl_ext()->DebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-      gl_ext()->DebugMessageCallback(&gl_on_debug_message, nullptr);
-    }
-
-    max_aa_samples_ = 0;
-    glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
-
-    gl_update_vsync_state();
-
-    if (has_back_buffer_ && !use_back_buffer_)
-      glDrawBuffer(GL_FRONT);
-
-    gl_initialize();
-  }
-}
-
-void Scene::on_signal_unrealize()
-{
-  if (gl_drawable_ && gl_context_)
-  {
-    {
-      ScopeContext context {*this};
-
-      gl_cleanup();
-      gl_extensions_.reset();
-    }
-
-    if (exclusive_context_)
-      gdk_gl_drawable_gl_end(gl_drawable_);
-
-    GL::destroy_context(gl_context_);
-
-    gl_drawable_ = nullptr;
-    gl_context_  = nullptr;
-
-    vsync_enabled_   = false;
-    has_back_buffer_ = false;
-  }
-
-  Glib::RefPtr<Pango::Context>().swap(texture_context_);
-}
-
-// static
-void Scene::ScopeContext::begin_(Scene& scene)
-{
-  if (!scene.exclusive_context_)
-  {
-    if (!gdk_gl_drawable_gl_begin(scene.gl_drawable_, scene.gl_context_))
-      throw GL::Error("rendering context could not be made current");
-  }
-}
-
-// static
-void Scene::ScopeContext::end_(Scene& scene)
-{
-  if (!scene.exclusive_context_)
-    gdk_gl_drawable_gl_end(scene.gl_drawable_);
 }
 
 } // namespace GL

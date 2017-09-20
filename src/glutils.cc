@@ -25,22 +25,13 @@
 
 #include <glib.h>
 #include <gdk/gdk.h>
-#include <gdk/gdkgl.h>
-#include <gtk/gtkgl.h>
-#include <gtk/gtkwidget.h>
+#include <gtk/gtk.h>
 #include <glibmm/convert.h>
 #include <gtkmm/widget.h>
 #include <array>
 #include <cstring>
 
-#ifdef GDK_WINDOWING_WIN32
-# include <gdk/win32/gdkglwin32.h>
-#endif
-#include <GL/gl.h>
-#ifdef GDK_WINDOWING_X11
-# include <gdk/x11/gdkglx.h> /* include last as it pulls in whacky X headers */
-# include <GL/glx.h>
-#endif
+#include <epoxy/gl.h>
 
 namespace
 {
@@ -100,7 +91,7 @@ void init_win32_pixel_format(PIXELFORMATDESCRIPTOR& pfd, unsigned int mode)
 }
 #endif /* GDK_WINDOWING_WIN32 */
 
-#ifdef GDK_WINDOWING_X11
+#if 0 // GDK_WINDOWING_X11
 static
 GQuark quark_fbconfig()
 {
@@ -331,20 +322,14 @@ int parse_version_digits(const unsigned char*& version)
 
 GL::Error::Error(unsigned int error_code)
 :
-  what_ {error_message_from_code(error_code)},
-  code_ {error_code}
-{}
-
-GL::Error::Error(const Glib::ustring& message)
-:
-  what_ {message},
-  code_ {0}
+  Gdk::GLError{NOT_AVAILABLE, error_message_from_code(error_code)},
+  gl_code_ {error_code}
 {}
 
 GL::Error::Error(const Glib::ustring& message, unsigned int error_code)
 :
-  what_ {message},
-  code_ {error_code}
+  Gdk::GLError{NOT_AVAILABLE, message},
+  gl_code_ {error_code}
 {}
 
 GL::Error::~Error() noexcept
@@ -387,6 +372,7 @@ GL::FramebufferError::FramebufferError(unsigned int error_code)
 GL::FramebufferError::~FramebufferError() noexcept
 {}
 
+#if 0
 void GL::configure_widget(Gtk::Widget& target, unsigned int mode)
 {
   GtkWidget *const widget = target.gobj();
@@ -487,57 +473,9 @@ void GL::destroy_context(GdkGLContext* context)
   }
 #endif
 }
+#endif
 
-int GL::parse_version_string(const unsigned char* version)
-{
-  if (version)
-  {
-    const int major = parse_version_digits(version);
-
-    if (major >= 0 && *version == '.')
-    {
-      ++version; // skip period
-
-      const int minor = parse_version_digits(version);
-
-      if (minor >= 0 && (*version == '\0' || *version == ' ' || *version == '.'))
-        return GL::make_version(major, minor);
-    }
-  }
-  return -1;
-}
-
-int GL::get_gl_version()
-{
-  if (const GLubyte *const version = glGetString(GL_VERSION))
-    return GL::parse_version_string(version);
-  else
-    GL::Error::check();
-
-  return -1;
-}
-
-bool GL::have_gl_extension(const char* name)
-{
-  g_return_val_if_fail(name != nullptr, false);
-
-  GLint num_extensions = -1;
-  glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
-
-  if (num_extensions < 0)
-    GL::Error::check();
-
-  for (int i = 0; i < num_extensions; ++i)
-  {
-    const GLubyte *const ext = glGetStringi(GL_EXTENSIONS, i);
-
-    if (ext && std::strcmp(reinterpret_cast<const char*>(ext), name) == 0)
-      return true;
-  }
-  return false;
-}
-
-#ifdef GDK_WINDOWING_X11
+#if 0 //def GDK_WINDOWING_X11
 
 bool GL::have_glx_extension(const char* name)
 {
@@ -563,7 +501,9 @@ bool GL::have_wgl_extension(const char* name)
 
 #endif /* GDK_WINDOWING_WIN32 */
 
+#if 0
 GL::ProcAddress GL::get_proc_address_(const char* name)
 {
   return gdk_gl_get_proc_address(name);
 }
+#endif
