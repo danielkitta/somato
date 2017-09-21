@@ -1,5 +1,3 @@
-#version 150
-
 uniform mat4 modelToCameraMatrix;
 uniform mat4 cameraToClipMatrix;
 

@@ -24,9 +24,11 @@
 #include <glib.h>
 #include <glibmm/fileutils.h>
 #include <glibmm/ustring.h>
+#include <gdkmm/glcontext.h>
 #include <epoxy/gl.h>
 
 #include <memory>
+#include <cstring>
 
 namespace
 {
@@ -48,17 +50,45 @@ public:
   GLuint release() { const GLuint shader = shader_; shader_ = 0; return shader; }
 };
 
-static
+void load_shader_source(GLuint shader, const std::string& filename)
+{
+  const char* snippets[2];
+  int lengths[G_N_ELEMENTS(snippets)];
+
+  if (const auto context = Gdk::GLContext::get_current())
+  {
+    // Select an appropriate preamble to the shader source text
+    // depending on whether we are using OpenGL ES or desktop OpenGL.
+    if (context->get_use_es())
+      snippets[0] = "#version 300 es\n"
+                    "#define noperspective\n"
+                    "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
+                    "precision highp float;\n"
+                    "#else\n"
+                    "precision mediump float;\n"
+                    "#endif\n"
+                    "#line 0\n";
+    else
+      snippets[0] = "#version 150\n"
+                    "#line 0\n";
+
+    lengths[0] = std::strlen(snippets[0]);
+  }
+  else
+    throw GL::Error{"No current OpenGL context"};
+
+  const std::string source = Glib::file_get_contents(filename);
+  lengths[1]  = source.size();
+  snippets[1] = source.c_str();
+
+  glShaderSource(shader, G_N_ELEMENTS(snippets), snippets, lengths);
+}
+
 GLuint compile_shader(GLenum type, const std::string& filename)
 {
   ScopedShader shader {type};
-  {
-    const std::string source = Glib::file_get_contents(filename);
-    const int   len = source.size();
-    const char* str = source.c_str();
 
-    glShaderSource(shader.get(), 1, &str, &len);
-  }
+  load_shader_source(shader.get(), filename);
   glCompileShader(shader.get());
 
   GLint bufsize = 0;

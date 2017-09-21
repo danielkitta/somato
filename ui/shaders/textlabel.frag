@@ -1,5 +1,3 @@
-#version 150
-
 uniform sampler2DRect labelTexture;
 uniform vec4 textColor;
 

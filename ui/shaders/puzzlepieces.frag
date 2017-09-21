@@ -1,5 +1,3 @@
-#version 150
-
 uniform sampler2D pieceTexture;
 uniform vec4 diffuseMaterial;
 

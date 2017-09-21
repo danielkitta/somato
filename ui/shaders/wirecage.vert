@@ -1,5 +1,3 @@
-#version 150
-
 const float wirecageIntensity = 0.3;
 
 uniform mat4 modelToCameraMatrix;
