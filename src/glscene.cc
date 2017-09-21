@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2012  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -550,7 +550,11 @@ void Scene::on_realize()
       glDebugMessageCallbackARB(&gl_on_debug_message, nullptr);
     }
     max_aa_samples_ = 0;
-    glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
+
+    // Don't enable multi-sample AA on OpenGL ES, as it may be broken
+    // even though advertised.
+    if (!get_context()->get_use_es())
+      glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
 
     gl_initialize();
   }
