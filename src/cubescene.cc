@@ -1700,11 +1700,26 @@ void CubeScene::gl_init_cube_texture()
   g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
   g_return_if_fail(pixbuf->get_bits_per_sample() == 8);
 
-  const int n_channels = pixbuf->get_n_channels();
+  int n_channels = pixbuf->get_n_channels();
 
-  g_return_if_fail(n_channels >= 1 && n_channels <= int(formats.size()));
+  // Unfortunately GdkPixbuf always expands to RGB color space on load,
+  // even if the input is 8-bit grayscale. So basically n_channels is
+  // always 3 or 4 in practice.
+  g_return_if_fail(n_channels >= 1 && n_channels <= static_cast<int>(formats.size()));
   g_return_if_fail(pixbuf->get_rowstride() == n_channels * WIDTH);
 
+  guint8 *const pixels = pixbuf->get_pixels();
+
+  if (n_channels > 1 && get_context()->get_use_es())
+  {
+    // Convert the pixels in place back to grayscale. On desktop OpenGL
+    // we can instruct glTexImage2D() to perform the conversion, but
+    // unfortunately this isn't supported on OpenGL ES.
+    for (size_t i = 0; i < WIDTH * HEIGHT; ++i)
+      pixels[i] = pixels[n_channels * i];
+
+    n_channels = 1;
+  }
   glGenTextures(1, &cube_texture_);
   GL::Error::throw_if_fail(cube_texture_ != 0);
 
@@ -1720,7 +1735,7 @@ void CubeScene::gl_init_cube_texture()
                     Math::min(8.0f, gl_ext()->max_anisotropy));
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, WIDTH, HEIGHT, 0,
-               formats[n_channels - 1], GL_UNSIGNED_BYTE, pixbuf->get_pixels());
+               formats[n_channels - 1], GL_UNSIGNED_BYTE, pixels);
 
   glGenerateMipmap(GL_TEXTURE_2D);
 }
