@@ -223,16 +223,16 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
     glGenTextures(1, &tex_name_);
     GL::Error::throw_if_fail(tex_name_ != 0);
   }
-  glBindTexture(GL_TEXTURE_RECTANGLE, tex_name_);
+  glBindTexture(GL_TEXTURE_2D, tex_name_);
 
   if (tex_width_ == 0)
   {
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
   }
-  glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_R8, img_width, ink_height,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, ink_height,
                0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
 
   tex_width_  = img_width;
@@ -929,7 +929,7 @@ int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 {
   const LayoutTexture* layout = first->get();
 
-  glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
+  glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
   glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
 
   glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
@@ -942,7 +942,7 @@ int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
 
     if (layout->drawable())
     {
-      glBindTexture(GL_TEXTURE_RECTANGLE, layout->tex_name_);
+      glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
       glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
 
       glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
