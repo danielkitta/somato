@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2012-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -91,6 +91,9 @@ GLuint compile_shader(GLenum type, const std::string& filename)
   load_shader_source(shader.get(), filename);
   glCompileShader(shader.get());
 
+  GLint success = GL_FALSE;
+  glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &success);
+
   GLint bufsize = 0;
   glGetShaderiv(shader.get(), GL_INFO_LOG_LENGTH, &bufsize);
 
@@ -103,14 +106,11 @@ GLuint compile_shader(GLenum type, const std::string& filename)
 
     while (length > 0 && (buffer[length - 1] == '\n' || buffer[length - 1] == '\0'))
       --length;
-
     buffer[length] = '\0';
-    g_log("OpenGL", G_LOG_LEVEL_INFO, "%s", buffer.get());
+
+    g_log("OpenGL", (success) ? G_LOG_LEVEL_INFO : G_LOG_LEVEL_WARNING,
+          "%s", buffer.get());
   }
-
-  GLint success = GL_FALSE;
-  glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &success);
-
   if (!success)
     throw GL::Error{Glib::ustring::compose("Compiling %1 failed", filename)};
 
@@ -164,6 +164,9 @@ void ShaderProgram::link()
 
   glLinkProgram(program_);
 
+  GLint success = GL_FALSE;
+  glGetProgramiv(program_, GL_LINK_STATUS, &success);
+
   GLint bufsize = 0;
   glGetProgramiv(program_, GL_INFO_LOG_LENGTH, &bufsize);
 
@@ -176,14 +179,11 @@ void ShaderProgram::link()
 
     while (length > 0 && (buffer[length - 1] == '\n' || buffer[length - 1] == '\0'))
       --length;
-
     buffer[length] = '\0';
-    g_log("OpenGL", G_LOG_LEVEL_INFO, "%s", buffer.get());
+
+    g_log("OpenGL", (success) ? G_LOG_LEVEL_INFO : G_LOG_LEVEL_WARNING,
+          "%s", buffer.get());
   }
-
-  GLint success = GL_FALSE;
-  glGetProgramiv(program_, GL_LINK_STATUS, &success);
-
   if (!success)
     throw GL::Error{"Linking of shader program failed"};
 }
@@ -210,10 +210,10 @@ void ShaderProgram::unuse()
 
 void ShaderProgram::reset()
 {
-  if (program_)
+  if (const GLuint program = program_)
   {
-    glDeleteProgram(program_);
     program_ = 0;
+    glDeleteProgram(program);
   }
 }
 
