@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -20,8 +20,6 @@
 
 #ifndef SOMATO_GLSCENE_H_INCLUDED
 #define SOMATO_GLSCENE_H_INCLUDED
-
-#include <config.h>
 
 #include "glshader.h"
 #include "glutils.h"

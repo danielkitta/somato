@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2012-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -26,8 +26,6 @@
 #include <string>
 #include <utility>
 #include <cstdint>
-
-#include <config.h>
 
 struct aiNode;
 

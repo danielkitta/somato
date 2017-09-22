@@ -21,8 +21,6 @@
 #ifndef SOMATO_VECTORMATH_H_INCLUDED
 #define SOMATO_VECTORMATH_H_INCLUDED
 
-#include <config.h>
-
 #if SOMATO_VECTOR_USE_SSE
 # include "vector_sse.h"
 #else

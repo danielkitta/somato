@@ -24,8 +24,6 @@
 #include <algorithm>
 #include <string>
 
-#include <config.h>
-
 namespace GL
 {
 

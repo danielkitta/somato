@@ -18,14 +18,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <config.h>
+
 #include "puzzle.h"
 
 #include <glib.h>
 #include <sigc++/sigc++.h>
 #include <algorithm>
 #include <numeric>
-
-#include <config.h>
 
 namespace
 {

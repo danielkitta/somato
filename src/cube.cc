@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2012  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -18,6 +18,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <config.h>
 #include "cube.h"
 
 namespace
