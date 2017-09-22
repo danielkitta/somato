@@ -25,9 +25,9 @@
 #include "glutils.h"
 
 #include <glib.h>
-#include <cairo.h>
-#include <pango/pangocairo.h>
 #include <gtk/gtk.h>
+#include <cairomm/context.h>
+#include <cairomm/surface.h>
 #include <gdkmm.h>
 #include <epoxy/gl.h>
 
@@ -71,7 +71,6 @@ void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
 /*
  * Generate vertices for drawing the focus indicator of the GL widget.
  */
-static
 void generate_focus_rect(int width, int height, int padding,
                          GL::UIVertex* geometry)
 {
@@ -104,10 +103,9 @@ void generate_focus_rect(int width, int height, int padding,
  * with an image surface at runtime.  Currently, the alignment requested by
  * cairo is actually lower than our own, but that could change some day.
  */
-static inline
-int aligned_stride(int width)
+inline int aligned_stride(int width)
 {
-  return cairo_format_stride_for_width(CAIRO_FORMAT_A8, (width + 7) & ~7);
+  return Cairo::ImageSurface::format_stride_for_width(Cairo::FORMAT_A8, (width + 7) & ~7);
 }
 
 } // anonymous namespace
@@ -161,17 +159,12 @@ void LayoutTexture::set_content(const Glib::ustring& content)
  * so might result in wrong measurements due to possible differences in
  * hinting and such.
  */
-// static
 void LayoutTexture::prepare_pango_context(const Glib::RefPtr<Pango::Context>& context)
 {
-  cairo_surface_t *const surface = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
-  cairo_t *const cairo_context = cairo_create(surface);
+  const auto surface = Cairo::ImageSurface::create(Cairo::FORMAT_A8, 1, 1);
+  const auto cairo = Cairo::Context::create(surface);
 
-  cairo_surface_destroy(surface); // drop reference
-
-  pango_cairo_update_context(cairo_context, context->gobj());
-
-  cairo_destroy(cairo_context);
+  context->update_from_cairo_context(cairo);
 }
 
 void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
@@ -203,17 +196,12 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
   // Note that the image will be upside-down from the point of view of OpenGL,
   // thus the texture coordinates need to be adjusted accordingly.
   {
-    cairo_surface_t *const surface = cairo_image_surface_create_for_data(
-        &tex_image[0], CAIRO_FORMAT_A8, img_width, ink_height, img_width * sizeof(GLubyte));
+    const auto surface = Cairo::ImageSurface::create(&tex_image[0],
+        Cairo::FORMAT_A8, img_width, ink_height, img_width * sizeof(GLubyte));
+    const auto context = Cairo::Context::create(surface);
 
-    cairo_t *const context = cairo_create(surface);
-
-    cairo_surface_destroy(surface); // drop reference
-
-    cairo_move_to(context, PADDING - ink.get_x(), PADDING - ink.get_y());
-    pango_cairo_show_layout(context, layout->gobj());
-
-    cairo_destroy(context);
+    context->move_to(PADDING - ink.get_x(), PADDING - ink.get_y());
+    layout->show_in_cairo_context(context);
   }
 
   if (!tex_name_)
