@@ -77,22 +77,22 @@ void generate_focus_rect(int width, int height, int padding,
 {
   g_return_if_fail(width > 0 && height > 0);
 
-  const float x0 = float(2 * padding + 1 - width)  / width;
-  const float y0 = float(2 * padding + 1 - height) / height;
-  const float x1 = float(width  - 2 * padding - 1) / width;
-  const float y1 = float(height - 2 * padding - 1) / height;
+  const float x0 = static_cast<float>(2 * padding + 1 - width)  / width;
+  const float y0 = static_cast<float>(2 * padding + 1 - height) / height;
+  const float x1 = static_cast<float>(width  - 2 * padding - 1) / width;
+  const float y1 = static_cast<float>(height - 2 * padding - 1) / height;
 
   geometry[0].set_vertex(x0, y0);
-  geometry[0].set_texcoord(0.0, 0.0);
+  geometry[0].set_texcoord(0., 0.);
 
   geometry[1].set_vertex(x1, y0);
-  geometry[1].set_texcoord(1.0, 0.0);
+  geometry[1].set_texcoord(1., 0.);
 
   geometry[2].set_vertex(x1, y1);
-  geometry[2].set_texcoord(1.0, 1.0);
+  geometry[2].set_texcoord(1., 1.);
 
   geometry[3].set_vertex(x0, y1);
-  geometry[3].set_texcoord(0.0, 1.0);
+  geometry[3].set_texcoord(0., 1.);
 }
 
 /*
@@ -117,7 +117,7 @@ namespace GL
 
 LayoutTexture::LayoutTexture()
 :
-  color_        {1.0, 1.0, 1.0, 1.0},
+  color_        {1., 1., 1., 1.},
   need_update_  {false},
   array_offset_ {G_MAXINT},
 
@@ -276,7 +276,7 @@ void Extensions::gl_query()
   if (texture_filter_anisotropic)
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
   else
-    max_anisotropy = 1.0;
+    max_anisotropy = 1.;
 }
 
 Scene::Scene(BaseObjectType* obj)
@@ -890,10 +890,10 @@ void Scene::gl_build_layouts(UIVertex* vertices)
     const int width  = layout->ink_width_  + 1;
     const int height = layout->ink_height_ + 1;
 
-    const float s0 = -1.0;
+    const float s0 = -1.;
     const float t0 = height;
     const float s1 = width - 1;
-    const float t1 = 0.0;
+    const float t1 = 0.;
 
     const int view_x = layout->window_x_ + layout->ink_x_;
     const int view_y = layout->window_y_ + layout->ink_y_;

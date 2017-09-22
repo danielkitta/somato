@@ -83,28 +83,28 @@ enum
 /*
  * Single-precision factor used for conversion of angles.
  */
-static const float rad_per_deg = G_PI / 180.0;
+static const float rad_per_deg = G_PI / 180.;
 
 /*
  * The time span, in seconds, to wait for further user input
  * before hiding the mouse cursor while the animation is running.
  */
-static const float hide_cursor_delay = 5.0;
+static const float hide_cursor_delay = 5.;
 
 /*
  * Side length of a cube cell in unzoomed model units.
  */
-static const float cube_cell_size = 1.0;
+static const float cube_cell_size = 1.;
 
 /*
  * View offset in the direction of the z-axis.
  */
-static const float view_z_offset = -9.0;
+static const float view_z_offset = -9.;
 
 /*
  * The angle by which to rotate if a keyboard navigation key is pressed.
  */
-static const float rotation_step = 3.0;
+static const float rotation_step = 3.;
 
 /*
  * The materials applied to cube pieces.  Indices into the materials array
@@ -113,14 +113,14 @@ static const float rotation_step = 3.0;
  */
 static const std::array<GLfloat[4], 8> piece_materials
 {{
-  { 0.80, 0.15, 0.00, 1.0 }, // orange
-  { 0.05, 0.60, 0.05, 1.0 }, // green
-  { 0.80, 0.00, 0.00, 1.0 }, // red
-  { 0.80, 0.50, 0.00, 1.0 }, // yellow
-  { 0.10, 0.00, 0.80, 1.0 }, // blue
-  { 0.60, 0.00, 0.80, 1.0 }, // lavender
-  { 0.05, 0.45, 0.80, 1.0 }, // cyan
-  { 0.80, 0.00, 0.25, 1.0 }  // pink
+  { 0.80, 0.15, 0.00, 1. }, // orange
+  { 0.05, 0.60, 0.05, 1. }, // green
+  { 0.80, 0.00, 0.00, 1. }, // red
+  { 0.80, 0.50, 0.00, 1. }, // yellow
+  { 0.10, 0.00, 0.80, 1. }, // blue
+  { 0.60, 0.00, 0.80, 1. }, // lavender
+  { 0.05, 0.45, 0.80, 1. }, // cyan
+  { 0.80, 0.00, 0.25, 1. }  // pink
 }};
 
 /*
@@ -151,12 +151,12 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
   // Directions listed first are prefered.
   static const std::array<MovementData, 6> movement_data
   {{
-    { Cube::AXIS_Y, false,  0.0,  1.0,  0.0 }, // top->down
-    { Cube::AXIS_Z, true,   0.0,  0.0,  1.0 }, // front->back
-    { Cube::AXIS_X, true,  -1.0,  0.0,  0.0 }, // left->right
-    { Cube::AXIS_X, false,  1.0,  0.0,  0.0 }, // right->left
-    { Cube::AXIS_Z, false,  0.0,  0.0, -1.0 }, // back->front
-    { Cube::AXIS_Y, true,   0.0, -1.0,  0.0 }  // bottom->up
+    { Cube::AXIS_Y, false,  0.,  1.,  0. }, // top->down
+    { Cube::AXIS_Z, true,   0.,  0.,  1. }, // front->back
+    { Cube::AXIS_X, true,  -1.,  0.,  0. }, // left->right
+    { Cube::AXIS_X, false,  1.,  0.,  0. }, // right->left
+    { Cube::AXIS_Z, false,  0.,  0., -1. }, // back->front
+    { Cube::AXIS_Y, true,   0., -1.,  0. }  // bottom->up
   }};
 
   for (const auto& movement : movement_data)
@@ -197,8 +197,8 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
   heading_     {create_layout_texture()},
   footing_     {create_layout_texture()}
 {
-  heading_->color().assign(0.85, 0.85, 0.85, 1.0);
-  footing_->color().assign(0.65, 0.65, 0.65, 1.0);
+  heading_->color().assign(0.85, 0.85, 0.85, 1.);
+  footing_->color().assign(0.65, 0.65, 0.65, 1.);
 
   set_can_focus(true);
 
@@ -253,10 +253,10 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
     throw;
   }
 
-  if (animation_running_ || animation_piece_ > int(cube_pieces.size()))
+  if (animation_running_ || animation_piece_ > static_cast<int>(cube_pieces.size()))
   {
     animation_piece_    = 0;
-    animation_position_ = 0.0;
+    animation_position_ = 0.;
   }
 
   continue_animation();
@@ -265,7 +265,7 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
 
 void CubeScene::set_zoom(float zoom)
 {
-  const float value = Math::clamp(zoom, 0.125f, 8.0f);
+  const float value = Math::clamp(zoom, 0.125f, 8.f);
 
   if (value != zoom_)
   {
@@ -293,7 +293,7 @@ float CubeScene::get_zoom() const
 void CubeScene::set_rotation(const Math::Quat& rotation)
 {
   rotation_ = rotation;
-  rotation_.renormalize(4.0f * std::numeric_limits<float>::epsilon());
+  rotation_.renormalize(4.f * std::numeric_limits<float>::epsilon());
 
   depth_order_changed_ = true;
 
@@ -308,7 +308,7 @@ Math::Quat CubeScene::get_rotation() const
 
 void CubeScene::set_animation_delay(float animation_delay)
 {
-  animation_delay_ = Math::clamp(animation_delay, 0.0f, 1.0f);
+  animation_delay_ = Math::clamp(animation_delay, 0.f, 1.f);
 }
 
 float CubeScene::get_animation_delay() const
@@ -318,13 +318,13 @@ float CubeScene::get_animation_delay() const
 
 void CubeScene::set_pieces_per_second(float pieces_per_second)
 {
-  const float value = Math::clamp(pieces_per_second, 0.01f, 100.0f);
+  const float value = Math::clamp(pieces_per_second, 0.01f, 100.f);
 
   if (value != pieces_per_sec_)
   {
     pieces_per_sec_ = value;
 
-    if (animation_position_ > 0.0f)
+    if (animation_position_ > 0.f)
     {
       animation_seek_ = animation_position_;
       reset_animation_tick();
@@ -605,7 +605,7 @@ int CubeScene::gl_render()
 
       gl_draw_cell_grid();
 
-      glPolygonOffset(1.0, 4.0);
+      glPolygonOffset(1., 4.);
       glEnable(offset_mode);
 
       triangle_count += gl_draw_cube();
@@ -635,19 +635,19 @@ void CubeScene::gl_update_projection()
   // Set up a perspective projection with a field of view angle of 45 degrees
   // in the y-direction.  Place the far clipping plane so that the cube origin
   // will be positioned halfway between the near and far clipping planes.
-  const float near = 1.0;
-  const float far  = -view_z_offset * 2.0f - near;
+  const float near = 1.;
+  const float far  = -view_z_offset * 2.f - near;
 
-  const float topinv   = G_SQRT2 + 1.0; // cot(pi/8)
+  const float topinv   = G_SQRT2 + 1.; // cot(pi/8)
   const float rightinv = view_height / view_width * topinv;
 
   using Math::Matrix4;
   using Math::Vector4;
 
-  Matrix4 projection {Vector4{near * rightinv, 0.0, 0.0, 0.0},
-                      Vector4{0.0, near * topinv, 0.0, 0.0},
-                      Vector4{0.0, 0.0, (far + near) / (near - far), -1.0},
-                      Vector4{0.0, 0.0, 2.0f * far * near / (near - far), 0.0}};
+  Matrix4 projection {Vector4{near * rightinv, 0., 0., 0.},
+                      Vector4{0., near * topinv, 0., 0.},
+                      Vector4{0., 0., (far + near) / (near - far), -1.},
+                      Vector4{0., 0., 2.f * far * near / (near - far), 0.}};
   if (piece_shader_)
   {
     piece_shader_.use();
@@ -842,7 +842,7 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
         case GDK_KEY_Up:    case GDK_KEY_KP_Up:     rotate(Cube::AXIS_X,  rotation_step); return true;
         case GDK_KEY_Down:  case GDK_KEY_KP_Down:   rotate(Cube::AXIS_X, -rotation_step); return true;
         case GDK_KEY_Begin: case GDK_KEY_KP_Begin:
-        case GDK_KEY_5:     case GDK_KEY_KP_5:      set_rotation(Math::Quat{}); return true;
+        case GDK_KEY_5:     case GDK_KEY_KP_5:      set_rotation({}); return true;
       }
       break;
 
@@ -928,7 +928,7 @@ bool CubeScene::on_motion_notify_event(GdkEventMotion* event)
   int x = TRACK_UNSET;
   int y = TRACK_UNSET;
 
-  Gdk::ModifierType state = Gdk::ModifierType(event->state);
+  auto state = static_cast<Gdk::ModifierType>(event->state);
 
   if (event->is_hint)
   {
@@ -976,7 +976,8 @@ bool CubeScene::on_animation_tick(gint64 animation_time)
 
   if (!delay_timeout_.connected())
   {
-    const int interval = int(animation_delay_ / pieces_per_sec_ * 1000.f + 0.5f);
+    const int interval =
+        static_cast<int>(animation_delay_ / pieces_per_sec_ * 1000.f + 0.5f);
 
     delay_timeout_ = Glib::signal_timeout().connect(
         sigc::mem_fun(*this, &CubeScene::on_delay_timeout),
@@ -1138,20 +1139,16 @@ void CubeScene::set_cursor(CubeScene::CursorState state)
       case CURSOR_DEFAULT:
         window->set_cursor();
         break;
-
       case CURSOR_DRAGGING:
         window->set_cursor(Gdk::Cursor::create(get_display(), "all-scroll"));
         break;
-
       case CURSOR_INVISIBLE:
         window->set_cursor(Gdk::Cursor::create(get_display(), "none"));
         break;
-
       default:
         g_return_if_reached();
     }
   }
-
   cursor_state_ = state;
 }
 
@@ -1159,17 +1156,17 @@ bool CubeScene::on_delay_timeout()
 {
   if (animation_running_ && !animation_data_.empty())
   {
-    if (animation_piece_ < int(cube_pieces_.size()))
+    if (animation_piece_ < static_cast<int>(cube_pieces_.size()))
     {
       ++animation_piece_;
-      animation_position_ = 1.0;
+      animation_position_ = 1.;
 
       start_piece_animation();
     }
     else
     {
       animation_piece_ = 0;
-      animation_position_ = 0.0;
+      animation_position_ = 0.;
 
       signal_cycle_finished_(); // emit
 
@@ -1177,7 +1174,6 @@ bool CubeScene::on_delay_timeout()
         start_piece_animation();
     }
   }
-
   return false; // disconnect
 }
 
@@ -1201,7 +1197,7 @@ void CubeScene::continue_animation()
   if (animation_running_ && !animation_data_.empty() && get_is_drawable()
       && !animation_tick_active() && !delay_timeout_.connected())
   {
-    if (animation_position_ > 0.0f)
+    if (animation_position_ > 0.f)
     {
       start_piece_animation();
     }
@@ -1223,7 +1219,7 @@ void CubeScene::reset_hide_cursor_timeout()
 
   if (animation_running_)
   {
-    const int interval = int(1000.0f * hide_cursor_delay + 0.5f);
+    const int interval = static_cast<int>(1000.f * hide_cursor_delay + 0.5f);
 
     hide_cursor_timeout_ = Glib::signal_timeout().connect(
         sigc::mem_fun(*this, &CubeScene::on_hide_cursor_timeout),
@@ -1238,7 +1234,6 @@ bool CubeScene::on_hide_cursor_timeout()
   {
     set_cursor(CURSOR_INVISIBLE);
   }
-
   return false; // disconnect
 }
 
@@ -1260,11 +1255,11 @@ void CubeScene::select_piece(int piece)
 {
   pause_animation();
 
-  if (piece > int(animation_data_.size()))
+  if (piece > static_cast<int>(animation_data_.size()))
     piece = animation_data_.size();
 
   animation_piece_ = piece;
-  animation_position_ = 0.0;
+  animation_position_ = 0.;
 
   if (exclusive_piece_ > 0)
     exclusive_piece_ = piece;
@@ -1287,12 +1282,12 @@ void CubeScene::process_track_motion(int x, int y)
     // would have to take the current rotation into account.  More effort than
     // it is worth, if you ask me.
 
-    const float cube_radius    = Cube::N * cube_cell_size / 2.0;
-    const float trackball_size = (1.0 + G_SQRT2) / -view_z_offset * cube_radius;
+    const float cube_radius    = Cube::N * cube_cell_size / 2.;
+    const float trackball_size = (1. + G_SQRT2) / -view_z_offset * cube_radius;
 
     const int   width  = get_viewport_width();
     const int   height = get_viewport_height();
-    const float scale  = 1.0f / height;
+    const float scale  = 1.f / height;
 
     const auto track = Math::trackball_motion((2 * track_last_x_ - width + 1)  * scale,
                                               (height - 2 * track_last_y_ - 1) * scale,
@@ -1338,7 +1333,7 @@ void CubeScene::gl_create_cell_grid()
     float stride[N];
 
     for (int i = 0; i < N; ++i)
-      stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.0f);
+      stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.f);
 
     auto* pv = buffer.get<GLfloat*>();
 
@@ -1423,12 +1418,12 @@ void CubeScene::gl_draw_cell_grid()
     Matrix4 modelview {Matrix4::identity[0],
                        Matrix4::identity[1],
                        Matrix4::identity[2],
-                       Vector4{0.0, 0.0, view_z_offset, 1.0}};
+                       Vector4{0., 0., view_z_offset, 1.}};
 
     modelview *= Math::Quat::to_matrix(rotation_);
-    modelview *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
-                         Vector4{0.0, zoom_, 0.0, 0.0},
-                         Vector4{0.0, 0.0, zoom_, 0.0},
+    modelview *= Matrix4{Vector4{zoom_, 0., 0., 0.},
+                         Vector4{0., zoom_, 0., 0.},
+                         Vector4{0., 0., zoom_, 0.},
                          Matrix4::identity[3]};
 
     glUniformMatrix4fv(cage_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
@@ -1446,7 +1441,7 @@ int CubeScene::gl_draw_cube()
 {
   int triangle_count = 0;
 
-  if (animation_piece_ > 0 && animation_piece_ <= int(animation_data_.size()))
+  if (animation_piece_ > 0 && animation_piece_ <= static_cast<int>(animation_data_.size()))
   {
     glBindTexture(GL_TEXTURE_2D, cube_texture_);
 
@@ -1457,9 +1452,7 @@ int CubeScene::gl_draw_cube()
     else
     {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
       triangle_count += gl_draw_pieces();
-
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
   }
@@ -1502,7 +1495,7 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
 
     int last_fixed = last;
 
-    if (animation_position_ > 0.0f && last == animation_piece_ - 1)
+    if (animation_position_ > 0.f && last == animation_piece_ - 1)
       --last_fixed;
 
     if (last_fixed >= first)
@@ -1531,7 +1524,7 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
       const Math::Vector4 translate {data.direction[0] * d,
                                      data.direction[1] * d,
                                      data.direction[2] * d,
-                                     1.0};
+                                     1.};
       gl_draw_piece_elements(data, translate);
     }
 
@@ -1551,12 +1544,12 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
   Matrix4 modelview {Matrix4::identity[0],
                      Matrix4::identity[1],
                      Matrix4::identity[2],
-                     Vector4{0.0, 0.0, view_z_offset, 1.0}};
+                     Vector4{0., 0., view_z_offset, 1.}};
 
   modelview *= Math::Quat::to_matrix(rotation_);
-  modelview *= Matrix4{Vector4{zoom_, 0.0, 0.0, 0.0},
-                       Vector4{0.0, zoom_, 0.0, 0.0},
-                       Vector4{0.0, 0.0, zoom_, 0.0},
+  modelview *= Matrix4{Vector4{zoom_, 0., 0., 0.},
+                       Vector4{0., zoom_, 0., 0.},
+                       Vector4{0., 0., zoom_, 0.},
                        animpos};
   modelview *= data.transform;
 
@@ -1637,7 +1630,7 @@ void CubeScene::gl_init_cube_texture()
 
 void CubeScene::update_footing()
 {
-  const int percentage = int(100.0f * zoom_ + 0.5f);
+  const int percentage = static_cast<int>(100.f * zoom_ + 0.5f);
 
   if (zoom_visible_ && percentage != 100)
     footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
