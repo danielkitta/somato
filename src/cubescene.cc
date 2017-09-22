@@ -681,30 +681,24 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
                total_vertices * sizeof(GL::MeshVertex),
                nullptr, GL_STATIC_DRAW);
 
-  void *const vertex_data =
-    glMapBufferRange(GL_ARRAY_BUFFER,
-                     0, total_vertices * sizeof(GL::MeshVertex),
-                     GL_MAP_WRITE_BIT
-                     | GL_MAP_INVALIDATE_RANGE_BIT
-                     | GL_MAP_INVALIDATE_BUFFER_BIT
-                     | GL_MAP_UNSYNCHRONIZED_BIT);
-  if (vertex_data)
+  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
+                                  0, total_vertices * sizeof(GL::MeshVertex),
+                                  GL_MAP_WRITE_BIT
+                                  | GL_MAP_INVALIDATE_RANGE_BIT
+                                  | GL_MAP_INVALIDATE_BUFFER_BIT
+                                  | GL_MAP_UNSYNCHRONIZED_BIT})
   {
+    auto *const vertex_data = buffer.get<GL::MeshVertex*>();
+
     for (size_t i = 0; i < nodes.size(); ++i)
       if (const auto node = nodes[i])
       {
         const auto& mesh = mesh_data_[i];
-        const auto start = static_cast<GL::MeshVertex*>(vertex_data) + mesh.element_first;
+        const auto start = vertex_data + mesh.element_first;
 
         loader.get_node_vertices(node, start, mesh.element_count());
       }
-
-    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
-      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
   }
-  else
-    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
-
   glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(GL::MeshVertex),
                         GL::buffer_offset(offsetof(GL::MeshVertex, vertex)));
   glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE, sizeof(GL::MeshVertex),
@@ -717,31 +711,25 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
                indices_size * sizeof(GL::MeshIndex),
                nullptr, GL_STATIC_DRAW);
 
-  void *const index_data =
-    glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER,
-                     0, indices_size * sizeof(GL::MeshIndex),
-                     GL_MAP_WRITE_BIT
-                     | GL_MAP_INVALIDATE_RANGE_BIT
-                     | GL_MAP_INVALIDATE_BUFFER_BIT
-                     | GL_MAP_UNSYNCHRONIZED_BIT);
-  if (index_data)
+  if (GL::ScopedMapBuffer buffer {GL_ELEMENT_ARRAY_BUFFER,
+                                  0, indices_size * sizeof(GL::MeshIndex),
+                                  GL_MAP_WRITE_BIT
+                                  | GL_MAP_INVALIDATE_RANGE_BIT
+                                  | GL_MAP_INVALIDATE_BUFFER_BIT
+                                  | GL_MAP_UNSYNCHRONIZED_BIT})
   {
+    auto *const index_data = buffer.get<GL::MeshIndex*>();
+
     for (size_t i = 0; i < nodes.size(); ++i)
       if (const auto node = nodes[i])
       {
         const auto& mesh = mesh_data_[i];
-        const auto start = static_cast<GL::MeshIndex*>(index_data) + mesh.indices_offset;
+        const auto start = index_data + mesh.indices_offset;
 
         loader.get_node_indices(node, mesh.element_first, start,
                                 GL::MeshLoader::aligned_index_count(3 * mesh.triangle_count));
       }
-
-    if (!glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
-      g_warning("glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
   }
-  else
-    g_warning("glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER) failed");
-
   glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1340,23 +1328,20 @@ void CubeScene::gl_create_wireframe()
                WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
                nullptr, GL_STATIC_DRAW);
 
-  void *const vertex_data =
-    glMapBufferRange(GL_ARRAY_BUFFER,
-                     0, WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
-                     GL_MAP_WRITE_BIT
-                     | GL_MAP_INVALIDATE_RANGE_BIT
-                     | GL_MAP_INVALIDATE_BUFFER_BIT
-                     | GL_MAP_UNSYNCHRONIZED_BIT);
-  if (vertex_data)
+  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
+                                  0, WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
+                                  GL_MAP_WRITE_BIT
+                                  | GL_MAP_INVALIDATE_RANGE_BIT
+                                  | GL_MAP_INVALIDATE_BUFFER_BIT
+                                  | GL_MAP_UNSYNCHRONIZED_BIT})
   {
     enum { N = Cube::N + 1 };
-
     float stride[N];
 
     for (int i = 0; i < N; ++i)
       stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.0f);
 
-    GLfloat* pv = static_cast<GLfloat*>(vertex_data);
+    auto* pv = buffer.get<GLfloat*>();
 
     for (int z = 0; z < N; ++z)
       for (int y = 0; y < N; ++y)
@@ -1368,13 +1353,7 @@ void CubeScene::gl_create_wireframe()
 
           pv += 3;
         }
-
-    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
-      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
   }
-  else
-    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
-
   glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
                         3 * sizeof(GLfloat), GL::buffer_offset(0));
   glEnableVertexAttribArray(ATTRIB_POSITION);
@@ -1384,18 +1363,15 @@ void CubeScene::gl_create_wireframe()
                WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
                nullptr, GL_STATIC_DRAW);
 
-  void *const index_data =
-    glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER,
-                     0, WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
-                     GL_MAP_WRITE_BIT
-                     | GL_MAP_INVALIDATE_RANGE_BIT
-                     | GL_MAP_INVALIDATE_BUFFER_BIT
-                     | GL_MAP_UNSYNCHRONIZED_BIT);
-  if (index_data)
+  if (GL::ScopedMapBuffer buffer {GL_ELEMENT_ARRAY_BUFFER,
+                                  0, WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
+                                  GL_MAP_WRITE_BIT
+                                  | GL_MAP_INVALIDATE_RANGE_BIT
+                                  | GL_MAP_INVALIDATE_BUFFER_BIT
+                                  | GL_MAP_UNSYNCHRONIZED_BIT})
   {
     enum { N = Cube::N + 1 };
-
-    WireframeIndex* pi = static_cast<WireframeIndex*>(index_data);
+    auto* pi = buffer.get<WireframeIndex*>();
 
     for (int i = 0; i < N; ++i)
       for (int k = 0; k < N; ++k)
@@ -1412,13 +1388,7 @@ void CubeScene::gl_create_wireframe()
 
           pi += 6;
         }
-
-    if (!glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
-      g_warning("glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
   }
-  else
-    g_warning("glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER) failed");
-
   glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);

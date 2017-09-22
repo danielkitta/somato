@@ -844,24 +844,17 @@ void Scene::gl_update_ui_buffer()
     ui_vertex_count_ = vertex_count;
   }
 
-  void *const vertex_data =
-    glMapBufferRange(GL_ARRAY_BUFFER,
-                     0, vertex_count * sizeof(UIVertex),
-                     GL_MAP_WRITE_BIT
-                     | GL_MAP_INVALIDATE_RANGE_BIT
-                     | GL_MAP_INVALIDATE_BUFFER_BIT);
-  if (vertex_data)
+  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
+                                  0, vertex_count * sizeof(UIVertex),
+                                  GL_MAP_WRITE_BIT
+                                  | GL_MAP_INVALIDATE_RANGE_BIT
+                                  | GL_MAP_INVALIDATE_BUFFER_BIT})
   {
-    UIVertex *const vertices = static_cast<UIVertex*>(vertex_data);
+    auto *const vertices = buffer.get<UIVertex*>();
 
     gl_build_focus(vertices);
     gl_build_layouts(vertices);
-
-    if (!glUnmapBuffer(GL_ARRAY_BUFFER))
-      g_warning("glUnmapBuffer(GL_ARRAY_BUFFER) failed");
   }
-  else
-    g_warning("glMapBufferRange(GL_ARRAY_BUFFER) failed");
 }
 
 void Scene::gl_build_focus(UIVertex* vertices)
