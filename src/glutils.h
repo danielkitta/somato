@@ -29,11 +29,8 @@
 namespace GL
 {
 
-/*
- * Exception class for errors reported by glGetError().  To simplify matters,
- * GL::Error is also thrown by GL::configure_widget() and the constructor of
- * GL::Scene::ScopeContext to indicate failure.  For this usage code() is not
- * meaningful and will always be 0.
+/* Exception class for errors reported by glGetError() and other OpenGL
+ * failure conditions.
  */
 class Error : public Gdk::GLError
 {
@@ -73,4 +70,4 @@ inline void* buffer_offset(std::size_t offset)
 
 } // namespace GL
 
-#endif /* SOMATO_GLUTILS_H_INCLUDED */
+#endif // !SOMATO_GLUTILS_H_INCLUDED
