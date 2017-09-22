@@ -62,12 +62,12 @@ MainWindow::MainWindow(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui
   zoom_  {Glib::RefPtr<Gtk::Adjustment>::cast_dynamic(ui->get_object("adjustment_zoom"))},
   speed_ {Glib::RefPtr<Gtk::Adjustment>::cast_dynamic(ui->get_object("adjustment_speed"))},
 
-  action_first_        {add_action("first", sigc::mem_fun(*this, &MainWindow::on_cube_goto_first))},
-  action_prev_         {add_action("prev",  sigc::mem_fun(*this, &MainWindow::on_cube_go_back))},
-  action_next_         {add_action("next",  sigc::mem_fun(*this, &MainWindow::on_cube_go_forward))},
-  action_last_         {add_action("last",  sigc::mem_fun(*this, &MainWindow::on_cube_goto_last))},
+  action_first_        {add_action("first", sigc::mem_fun(*this, &MainWindow::cube_goto_first))},
+  action_prev_         {add_action("prev",  sigc::mem_fun(*this, &MainWindow::cube_go_back))},
+  action_next_         {add_action("next",  sigc::mem_fun(*this, &MainWindow::cube_go_forward))},
+  action_last_         {add_action("last",  sigc::mem_fun(*this, &MainWindow::cube_goto_last))},
 
-  action_fullscreen_   {add_action("fullscreen",   sigc::mem_fun(*this, &MainWindow::on_toggle_fullscreen))},
+  action_fullscreen_   {add_action("fullscreen",   sigc::mem_fun(*this, &MainWindow::toggle_fullscreen))},
   action_unfullscreen_ {add_action("unfullscreen", sigc::mem_fun(*this, &Gtk::Window::unfullscreen))},
 
   action_opt_menu_     {add_action_bool("opt-menu")},
@@ -91,11 +91,11 @@ MainWindow::MainWindow(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui
   ui->get_widget_derived("cube_scene", cube_scene_);
   init_cube_scene();
 
-  action_pause_    ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::on_animation_pause));
-  action_cycle_    ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::on_animation_play));
-  action_grid_     ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::on_toggle_wireframe));
-  action_outline_  ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::on_toggle_outline));
-  action_antialias_->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::on_toggle_antialias));
+  action_pause_    ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::set_pause));
+  action_cycle_    ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::set_cycle));
+  action_grid_     ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::set_cell_grid));
+  action_outline_  ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::set_outline));
+  action_antialias_->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::set_antialias));
 
   zoom_->signal_value_changed().connect(
       sigc::mem_fun(*this, &MainWindow::on_zoom_value_changed));
@@ -106,7 +106,7 @@ MainWindow::MainWindow(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui
   switch_cube(-1);
   on_zoom_value_changed();
   on_speed_value_changed();
-  on_toggle_antialias(action_antialias_->get_state_variant());
+  set_antialias(action_antialias_->get_state_variant());
 }
 
 MainWindow::~MainWindow()
@@ -230,27 +230,27 @@ void MainWindow::on_zoom_value_changed()
   cube_scene_->set_zoom(std::pow(3., value / upper));
 }
 
-void MainWindow::on_cube_goto_first()
+void MainWindow::cube_goto_first()
 {
   switch_cube(0);
 }
 
-void MainWindow::on_cube_go_back()
+void MainWindow::cube_go_back()
 {
   switch_cube(cube_index_ - 1);
 }
 
-void MainWindow::on_cube_go_forward()
+void MainWindow::cube_go_forward()
 {
   switch_cube(cube_index_ + 1);
 }
 
-void MainWindow::on_cube_goto_last()
+void MainWindow::cube_goto_last()
 {
   switch_cube(G_MAXINT);
 }
 
-void MainWindow::on_animation_play(const Glib::VariantBase& state)
+void MainWindow::set_cycle(const Glib::VariantBase& state)
 {
   action_cycle_->set_state(state);
   const bool cycle = static_cast<const Glib::Variant<bool>&>(state).get();
@@ -258,7 +258,7 @@ void MainWindow::on_animation_play(const Glib::VariantBase& state)
   conn_cycle_.block(!cycle);
 }
 
-void MainWindow::on_animation_pause(const Glib::VariantBase& state)
+void MainWindow::set_pause(const Glib::VariantBase& state)
 {
   action_pause_->set_state(state);
   const bool pause = static_cast<const Glib::Variant<bool>&>(state).get();
@@ -280,7 +280,7 @@ void MainWindow::on_animation_pause(const Glib::VariantBase& state)
  * function should continue to work without crashing or exhibiting other
  * undesirable behavior.
  */
-void MainWindow::on_toggle_fullscreen()
+void MainWindow::toggle_fullscreen()
 {
   if (is_fullscreen_)
     unfullscreen();
@@ -288,7 +288,7 @@ void MainWindow::on_toggle_fullscreen()
     fullscreen();
 }
 
-void MainWindow::on_toggle_outline(const Glib::VariantBase& state)
+void MainWindow::set_outline(const Glib::VariantBase& state)
 {
   action_outline_->set_state(state);
   const bool outline = static_cast<const Glib::Variant<bool>&>(state).get();
@@ -296,15 +296,15 @@ void MainWindow::on_toggle_outline(const Glib::VariantBase& state)
   cube_scene_->set_show_outline(outline);
 }
 
-void MainWindow::on_toggle_wireframe(const Glib::VariantBase& state)
+void MainWindow::set_cell_grid(const Glib::VariantBase& state)
 {
   action_grid_->set_state(state);
   const bool grid = static_cast<const Glib::Variant<bool>&>(state).get();
 
-  cube_scene_->set_show_wireframe(grid);
+  cube_scene_->set_show_cell_grid(grid);
 }
 
-void MainWindow::on_toggle_antialias(const Glib::VariantBase& state)
+void MainWindow::set_antialias(const Glib::VariantBase& state)
 {
   enum : int { AA_SAMPLES = 4 };
 

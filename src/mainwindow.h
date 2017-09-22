@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -93,16 +93,16 @@ private:
   void on_speed_value_changed();
   void on_zoom_value_changed();
 
-  void on_cube_goto_first();
-  void on_cube_go_back();
-  void on_cube_go_forward();
-  void on_cube_goto_last();
-  void on_animation_play(const Glib::VariantBase& state);
-  void on_animation_pause(const Glib::VariantBase& state);
-  void on_toggle_fullscreen();
-  void on_toggle_outline(const Glib::VariantBase& state);
-  void on_toggle_wireframe(const Glib::VariantBase& state);
-  void on_toggle_antialias(const Glib::VariantBase& state);
+  void cube_goto_first();
+  void cube_go_back();
+  void cube_go_forward();
+  void cube_goto_last();
+  void set_cycle(const Glib::VariantBase& state);
+  void set_pause(const Glib::VariantBase& state);
+  void toggle_fullscreen();
+  void set_outline(const Glib::VariantBase& state);
+  void set_cell_grid(const Glib::VariantBase& state);
+  void set_antialias(const Glib::VariantBase& state);
 
   bool on_scene_button_press_event(GdkEventButton* event);
   bool on_scene_scroll_event(GdkEventScroll* event);

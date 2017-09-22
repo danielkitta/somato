@@ -94,8 +94,8 @@ public:
   void set_zoom_visible(bool zoom_visible);
   bool get_zoom_visible() const;
 
-  void set_show_wireframe(bool show_wireframe);
-  bool get_show_wireframe() const;
+  void set_show_cell_grid(bool show_cell_grid);
+  bool get_show_cell_grid() const;
 
   void set_show_outline(bool show_outline);
   bool get_show_outline() const;
@@ -166,7 +166,7 @@ private:
 
   unsigned int                cube_texture_         = 0;
   unsigned int                mesh_buffers_[2]      = {0, 0};
-  unsigned int                wireframe_buffers_[2] = {0, 0};
+  unsigned int                cell_grid_buffers_[2] = {0, 0};
   unsigned int                pieces_vertex_array_  = 0;
   unsigned int                cage_vertex_array_    = 0;
 
@@ -185,7 +185,7 @@ private:
 
   bool                        depth_order_changed_  = false;
   bool                        animation_running_    = false;
-  bool                        show_wireframe_       = false;
+  bool                        show_cell_grid_       = false;
   bool                        show_outline_         = false;
   bool                        zoom_visible_         = true;
 
@@ -212,9 +212,9 @@ private:
                               unsigned int total_vertices, unsigned int indices_size);
   void gl_create_piece_shader();
   void gl_create_cage_shader();
-  void gl_create_wireframe();
-  void gl_delete_wireframe();
-  void gl_draw_wireframe();
+  void gl_create_cell_grid();
+  void gl_delete_cell_grid();
+  void gl_draw_cell_grid();
 
   int  gl_draw_cube();
   int  gl_draw_pieces();
@@ -222,9 +222,9 @@ private:
   void gl_draw_piece_elements(const AnimationData& data, Math::Vector4 animpos);
 
   void gl_init_cube_texture();
-  void gl_update_wireframe();
+  void gl_update_cell_grid();
 };
 
 } // namespace Somato
 
-#endif /* SOMATO_CUBESCENE_H_INCLUDED */
+#endif // !SOMATO_CUBESCENE_H_INCLUDED

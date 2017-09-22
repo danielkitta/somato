@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2012  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -47,7 +47,7 @@ namespace
 
 using Somato::Cube;
 
-/* The type of indices into the wireframe vertex array.
+/* The type of indices into the cell grid vertex array.
  * Although GLubyte would suffice to represent the range of indices, it is
  * not an optimal configuration with my current hardware (Radeon HD5670).
  */
@@ -381,22 +381,22 @@ bool CubeScene::get_zoom_visible() const
   return zoom_visible_;
 }
 
-void CubeScene::set_show_wireframe(bool show_wireframe)
+void CubeScene::set_show_cell_grid(bool show_cell_grid)
 {
-  if (show_wireframe != show_wireframe_)
+  if (show_cell_grid != show_cell_grid_)
   {
-    show_wireframe_ = show_wireframe;
+    show_cell_grid_ = show_cell_grid;
 
     if (auto guard = scoped_make_current())
-      gl_update_wireframe();
+      gl_update_cell_grid();
 
     queue_static_draw();
   }
 }
 
-bool CubeScene::get_show_wireframe() const
+bool CubeScene::get_show_cell_grid() const
 {
-  return show_wireframe_;
+  return show_cell_grid_;
 }
 
 void CubeScene::set_show_outline(bool show_outline)
@@ -485,7 +485,7 @@ void CubeScene::gl_initialize()
   glUniform1i(uf_piece_texture_, 0);
   GL::ShaderProgram::unuse();
 
-  gl_update_wireframe();
+  gl_update_cell_grid();
 }
 
 void CubeScene::gl_create_piece_shader()
@@ -539,7 +539,7 @@ void CubeScene::gl_cleanup()
   piece_shader_.reset();
   cage_shader_.reset();
 
-  gl_delete_wireframe();
+  gl_delete_cell_grid();
 
   if (pieces_vertex_array_)
   {
@@ -600,11 +600,11 @@ int CubeScene::gl_render()
 
     glEnable(GL_DEPTH_TEST);
 
-    if (show_wireframe_)
+    if (show_cell_grid_)
     {
       const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE : GL_POLYGON_OFFSET_FILL;
 
-      gl_draw_wireframe();
+      gl_draw_cell_grid();
 
       glPolygonOffset(1.0, 4.0);
       glEnable(offset_mode);
@@ -1310,20 +1310,20 @@ void CubeScene::process_track_motion(int x, int y)
  * Note that the lines are split at the crossing points in order to avoid
  * gaps, and also to more closely match the tesselation of the cube parts.
  */
-void CubeScene::gl_create_wireframe()
+void CubeScene::gl_create_cell_grid()
 {
   g_return_if_fail(cage_vertex_array_ == 0);
-  g_return_if_fail(wireframe_buffers_[VERTICES] == 0 && wireframe_buffers_[INDICES] == 0);
+  g_return_if_fail(cell_grid_buffers_[VERTICES] == 0 && cell_grid_buffers_[INDICES] == 0);
 
   glGenVertexArrays(1, &cage_vertex_array_);
   GL::Error::throw_if_fail(cage_vertex_array_ != 0);
 
-  glGenBuffers(2, wireframe_buffers_);
-  GL::Error::throw_if_fail(wireframe_buffers_[VERTICES] != 0 && wireframe_buffers_[INDICES] != 0);
+  glGenBuffers(2, cell_grid_buffers_);
+  GL::Error::throw_if_fail(cell_grid_buffers_[VERTICES] != 0 && cell_grid_buffers_[INDICES] != 0);
 
   glBindVertexArray(cage_vertex_array_);
 
-  glBindBuffer(GL_ARRAY_BUFFER, wireframe_buffers_[VERTICES]);
+  glBindBuffer(GL_ARRAY_BUFFER, cell_grid_buffers_[VERTICES]);
   glBufferData(GL_ARRAY_BUFFER,
                WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
                nullptr, GL_STATIC_DRAW);
@@ -1358,7 +1358,7 @@ void CubeScene::gl_create_wireframe()
                         3 * sizeof(GLfloat), GL::buffer_offset(0));
   glEnableVertexAttribArray(ATTRIB_POSITION);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wireframe_buffers_[INDICES]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell_grid_buffers_[INDICES]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
                nullptr, GL_STATIC_DRAW);
@@ -1394,7 +1394,7 @@ void CubeScene::gl_create_wireframe()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void CubeScene::gl_delete_wireframe()
+void CubeScene::gl_delete_cell_grid()
 {
   if (cage_vertex_array_)
   {
@@ -1402,21 +1402,21 @@ void CubeScene::gl_delete_wireframe()
     cage_vertex_array_ = 0;
   }
 
-  if (wireframe_buffers_[VERTICES] || wireframe_buffers_[INDICES])
+  if (cell_grid_buffers_[VERTICES] || cell_grid_buffers_[INDICES])
   {
-    glDeleteBuffers(2, wireframe_buffers_);
-    wireframe_buffers_[VERTICES] = 0;
-    wireframe_buffers_[INDICES]  = 0;
+    glDeleteBuffers(2, cell_grid_buffers_);
+    cell_grid_buffers_[VERTICES] = 0;
+    cell_grid_buffers_[INDICES]  = 0;
   }
 }
 
-void CubeScene::gl_draw_wireframe()
+void CubeScene::gl_draw_cell_grid()
 {
   using Math::Matrix4;
   using Math::Vector4;
 
   if (cage_shader_ && cage_vertex_array_
-      && wireframe_buffers_[VERTICES] && wireframe_buffers_[INDICES])
+      && cell_grid_buffers_[VERTICES] && cell_grid_buffers_[INDICES])
   {
     cage_shader_.use();
     glBindVertexArray(cage_vertex_array_);
@@ -1646,20 +1646,20 @@ void CubeScene::update_footing()
     footing_->set_content({});
 }
 
-void CubeScene::gl_update_wireframe()
+void CubeScene::gl_update_cell_grid()
 {
-  gl_delete_wireframe();
+  gl_delete_cell_grid();
 
-  if (show_wireframe_)
+  if (show_cell_grid_)
   {
     try
     {
-      gl_create_wireframe();
+      gl_create_cell_grid();
     }
     catch (...)
     {
       gl_reset_state();
-      gl_delete_wireframe();
+      gl_delete_cell_grid();
       throw;
     }
   }
