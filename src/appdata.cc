@@ -27,23 +27,12 @@
 
 std::string Util::locate_data_file(const std::string& basename)
 {
-#ifdef G_OS_WIN32
-  if (char *const exedir = g_win32_get_package_installation_directory_of_module(0))
-  {
-    const std::string fullpath = Glib::build_filename(Glib::ScopedPtr<char>(exedir).get(), basename);
-
-    if (Glib::file_test(fullpath, Glib::FILE_TEST_IS_REGULAR))
-      return fullpath;
-  }
-  return basename;
-#else
   const std::string fullpath = Glib::build_filename(SOMATO_PKGDATADIR, basename);
 
   if (Glib::file_test(fullpath, Glib::FILE_TEST_IS_REGULAR))
     return fullpath;
   else // for debugging
     return Glib::build_filename("ui", basename);
-#endif
 }
 
 std::string Util::locate_shader_file(const std::string& basename)
