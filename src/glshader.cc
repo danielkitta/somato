@@ -88,6 +88,9 @@ GLuint compile_shader(GLenum type, const std::string& filename)
 {
   ScopedShader shader {type};
 
+  g_log("OpenGL", G_LOG_LEVEL_DEBUG, "Compiling shader %u: %s",
+        shader.get(), filename.c_str());
+
   load_shader_source(shader.get(), filename);
   glCompileShader(shader.get());
 
