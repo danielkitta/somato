@@ -317,8 +317,7 @@ void Scene::set_multisample(int n_samples)
     if (auto guard = scoped_make_current())
       gl_update_framebuffer();
 
-    if (get_is_drawable())
-      queue_draw();
+    queue_static_draw();
   }
 }
 
@@ -333,8 +332,8 @@ void Scene::set_show_focus(bool show_focus)
   {
     show_focus_ = show_focus;
 
-    if (has_visible_focus() && get_is_drawable())
-      queue_draw();
+    if (has_visible_focus())
+      queue_static_draw();
   }
 }
 
