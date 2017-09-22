@@ -697,8 +697,13 @@ Glib::RefPtr<Gdk::GLContext> Scene::on_create_context()
       auto context = window->create_gl_context();
       g_warn_if_fail(context);
 
-      if (context && context->realize())
-        return std::move(context);
+      if (context)
+      {
+        context->set_debug_enabled(GL::debug_mode_requested());
+
+        if (context->realize())
+          return std::move(context);
+      }
     }
     catch (const Glib::Error& error)
     {

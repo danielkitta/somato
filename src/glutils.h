@@ -60,8 +60,11 @@ public:
   virtual ~FramebufferError() noexcept;
 };
 
-/*
- * Convert a VBO offset to a pointer.
+/* Return whether the user requested OpenGL debug mode.
+ */
+bool debug_mode_requested();
+
+/* Convert a VBO offset to a pointer.
  */
 inline void* buffer_offset(std::size_t offset)
 {

@@ -129,3 +129,13 @@ GL::FramebufferError::FramebufferError(unsigned int error_code)
 
 GL::FramebufferError::~FramebufferError() noexcept
 {}
+
+bool GL::debug_mode_requested()
+{
+  const char *const messages_debug = g_getenv("G_MESSAGES_DEBUG");
+  const GDebugKey debug_key {"OpenGL", 1};
+
+  // Request a debug OpenGL context if the OpenGL message log domain
+  // has been configured for debug output.
+  return g_parse_debug_string(messages_debug, &debug_key, 1);
+}
