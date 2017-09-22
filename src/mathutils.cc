@@ -32,7 +32,6 @@ namespace
  * Project an (x, y) pair onto a sphere of radius r,
  * or a hyperbolic sheet if we are away from the center of the sphere.
  */
-static
 Math::Vector4 project_to_sphere(float x, float y, float r)
 {
   const float t = r * r * 0.5f;  // square of r * sin(PI/4)
@@ -41,7 +40,7 @@ Math::Vector4 project_to_sphere(float x, float y, float r)
   // Inside sphere if d < t, otherwise on hyperbola.
   const float z = (d < t) ? std::sqrt(r * r - d) : (t / std::sqrt(d));
 
-  return Math::Vector4{x, y, z};
+  return {x, y, z};
 }
 
 } // anonymous namespace
@@ -53,23 +52,25 @@ Math::Quat Math::trackball_motion(float x1, float y1, float x2, float y2, float 
   if (std::abs(x2 - x1) < epsilon && std::abs(y2 - y1) < epsilon)
   {
     // Zero rotation
-    return Math::Quat{};
+    return {};
   }
   else
   {
+    using Math::Vector4;
+
     // First, figure out z-coordinates for projection of P1 and P2 to
     // deformed sphere.
-    const Math::Vector4 p1 = project_to_sphere(x1, y1, trackballsize);
-    const Math::Vector4 p2 = project_to_sphere(x2, y2, trackballsize);
+    const Vector4 p1 = project_to_sphere(x1, y1, trackballsize);
+    const Vector4 p2 = project_to_sphere(x2, y2, trackballsize);
 
     // Normalize to unit length.
-    const Math::Vector4 n1 = p1 / Math::Vector4::mag(p1);
-    const Math::Vector4 n2 = p2 / Math::Vector4::mag(p2);
+    const Vector4 n1 = p1 / Vector4::mag(p1);
+    const Vector4 n2 = p2 / Vector4::mag(p2);
 
     // Determine axis of rotation and cosine of angle.
-    const Math::Vector4 axis = n1 % n2;
+    const Vector4 axis = n1 % n2;
     const float cosa = n1 * n2;
 
-    return Math::Quat{axis.x(), axis.y(), axis.z(), cosa};
+    return {axis.x(), axis.y(), axis.z(), cosa};
   }
 }

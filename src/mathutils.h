@@ -45,33 +45,12 @@ inline T clamp(T value, T lower, T upper)
  */
 inline int clamp_to_int(double value)
 {
-  if (!G_LIKELY(value < 0.0 - G_MININT))
+  if (!G_LIKELY(value < 0. - G_MININT))
     return -1 - G_MININT;
-  if (!G_LIKELY(value > 0.0 + G_MININT))
+  if (!G_LIKELY(value > 0. + G_MININT))
     return  1 + G_MININT;
 
-  return int(value);
-}
-
-/*
- * Round a 32-bit integer upward to the closest power of two.
- * Returns value unchanged if zero or already a power of two.
- *
- * Imlementation taken from Sean Eron Anderson's Bit Twiddling Hacks:
- * http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
- */
-inline unsigned int round_pow2(unsigned int value)
-{
-  unsigned int v = value - 1;
-
-  // Copy the highest set bit to all of the lower bits.
-  v |= v >> 1;
-  v |= v >> 2;
-  v |= v >> 4;
-  v |= v >> 8;
-  v |= v >> 16;
-
-  return v + 1;
+  return static_cast<int>(value);
 }
 
 /*
