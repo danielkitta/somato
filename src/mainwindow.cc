@@ -134,11 +134,12 @@ bool MainWindow::on_window_state_event(GdkEventWindowState* event)
 
 void MainWindow::init_cube_scene()
 {
-  cube_scene_->add_events(Gdk::BUTTON_PRESS_MASK | Gdk::SCROLL_MASK);
+  cube_scene_->add_events(Gdk::BUTTON_PRESS_MASK
+                          | Gdk::SCROLL_MASK | Gdk::SMOOTH_SCROLL_MASK);
 
   // Rotate 18 degrees downward and 27 degrees to the right.
-  cube_scene_->set_rotation(Math::Quat::from_axis(Math::Vector4(1.0, 0.0, 0.0), 0.10 * G_PI) *
-                            Math::Quat::from_axis(Math::Vector4(0.0, 1.0, 0.0), 0.15 * G_PI));
+  cube_scene_->set_rotation(Math::Quat::from_axis(Math::Vector4{1., 0., 0.}, 0.10 * G_PI) *
+                            Math::Quat::from_axis(Math::Vector4{0., 1., 0.}, 0.15 * G_PI));
 
   cube_scene_->signal_scroll_event().connect(
       sigc::mem_fun(*this, &MainWindow::on_scene_scroll_event));
@@ -317,9 +318,20 @@ bool MainWindow::on_scene_scroll_event(GdkEventScroll* event)
 {
   switch (event->direction)
   {
-    case GDK_SCROLL_UP:   action_zoom_plus_ ->activate(); return true;
-    case GDK_SCROLL_DOWN: action_zoom_minus_->activate(); return true;
-    default:              return false;
+    case GDK_SCROLL_UP:
+      action_zoom_plus_->activate();
+      return true;
+    case GDK_SCROLL_DOWN:
+      action_zoom_minus_->activate();
+      return true;
+    case GDK_SCROLL_SMOOTH:
+      if (event->delta_y < 0.)
+        action_zoom_minus_->activate();
+      else if (event->delta_y > 0.)
+        action_zoom_plus_->activate();
+      return true;
+    default:
+      return false;
   }
 }
 
