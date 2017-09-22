@@ -21,10 +21,9 @@
 
 #include "mathutils.h"
 
+#include <limits>
 #include <cmath>
 #include <cstdlib>
-#include <algorithm>
-#include <limits>
 
 namespace
 {

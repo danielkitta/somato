@@ -23,7 +23,6 @@
 #include "glsceneprivate.h"
 #include "appdata.h"
 #include "glutils.h"
-#include "mathutils.h"
 
 #include <glib.h>
 #include <cairo.h>
@@ -194,8 +193,8 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
   // Pad up the margins to account for measurement inaccuracies.
   enum { PADDING = 1 };
 
-  const int ink_width  = Math::max(0, ink.get_width())  + 2 * PADDING;
-  const int ink_height = Math::max(0, ink.get_height()) + 2 * PADDING;
+  const int ink_width  = std::max(0, ink.get_width())  + 2 * PADDING;
+  const int ink_height = std::max(0, ink.get_height()) + 2 * PADDING;
   const int img_width  = aligned_stride(ink_width);
 
   std::vector<GLubyte> tex_image (ink_height * img_width);
@@ -308,7 +307,7 @@ unsigned int Scene::get_triangle_counter() const
 
 void Scene::set_multisample(int n_samples)
 {
-  const int samples_set = Math::min(aa_samples_, max_aa_samples_);
+  const int samples_set = std::min(aa_samples_, max_aa_samples_);
   aa_samples_ = n_samples;
 
   if (n_samples != samples_set)
@@ -379,12 +378,12 @@ void Scene::queue_static_draw()
 
 int Scene::get_viewport_width() const
 {
-  return Math::max(1, get_allocated_width() * get_scale_factor());
+  return std::max(1, get_allocated_width() * get_scale_factor());
 }
 
 int Scene::get_viewport_height() const
 {
-  return Math::max(1, get_allocated_height() * get_scale_factor());
+  return std::max(1, get_allocated_height() * get_scale_factor());
 }
 
 LayoutTexture* Scene::create_layout_texture()
@@ -769,7 +768,7 @@ void Scene::gl_update_framebuffer()
 
   const int view_width  = get_viewport_width();
   const int view_height = get_viewport_width();
-  const int samples = Math::min(aa_samples_, max_aa_samples_);
+  const int samples = std::min(aa_samples_, max_aa_samples_);
 
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB8,

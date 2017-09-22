@@ -21,7 +21,6 @@
 
 #include "meshloader.h"
 #include "glutils.h"
-#include "mathutils.h"
 
 #include <glib.h>
 #include <sigc++/sigc++.h>
@@ -30,6 +29,8 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+
+#include <algorithm>
 #include <exception>
 #include <thread>
 
@@ -190,7 +191,7 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
 
     const auto *const vertices = mesh->mVertices;
     const auto *const normals  = mesh->mNormals;
-    const size_t n_vertices = Math::min<size_t>(mesh->mNumVertices, max_vertices - n_written);
+    const size_t n_vertices = std::min<size_t>(mesh->mNumVertices, max_vertices - n_written);
 
     for (size_t i = 0; i < n_vertices; ++i)
     {
@@ -219,7 +220,7 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     g_return_val_if_fail(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE, n_written);
 
     const aiFace *const faces = mesh->mFaces;
-    const size_t n_faces = Math::min<size_t>(mesh->mNumFaces, (max_indices - n_written) / 3);
+    const size_t n_faces = std::min<size_t>(mesh->mNumFaces, (max_indices - n_written) / 3);
 
     for (size_t i = 0; i < n_faces; ++i)
     {

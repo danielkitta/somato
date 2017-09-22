@@ -171,7 +171,7 @@ void MainWindow::switch_cube(int index)
 {
   const int max_index = int(solutions_.size()) - 1;
 
-  cube_index_ = Math::min(Math::max(0, index), max_index);
+  cube_index_ = std::min(std::max(0, index), max_index);
 
   action_first_->set_enabled(cube_index_ > 0);
   action_prev_ ->set_enabled(cube_index_ > 0);

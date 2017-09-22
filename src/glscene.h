@@ -21,7 +21,6 @@
 #define SOMATO_GLSCENE_H_INCLUDED
 
 #include "glshader.h"
-#include "glutils.h"
 #include "vectormath.h"
 
 #include <glibmm/ustring.h>

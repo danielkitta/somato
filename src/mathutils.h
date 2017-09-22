@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -21,32 +21,12 @@
 #define SOMATO_MATHUTILS_H_INCLUDED
 
 #include "vectormath.h"
+
 #include <glib.h>
+#include <algorithm>
 
 namespace Math
 {
-
-/*
- * Math::min() and Math::max() work just like std::min() and std::max(),
- * respectively.  The reason they are duplicated here is that the STL
- * variants take reference arguments and return a reference, whereas
- * Math::min() and Math::max() use value arguments and return a value.
- *
- * As it happens, the GCC optimizer messes up on reference returns and
- * forces the values into memory.  So these replacements are provided
- * here to avoid the unnecessary register spill with fundamental types.
- */
-template <class T>
-inline T min(T a, T b)
-{
-  return (a < b) ? a : b;
-}
-
-template <class T>
-inline T max(T a, T b)
-{
-  return (a > b) ? a : b;
-}
 
 /*
  * Convenience shortcut to clamp a value to a range.
@@ -55,7 +35,7 @@ inline T max(T a, T b)
 template <class T>
 inline T clamp(T value, T lower, T upper)
 {
-  return Math::min(Math::max(value, lower), upper);
+  return std::min(std::max(value, lower), upper);
 }
 
 /*
@@ -115,4 +95,4 @@ Quat trackball_motion(float x1, float y1, float x2, float y2, float trackballsiz
 
 } // namespace Math
 
-#endif /* SOMATO_MATHUTILS_H_INCLUDED */
+#endif // !SOMATO_MATHUTILS_H_INCLUDED

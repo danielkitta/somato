@@ -968,7 +968,7 @@ bool CubeScene::on_animation_tick(gint64 animation_time)
   const float elapsed  = animation_time * (1.f / G_USEC_PER_SEC);
   const float position = animation_seek_ - (elapsed * pieces_per_sec_);
 
-  animation_position_ = Math::max(0.f, position);
+  animation_position_ = std::max(0.f, position);
   queue_draw();
 
   if (position > 0.)
@@ -1627,7 +1627,7 @@ void CubeScene::gl_init_cube_texture()
 
   if (gl_ext()->texture_filter_anisotropic)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-                    Math::min(8.0f, gl_ext()->max_anisotropy));
+                    std::min(8.f, gl_ext()->max_anisotropy));
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, WIDTH, HEIGHT, 0,
                formats[n_channels - 1], GL_UNSIGNED_BYTE, pixels);
