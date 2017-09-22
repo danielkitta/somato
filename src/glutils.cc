@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -129,6 +129,25 @@ GL::FramebufferError::FramebufferError(unsigned int error_code)
 
 GL::FramebufferError::~FramebufferError() noexcept
 {}
+
+GL::ScopedMapBuffer::ScopedMapBuffer(unsigned int target, std::size_t offset,
+                                     std::size_t length, unsigned int access)
+:
+  data_   {glMapBufferRange(target, offset, length, access)},
+  target_ {target}
+{
+  if (!data_)
+    g_log("OpenGL", G_LOG_LEVEL_WARNING, "glMapBufferRange() failed");
+}
+
+GL::ScopedMapBuffer::~ScopedMapBuffer()
+{
+  if (data_)
+  {
+    if (!glUnmapBuffer(target_))
+      g_log("OpenGL", G_LOG_LEVEL_WARNING, "glUnmapBuffer() failed");
+  }
+}
 
 bool GL::debug_mode_requested()
 {

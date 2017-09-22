@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2007  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -58,6 +58,26 @@ class FramebufferError : public Error
 public:
   explicit FramebufferError(unsigned int error_code);
   virtual ~FramebufferError() noexcept;
+};
+
+/* Scoped glMapBufferRange().
+ */
+class ScopedMapBuffer
+{
+public:
+  ScopedMapBuffer(unsigned int target, std::size_t offset,
+                  std::size_t length, unsigned int access);
+  ~ScopedMapBuffer();
+
+  operator void*() const { return data_; }
+  template <class T> T get() const { return static_cast<T>(data_); }
+
+  ScopedMapBuffer(const ScopedMapBuffer& other) = delete;
+  ScopedMapBuffer& operator=(const ScopedMapBuffer& other) = delete;
+
+private:
+  void*        data_;
+  unsigned int target_;
 };
 
 /* Return whether the user requested OpenGL debug mode.
