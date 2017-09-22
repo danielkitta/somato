@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <cairo.h>
 #include <pango/pangocairo.h>
+#include <gtk/gtk.h>
 #include <gdkmm.h>
 #include <epoxy/gl.h>
 
@@ -348,6 +349,32 @@ Scene::ContextGuard Scene::scoped_make_current()
     context->make_current();
 
   return ContextGuard{!!context};
+}
+
+void Scene::start_animation_tick()
+{
+  g_return_if_fail(anim_tick_id_ == 0);
+
+  first_tick_ = true;
+  anim_tick_id_ = gtk_widget_add_tick_callback(Gtk::Widget::gobj(), &Scene::tick_callback,
+                                               this, &Scene::tick_callback_destroy);
+}
+
+void Scene::stop_animation_tick()
+{
+  if (anim_tick_id_ != 0)
+    gtk_widget_remove_tick_callback(Gtk::Widget::gobj(), anim_tick_id_);
+}
+
+void Scene::reset_animation_tick()
+{
+  first_tick_ = true;
+}
+
+void Scene::queue_static_draw()
+{
+  if (anim_tick_id_ == 0 && get_is_drawable())
+    queue_draw();
 }
 
 int Scene::get_viewport_width() const
@@ -681,6 +708,11 @@ Glib::RefPtr<Gdk::GLContext> Scene::on_create_context()
   return {};
 }
 
+bool Scene::on_animation_tick(gint64)
+{
+  return false;
+}
+
 void Scene::gl_reposition_layouts()
 {}
 
@@ -971,6 +1003,26 @@ Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustri
   layout->set_text(text);
 
   return layout;
+}
+
+gboolean Scene::tick_callback(GtkWidget*, GdkFrameClock* frame_clock, gpointer user_data)
+{
+  auto *const scene = static_cast<Scene*>(user_data);
+  const gint64 now = gdk_frame_clock_get_frame_time(frame_clock);
+
+  if (scene->first_tick_)
+  {
+    scene->first_tick_ = false;
+    scene->anim_start_time_ = now;
+  }
+  return scene->on_animation_tick(now - scene->anim_start_time_);
+}
+
+void Scene::tick_callback_destroy(gpointer user_data)
+{
+  auto *const scene = static_cast<Scene*>(user_data);
+
+  scene->anim_tick_id_ = 0;
 }
 
 } // namespace GL

@@ -29,12 +29,9 @@
 #include "vectormath.h"
 
 #include <sigc++/sigc++.h>
-#include <glibmm/timer.h>
 #include <glibmm/ustring.h>
 #include <memory>
 #include <vector>
-
-#include <config.h>
 
 namespace Gtk { class Builder; }
 
@@ -43,37 +40,25 @@ namespace Somato
 
 struct MeshData
 {
-  unsigned int triangle_count; // number of triangles
-  unsigned int indices_offset; // offset into element indices array
-  unsigned int element_first;  // minimum referenced element index
-  unsigned int element_last;   // maximum referenced element index
-
-  MeshData() : triangle_count {0}, indices_offset {0}, element_first {0}, element_last {0} {}
-  MeshData(const MeshData&) = default;
-  MeshData& operator=(const MeshData&) = default;
+  unsigned int triangle_count = 0; // number of triangles
+  unsigned int indices_offset = 0; // offset into element indices array
+  unsigned int element_first  = 0; // minimum referenced element index
+  unsigned int element_last   = 0; // maximum referenced element index
 
   unsigned int element_count() const { return element_last - element_first + 1; }
 };
 
 struct AnimationData
 {
-  Math::Matrix4 transform;    // puzzle piece orientation
-  unsigned int  cube_index;   // index into pieces vector in original order
-  float         direction[3]; // direction of cube animation movement
-
-  AnimationData() : transform {}, cube_index {0}, direction {0.0, 0.0, 0.0} {}
-  AnimationData(const AnimationData&) = default;
-  AnimationData& operator=(const AnimationData&) = default;
+  Math::Matrix4 transform;      // puzzle piece orientation
+  unsigned int  cube_index = 0; // index into pieces vector in original order
+  float         direction[3] = {0., 0., 0.}; // animation move direction
 };
 
 struct PieceCell
 {
-  unsigned int piece; // animation index of cube piece
-  unsigned int cell;  // linearized index of cube cell
-
-  PieceCell() : piece {0}, cell {0} {}
-  PieceCell(const PieceCell&) = default;
-  PieceCell& operator=(const PieceCell&) = default;
+  unsigned int piece = 0; // animation index of cube piece
+  unsigned int cell  = 0; // linearized index of cube cell
 };
 
 typedef std::vector<PieceCell> PieceCellVector;
@@ -99,9 +84,6 @@ public:
 
   void  set_animation_delay(float animation_delay);
   float get_animation_delay() const;
-
-  void  set_frames_per_second(float frames_per_second);
-  float get_frames_per_second() const;
 
   void  set_pieces_per_second(float pieces_per_second);
   float get_pieces_per_second() const;
@@ -140,6 +122,7 @@ protected:
   bool on_motion_notify_event(GdkEventMotion* event) override;
 
 private:
+  bool on_animation_tick(gint64 animation_time) override;
   void gl_reposition_layouts() override;
 
   typedef std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> MeshNodeArray;
@@ -163,8 +146,6 @@ private:
   std::vector<int>            depth_order_;
 
   sigc::signal<void>          signal_cycle_finished_;
-  Glib::Timer                 animation_timer_;
-  sigc::connection            frame_trigger_;
   sigc::connection            delay_timeout_;
   sigc::connection            hide_cursor_timeout_;
 
@@ -200,7 +181,6 @@ private:
   float                       animation_delay_      = 1. / 3.;
 
   float                       zoom_                 = 1.;
-  float                       frames_per_sec_       = 60.;
   float                       pieces_per_sec_       = 1.;
 
   bool                        depth_order_changed_  = false;
@@ -217,12 +197,10 @@ private:
   void start_piece_animation();
   void pause_animation();
   void continue_animation();
-  void advance_animation();
   void set_cursor(CursorState state);
 
   void reset_hide_cursor_timeout();
   bool on_hide_cursor_timeout();
-  bool on_frame_trigger();
   bool on_delay_timeout();
 
   void cycle_exclusive(int direction);

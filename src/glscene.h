@@ -111,6 +111,12 @@ protected:
   const GL::Extensions* gl_ext() const { return &gl_extensions_; }
   ContextGuard scoped_make_current();
 
+  void start_animation_tick();
+  void stop_animation_tick();
+  void reset_animation_tick();
+  bool animation_tick_active() const { return (anim_tick_id_ != 0); }
+  void queue_static_draw();
+
   int get_viewport_width() const;
   int get_viewport_height() const;
 
@@ -135,6 +141,7 @@ protected:
   Glib::RefPtr<Gdk::GLContext> on_create_context() override;
 
 private:
+  virtual bool on_animation_tick(gint64 animation_time);
   virtual void gl_reposition_layouts();
 
   void gl_create_label_shader();
@@ -154,17 +161,20 @@ private:
 
   Glib::RefPtr<Pango::Layout> create_texture_pango_layout(const Glib::ustring& text);
 
+  static gboolean tick_callback(GtkWidget* widget, GdkFrameClock* frame_clock,
+                                gpointer user_data);
+  static void tick_callback_destroy(gpointer user_data);
+
   Math::Vector4     focus_color_ = {0.6, 0.6, 0.6, 1.};
+  gint64            anim_start_time_ = 0;
 
   Glib::RefPtr<Pango::Context> texture_context_;
   LayoutVector                 ui_layouts_;
 
   GL::Extensions    gl_extensions_;
-
   GL::ShaderProgram label_shader_;
   int               label_uf_color_   = -1;
   int               label_uf_texture_ = -1;
-
   GL::ShaderProgram focus_shader_;
   int               focus_uf_color_   = -1;
 
@@ -179,7 +189,9 @@ private:
   unsigned int ui_buffer_        = 0;
   unsigned int frame_counter_    = 0;
   unsigned int triangle_counter_ = 0;
+  unsigned int anim_tick_id_     = 0;
 
+  bool first_tick_     = false;
   bool show_focus_     = true;
   bool focus_drawable_ = false;
 };

@@ -18,6 +18,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <config.h>
+
 #include "cubescene.h"
 #include "appdata.h"
 #include "glsceneprivate.h"
@@ -39,11 +41,6 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
-
-#include <config.h>
-
-#undef near /* WTF? */
-#undef far  /* Out, demon, out! */
 
 namespace
 {
@@ -223,8 +220,7 @@ void CubeScene::set_heading(const Glib::ustring& heading)
     if (auto guard = scoped_make_current())
       gl_update_ui();
 
-    if (get_is_drawable())
-      queue_draw();
+    queue_static_draw();
   }
 }
 
@@ -264,10 +260,8 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
     animation_position_ = 0.0;
   }
 
-  if (get_is_drawable())
-    queue_draw();
-
   continue_animation();
+  queue_static_draw();
 }
 
 void CubeScene::set_zoom(float zoom)
@@ -288,8 +282,7 @@ void CubeScene::set_zoom(float zoom)
       if (footing_->need_update())
         gl_update_ui();
     }
-    if (get_is_drawable())
-      queue_draw();
+    queue_static_draw();
   }
 }
 
@@ -305,8 +298,8 @@ void CubeScene::set_rotation(const Math::Quat& rotation)
 
   depth_order_changed_ = true;
 
-  if (!animation_data_.empty() && get_is_drawable())
-    queue_draw();
+  if (!animation_data_.empty())
+    queue_static_draw();
 }
 
 Math::Quat CubeScene::get_rotation() const
@@ -324,16 +317,6 @@ float CubeScene::get_animation_delay() const
   return animation_delay_;
 }
 
-void CubeScene::set_frames_per_second(float frames_per_second)
-{
-  frames_per_sec_ = Math::clamp(frames_per_second, 1.0f, 100.0f);
-}
-
-float CubeScene::get_frames_per_second() const
-{
-  return frames_per_sec_;
-}
-
 void CubeScene::set_pieces_per_second(float pieces_per_second)
 {
   const float value = Math::clamp(pieces_per_second, 0.01f, 100.0f);
@@ -345,7 +328,7 @@ void CubeScene::set_pieces_per_second(float pieces_per_second)
     if (animation_position_ > 0.0f)
     {
       animation_seek_ = animation_position_;
-      animation_timer_.start();
+      reset_animation_tick();
     }
   }
 }
@@ -388,8 +371,7 @@ void CubeScene::set_zoom_visible(bool zoom_visible)
       if (auto guard = scoped_make_current())
         gl_update_ui();
 
-      if (get_is_drawable())
-        queue_draw();
+      queue_static_draw();
     }
   }
 }
@@ -408,8 +390,7 @@ void CubeScene::set_show_wireframe(bool show_wireframe)
     if (auto guard = scoped_make_current())
       gl_update_wireframe();
 
-    if (get_is_drawable())
-      queue_draw();
+    queue_static_draw();
   }
 }
 
@@ -424,8 +405,8 @@ void CubeScene::set_show_outline(bool show_outline)
   {
     show_outline_ = show_outline;
 
-    if (!animation_data_.empty() && get_is_drawable())
-      queue_draw();
+    if (!animation_data_.empty())
+      queue_static_draw();
   }
 }
 
@@ -616,9 +597,6 @@ int CubeScene::gl_render()
     // then sitting around idle waiting for the GPU to finish.
     if (depth_order_changed_)
       update_depth_order();
-
-    if (animation_running_)
-      advance_animation();
 
     glEnable(GL_DEPTH_TEST);
 
@@ -998,6 +976,28 @@ bool CubeScene::on_motion_notify_event(GdkEventMotion* event)
   return GL::Scene::on_motion_notify_event(event);
 }
 
+bool CubeScene::on_animation_tick(gint64 animation_time)
+{
+  const float elapsed  = animation_time * (1.f / G_USEC_PER_SEC);
+  const float position = animation_seek_ - (elapsed * pieces_per_sec_);
+
+  animation_position_ = Math::max(0.f, position);
+  queue_draw();
+
+  if (position > 0.)
+    return true;
+
+  if (!delay_timeout_.connected())
+  {
+    const int interval = int(animation_delay_ / pieces_per_sec_ * 1000.f + 0.5f);
+
+    delay_timeout_ = Glib::signal_timeout().connect(
+        sigc::mem_fun(*this, &CubeScene::on_delay_timeout),
+        interval, Glib::PRIORITY_DEFAULT_IDLE);
+  }
+  return false;
+}
+
 void CubeScene::gl_reposition_layouts()
 {
   const int view_width  = get_viewport_width();
@@ -1140,46 +1140,6 @@ void CubeScene::update_depth_order()
   depth_order_changed_ = false;
 }
 
-void CubeScene::advance_animation()
-{
-  if (frame_trigger_.connected())
-  {
-    const float elapsed = animation_timer_.elapsed();
-
-    if (elapsed >= 0.0f)
-    {
-      const float position = animation_seek_ - (elapsed * pieces_per_sec_);
-
-      if (position > 0.0f)
-      {
-        animation_position_ = position;
-      }
-      else
-      {
-        frame_trigger_.disconnect();
-
-        animation_position_ = 0.0;
-
-        if (!delay_timeout_.connected())
-        {
-          const int interval = int(animation_delay_ / pieces_per_sec_ * 1000.0f + 0.5f);
-
-          delay_timeout_ = Glib::signal_timeout().connect(
-              sigc::mem_fun(*this, &CubeScene::on_delay_timeout),
-              interval, Glib::PRIORITY_DEFAULT_IDLE);
-        }
-      }
-    }
-    else
-    {
-      // The system time appears to have been changed backwards.  To recover,
-      // reset the timer and continue animation at the last known position.
-      animation_seek_ = animation_position_;
-      animation_timer_.start();
-    }
-  }
-}
-
 void CubeScene::set_cursor(CubeScene::CursorState state)
 {
   if (state != cursor_state_ && get_realized())
@@ -1206,18 +1166,6 @@ void CubeScene::set_cursor(CubeScene::CursorState state)
   }
 
   cursor_state_ = state;
-}
-
-bool CubeScene::on_frame_trigger()
-{
-  if (animation_running_ && !animation_data_.empty() && get_is_drawable())
-  {
-    queue_draw();
-
-    return true; // call me again
-  }
-
-  return false; // disconnect
 }
 
 bool CubeScene::on_delay_timeout()
@@ -1248,42 +1196,23 @@ bool CubeScene::on_delay_timeout()
 
 void CubeScene::start_piece_animation()
 {
-  if (get_is_drawable() && !frame_trigger_.connected())
+  if (get_is_drawable())
   {
-    queue_draw();
-
     animation_seek_ = animation_position_;
-#if 0
-    if (vsync_enabled())
-    {
-      frame_trigger_ = Glib::signal_idle().connect(
-          sigc::mem_fun(*this, &CubeScene::on_frame_trigger),
-          Glib::PRIORITY_DEFAULT_IDLE);
-    }
-    else
-#endif
-    {
-      const int interval = int(1000.0f / frames_per_sec_ + 0.5f);
-
-      frame_trigger_ = Glib::signal_timeout().connect(
-          sigc::mem_fun(*this, &CubeScene::on_frame_trigger),
-          interval, Glib::PRIORITY_DEFAULT_IDLE);
-    }
-
-    animation_timer_.start();
+    start_animation_tick();
   }
 }
 
 void CubeScene::pause_animation()
 {
-  frame_trigger_.disconnect();
+  stop_animation_tick();
   delay_timeout_.disconnect();
 }
 
 void CubeScene::continue_animation()
 {
   if (animation_running_ && !animation_data_.empty() && get_is_drawable()
-      && !frame_trigger_.connected() && !delay_timeout_.connected())
+      && !animation_tick_active() && !delay_timeout_.connected())
   {
     if (animation_position_ > 0.0f)
     {
@@ -1337,8 +1266,7 @@ void CubeScene::cycle_exclusive(int direction)
 
   exclusive_piece_ = piece;
 
-  if (get_is_drawable())
-    queue_draw();
+  queue_static_draw();
 }
 
 void CubeScene::select_piece(int piece)
@@ -1354,10 +1282,8 @@ void CubeScene::select_piece(int piece)
   if (exclusive_piece_ > 0)
     exclusive_piece_ = piece;
 
-  if (get_is_drawable())
-    queue_draw();
-
   continue_animation();
+  queue_static_draw();
 }
 
 void CubeScene::process_track_motion(int x, int y)
