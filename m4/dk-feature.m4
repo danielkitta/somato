@@ -1,4 +1,4 @@
-## Copyright (c) 2004-2007  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of danielk's Autostuff.
 ##
@@ -13,10 +13,9 @@
 ## for more details.
 ##
 ## You should have received a copy of the GNU General Public License along
-## with danielk's Autostuff; if not, write to the Free Software Foundation,
-## Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+## with danielk's Autostuff.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20070105
+#serial 20170922
 
 ## _DK_SH_VAR_PUSH_DEPTH(depth, variable, [value])
 ##

@@ -1,4 +1,4 @@
-## Copyright (c) 2004-2010  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of Somato.
 ##
@@ -13,8 +13,7 @@
 ## GNU General Public License for more details.
 ##
 ## You should have received a copy of the GNU General Public License
-## along with Somato; if not, write to the Free Software Foundation, Inc.,
-## 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+## along with Somato.  If not, see <http://www.gnu.org/licenses/>.
 
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS  = -I m4

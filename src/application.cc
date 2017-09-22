@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Somato; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * along with Somato.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -46,8 +45,7 @@ const char *const program_license =
   "GNU General Public License for more details.\n"
   "\n"
   "You should have received a copy of the GNU General Public License "
-  "along with Somato; if not, write to the Free Software Foundation, "
-  "Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA\n";
+  "along with Somato. If not, see <http://www.gnu.org/licenses/>.\n";
 
 } // anonymous namespace
 
