@@ -514,9 +514,9 @@ void CubeScene::gl_create_cage_shader()
   GL::ShaderProgram program;
 
   program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  Util::locate_shader_file("wirecage.vert")});
+                                  Util::locate_shader_file("cellgrid.vert")});
   program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  Util::locate_shader_file("wirecage.frag")});
+                                  Util::locate_shader_file("cellgrid.frag")});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();

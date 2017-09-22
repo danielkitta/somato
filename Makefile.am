@@ -65,14 +65,14 @@ dist_pkgdata_DATA =		\
 
 shaderdir = $(pkgdatadir)/shaders
 dist_shader_DATA =			\
+	ui/shaders/cellgrid.frag	\
+	ui/shaders/cellgrid.vert	\
 	ui/shaders/focusrect.frag	\
 	ui/shaders/focusrect.vert	\
 	ui/shaders/puzzlepieces.frag	\
 	ui/shaders/puzzlepieces.vert	\
 	ui/shaders/textlabel.frag	\
-	ui/shaders/textlabel.vert	\
-	ui/shaders/wirecage.frag	\
-	ui/shaders/wirecage.vert
+	ui/shaders/textlabel.vert
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\
