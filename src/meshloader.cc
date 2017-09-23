@@ -23,16 +23,12 @@
 #include "glutils.h"
 
 #include <glib.h>
-#include <sigc++/sigc++.h>
-#include <glibmm/dispatcher.h>
 #include <glibmm/ustring.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 #include <algorithm>
-#include <exception>
-#include <thread>
 
 namespace GL
 {
@@ -41,21 +37,14 @@ class MeshLoader::Impl
 {
 private:
   std::string                       filename_;
-  Glib::Dispatcher                  signal_exit_;
-  sigc::connection                  thread_exit_;
   std::unique_ptr<Assimp::Importer> importer_;
-
-  void on_thread_exit();
 
   // noncopyable
   Impl(const MeshLoader::Impl&) = delete;
   MeshLoader::Impl& operator=(const MeshLoader::Impl&) = delete;
 
 public:
-  std::function<void ()> done_func;
-  std::exception_ptr     error = nullptr;
-  std::thread            thread;
-  const aiScene*         scene = nullptr;
+  const aiScene* scene = nullptr;
 
   explicit Impl(std::string filename);
   ~Impl();
@@ -65,59 +54,35 @@ public:
 
 MeshLoader::Impl::Impl(std::string filename)
 :
-  filename_    {std::move(filename)},
-  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &MeshLoader::Impl::on_thread_exit))}
+  filename_ {std::move(filename)}
 {}
 
 MeshLoader::Impl::~Impl()
-{
-  thread_exit_.disconnect();
-
-  // Normally, the thread should not be running anymore at this point,
-  // but in case it is we have to wait in order to ensure proper cleanup.
-  if (thread.joinable())
-    thread.join();
-}
+{}
 
 void MeshLoader::Impl::execute()
 {
-  try
-  {
-    importer_.reset(new Assimp::Importer{});
+  importer_.reset(new Assimp::Importer{});
 
-    importer_->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
-                                  aiComponent_TANGENTS_AND_BITANGENTS
-                                  | aiComponent_COLORS
-                                  | aiComponent_TEXCOORDS
-                                  | aiComponent_BONEWEIGHTS);
-    importer_->SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE,
-                                  aiPrimitiveType_POINT
-                                  | aiPrimitiveType_LINE);
-    importer_->SetPropertyInteger(AI_CONFIG_PP_ICL_PTCACHE_SIZE, 20);
+  importer_->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
+                                aiComponent_TANGENTS_AND_BITANGENTS
+                                | aiComponent_COLORS
+                                | aiComponent_TEXCOORDS
+                                | aiComponent_BONEWEIGHTS);
+  importer_->SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE,
+                                aiPrimitiveType_POINT
+                                | aiPrimitiveType_LINE);
+  importer_->SetPropertyInteger(AI_CONFIG_PP_ICL_PTCACHE_SIZE, 20);
 
-    scene = importer_->ReadFile(filename_,
-                                aiProcess_RemoveComponent
-                                | aiProcess_JoinIdenticalVertices
-                                | aiProcess_Triangulate
-                                | aiProcess_SortByPType
-                                | aiProcess_GenSmoothNormals
-                                | aiProcess_ImproveCacheLocality);
-    if (!scene)
-      throw GL::Error{importer_->GetErrorString()};
-  }
-  catch (...)
-  {
-    error = std::current_exception();
-  }
-  signal_exit_(); // emit
-}
-
-void MeshLoader::Impl::on_thread_exit()
-{
-  thread.join();
-
-  if (done_func)
-    done_func();
+  scene = importer_->ReadFile(filename_,
+                              aiProcess_RemoveComponent
+                              | aiProcess_JoinIdenticalVertices
+                              | aiProcess_Triangulate
+                              | aiProcess_SortByPType
+                              | aiProcess_GenSmoothNormals
+                              | aiProcess_ImproveCacheLocality);
+  if (!scene)
+    throw GL::Error{importer_->GetErrorString()};
 }
 
 MeshLoader::MeshLoader(std::string filename)
@@ -126,28 +91,14 @@ MeshLoader::MeshLoader(std::string filename)
 {}
 
 MeshLoader::~MeshLoader()
-{}
-
-void MeshLoader::set_on_done(std::function<void ()> func)
 {
-  pimpl_->done_func = std::move(func);
-}
-
-void MeshLoader::run()
-{
-  g_return_if_fail(!pimpl_->thread.joinable());
-
-  pimpl_->error  = nullptr;
-  pimpl_->thread = std::thread{std::bind(&MeshLoader::Impl::execute, pimpl_.get())};
+  wait_finish();
 }
 
 MeshLoader::Node MeshLoader::lookup_node(const char* name) const
 {
-  g_return_val_if_fail(!pimpl_->thread.joinable(), Node{});
-
-  if (pimpl_->error)
-    std::rethrow_exception(pimpl_->error);
-
+  g_return_val_if_fail(!running(), Node{});
+  rethrow_any_error();
   g_return_val_if_fail(pimpl_->scene, Node{});
 
   return Node{pimpl_->scene->mRootNode->FindNode(name)};
@@ -191,8 +142,8 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
 
     const auto *const vertices = mesh->mVertices;
     const auto *const normals  = mesh->mNormals;
-    const size_t n_vertices = std::min<size_t>(mesh->mNumVertices, max_vertices - n_written);
-
+    const size_t n_vertices = std::min<size_t>(mesh->mNumVertices,
+                                               max_vertices - n_written);
     for (size_t i = 0; i < n_vertices; ++i)
     {
       buffer[n_written + i].set_vertex(vertices[i].x, vertices[i].y, vertices[i].z);
@@ -220,8 +171,8 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     g_return_val_if_fail(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE, n_written);
 
     const aiFace *const faces = mesh->mFaces;
-    const size_t n_faces = std::min<size_t>(mesh->mNumFaces, (max_indices - n_written) / 3);
-
+    const size_t n_faces = std::min<size_t>(mesh->mNumFaces,
+                                            (max_indices - n_written) / 3);
     for (size_t i = 0; i < n_faces; ++i)
     {
       const unsigned int *const indices = faces[i].mIndices;
@@ -240,6 +191,11 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     buffer[n] = ~MeshIndex{0};
 
   return n_written;
+}
+
+void MeshLoader::execute()
+{
+  pimpl_->execute();
 }
 
 } // namespace GL

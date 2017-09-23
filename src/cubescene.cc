@@ -21,6 +21,7 @@
 
 #include "cubescene.h"
 #include "appdata.h"
+#include "asynctask.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
 #include "mathutils.h"
@@ -452,7 +453,7 @@ void CubeScene::gl_initialize()
     std::unique_ptr<GL::MeshLoader> loader
       {new GL::MeshLoader{Util::locate_data_file("puzzlepieces.dae")}};
 
-    loader->set_on_done(std::bind(&CubeScene::on_meshes_loaded, this));
+    loader->signal_done().connect(sigc::mem_fun(*this, &CubeScene::on_meshes_loaded));
     loader->run();
 
     mesh_loader_ = std::move(loader);
@@ -747,7 +748,7 @@ void CubeScene::on_meshes_loaded()
     "PieceCyan"
   }};
 
-  const auto loader = std::move(mesh_loader_);
+  const auto loader = Async::deferred_delete(mesh_loader_);
   g_return_if_fail(loader);
 
   if (!get_realized())

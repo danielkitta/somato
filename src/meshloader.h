@@ -20,10 +20,10 @@
 #ifndef SOMATO_MESHLOADER_H_INCLUDED
 #define SOMATO_MESHLOADER_H_INCLUDED
 
-#include <functional>
+#include "asynctask.h"
+
 #include <memory>
 #include <string>
-#include <utility>
 #include <cstdint>
 
 struct aiNode;
@@ -42,7 +42,7 @@ struct MeshVertex
 
 typedef uint16_t MeshIndex;
 
-class MeshLoader
+class MeshLoader : public Async::Task
 {
 public:
   class Node
@@ -51,8 +51,7 @@ public:
     const aiNode* node_;
 
   public:
-    Node() : node_ {nullptr} {}
-    explicit Node(const aiNode* node) : node_ {node} {}
+    explicit Node(const aiNode* node = nullptr) : node_ {node} {}
 
     explicit operator bool() const { return (node_ != nullptr); }
     const aiNode* operator->() const { return node_; }
@@ -62,9 +61,6 @@ public:
 
   explicit MeshLoader(std::string filename);
   virtual ~MeshLoader();
-
-  void set_on_done(std::function<void ()> handler);
-  void run();
 
   Node lookup_node(const char* name) const;
   VertexTriangleCounts count_node_vertices_triangles(Node node) const;
@@ -77,18 +73,12 @@ public:
     { return (count + 3) & ~3u; }
 
 private:
+  void execute() override;
+
   class Impl;
-
   const std::unique_ptr<Impl> pimpl_;
-
-  // noncopyable
-  MeshLoader(const MeshLoader&) = delete;
-  MeshLoader& operator=(const MeshLoader&) = delete;
-
-  void execute();
-  void on_thread_exit();
 };
 
 } // namespace GL
 
-#endif /* SOMATO_MESHLOADER_H_INCLUDED */
+#endif // !SOMATO_MESHLOADER_H_INCLUDED
