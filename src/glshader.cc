@@ -89,7 +89,7 @@ GLuint compile_shader(GLenum type, const std::string& filename)
 {
   ScopedShader shader {type};
 
-  g_log("OpenGL", G_LOG_LEVEL_DEBUG, "Compiling shader %u: %s",
+  g_log(GL::log_domain, G_LOG_LEVEL_DEBUG, "Compiling shader %u: %s",
         shader.get(), filename.c_str());
 
   load_shader_source(shader.get(), filename);
@@ -112,7 +112,7 @@ GLuint compile_shader(GLenum type, const std::string& filename)
       --length;
     buffer[length] = '\0';
 
-    g_log("OpenGL", (success) ? G_LOG_LEVEL_INFO : G_LOG_LEVEL_WARNING,
+    g_log(GL::log_domain, (success) ? G_LOG_LEVEL_INFO : G_LOG_LEVEL_WARNING,
           "%s", buffer.get());
   }
   if (!success)
@@ -185,7 +185,7 @@ void ShaderProgram::link()
       --length;
     buffer[length] = '\0';
 
-    g_log("OpenGL", (success) ? G_LOG_LEVEL_INFO : G_LOG_LEVEL_WARNING,
+    g_log(GL::log_domain, (success) ? G_LOG_LEVEL_INFO : G_LOG_LEVEL_WARNING,
           "%s", buffer.get());
   }
   if (!success)

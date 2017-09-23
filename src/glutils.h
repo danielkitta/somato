@@ -28,6 +28,8 @@
 namespace GL
 {
 
+constexpr const char* log_domain = "OpenGL";
+
 /* Exception class for errors reported by glGetError() and other OpenGL
  * failure conditions.
  */
@@ -85,7 +87,7 @@ bool debug_mode_requested();
 
 /* Convert a VBO offset to a pointer.
  */
-inline void* buffer_offset(std::size_t offset)
+constexpr void* buffer_offset(std::size_t offset)
 {
   return static_cast<char*>(0) + offset;
 }

@@ -64,7 +64,7 @@ static GLAPIENTRY
 void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
                          const GLchar* message, const GLvoid*)
 {
-  g_log("OpenGL", G_LOG_LEVEL_DEBUG, "%s", message);
+  g_log(GL::log_domain, G_LOG_LEVEL_DEBUG, "%s", message);
 }
 } // extern "C"
 
@@ -255,7 +255,7 @@ void LayoutTexture::gl_delete()
 
 void Extensions::gl_query()
 {
-  g_log("OpenGL", G_LOG_LEVEL_INFO, "OpenGL version: %s, GLSL version: %s",
+  g_log(GL::log_domain, G_LOG_LEVEL_INFO, "OpenGL version: %s, GLSL version: %s",
         glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
   debug_output = epoxy_has_gl_extension("GL_ARB_debug_output");

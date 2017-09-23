@@ -136,7 +136,7 @@ GL::ScopedMapBuffer::ScopedMapBuffer(unsigned int target, std::size_t offset,
   target_ {target}
 {
   if (!data_)
-    g_log("OpenGL", G_LOG_LEVEL_WARNING, "glMapBufferRange() failed");
+    g_log(GL::log_domain, G_LOG_LEVEL_WARNING, "glMapBufferRange() failed");
 }
 
 GL::ScopedMapBuffer::~ScopedMapBuffer()
@@ -144,14 +144,14 @@ GL::ScopedMapBuffer::~ScopedMapBuffer()
   if (data_)
   {
     if (!glUnmapBuffer(target_))
-      g_log("OpenGL", G_LOG_LEVEL_WARNING, "glUnmapBuffer() failed");
+      g_log(GL::log_domain, G_LOG_LEVEL_WARNING, "glUnmapBuffer() failed");
   }
 }
 
 bool GL::debug_mode_requested()
 {
   const char *const messages_debug = g_getenv("G_MESSAGES_DEBUG");
-  const GDebugKey debug_key {"OpenGL", 1};
+  const GDebugKey debug_key {GL::log_domain, 1};
 
   // Request a debug OpenGL context if the OpenGL message log domain
   // has been configured for debug output.
