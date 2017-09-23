@@ -21,6 +21,7 @@
 
 #include "mainwindow.h"
 #include "appdata.h"
+#include "asynctask.h"
 #include "cube.h"
 #include "cubescene.h"
 #include "glutils.h"
@@ -115,7 +116,7 @@ void MainWindow::run_puzzle_solver()
 {
   std::unique_ptr<PuzzleThread> thread {new PuzzleThread{}};
 
-  thread->set_on_done(std::bind(&MainWindow::on_puzzle_thread_done, this));
+  thread->signal_done().connect(sigc::mem_fun(*this, &MainWindow::start_animation));
   thread->run();
 
   puzzle_thread_ = std::move(thread);
@@ -152,19 +153,18 @@ void MainWindow::init_cube_scene()
   cube_scene_->grab_focus();
 }
 
-bool MainWindow::start_animation()
+void MainWindow::start_animation()
 {
-  // Now we may safely delete the puzzle thread object.
-  puzzle_thread_.reset();
+  const auto puzzle = Async::deferred_delete(puzzle_thread_);
+  g_return_if_fail(puzzle);
 
+  solutions_ = puzzle->acquire_results();
   switch_cube(0);
 
   bool paused = false;
   action_pause_->get_state(paused);
 
   cube_scene_->set_animation_running(!paused && !solutions_.empty());
-
-  return false; // disconnect
 }
 
 void MainWindow::switch_cube(int index)
@@ -185,14 +185,6 @@ void MainWindow::switch_cube(int index)
     cube_scene_->set_heading(Glib::ustring::compose("Soma cube #%1", cube_index_ + 1));
     cube_scene_->set_cube_pieces(solutions_[cube_index_]);
   }
-}
-
-void MainWindow::on_puzzle_thread_done()
-{
-  solutions_ = puzzle_thread_->acquire_results();
-
-  if (!solutions_.empty())
-    Glib::signal_idle().connect(sigc::mem_fun(*this, &MainWindow::start_animation));
 }
 
 void MainWindow::on_speed_value_changed()

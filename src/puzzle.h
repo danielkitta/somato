@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -20,49 +20,35 @@
 #ifndef SOMATO_PUZZLE_H_INCLUDED
 #define SOMATO_PUZZLE_H_INCLUDED
 
+#include "asynctask.h"
 #include "cube.h"
 #include "vectormath.h"
 
-#include <glibmm/dispatcher.h>
 #include <array>
-#include <functional>
-#include <thread>
 #include <vector>
 
 namespace Somato
 {
 
 enum { CUBE_PIECE_COUNT = 7 };
-
 typedef std::array<Cube, CUBE_PIECE_COUNT> Solution;
 
-class PuzzleThread
+class PuzzleThread : public Async::Task
 {
 public:
   PuzzleThread();
   virtual ~PuzzleThread();
 
-  void set_on_done(std::function<void ()> func);
-  void run();
   std::vector<Solution> acquire_results();
 
 private:
-  std::vector<Solution>  solutions_;
-  std::function<void ()> done_func_;
-  Glib::Dispatcher       signal_exit_;
-  sigc::connection       thread_exit_;
-  std::thread            thread_;
+  void execute() override;
 
-  // noncopyable
-  PuzzleThread(const PuzzleThread&) = delete;
-  PuzzleThread& operator=(const PuzzleThread&) = delete;
-
-  void execute();
-  void on_thread_exit();
+  std::vector<Solution> solutions_;
 };
 
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece);
 
 } // namespace Somato
 
-#endif /* SOMATO_PUZZLE_H_INCLUDED */
+#endif // !SOMATO_PUZZLE_H_INCLUDED

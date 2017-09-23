@@ -85,10 +85,9 @@ private:
   bool                            is_fullscreen_ = false;
 
   void init_cube_scene();
-  bool start_animation();
+  void start_animation();
   void switch_cube(int index);
 
-  void on_puzzle_thread_done();
   void on_speed_value_changed();
   void on_zoom_value_changed();
 

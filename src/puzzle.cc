@@ -22,8 +22,8 @@
 #include "puzzle.h"
 
 #include <glib.h>
-#include <sigc++/sigc++.h>
 #include <algorithm>
+#include <functional>
 #include <numeric>
 
 namespace
@@ -52,8 +52,7 @@ public:
   PuzzleSolver();
   ~PuzzleSolver();
 
-  void execute();
-  std::vector<Solution>& result() { return solutions_; }
+  std::vector<Solution> execute();
 };
 
 /*
@@ -207,7 +206,7 @@ PuzzleSolver::PuzzleSolver()
 PuzzleSolver::~PuzzleSolver()
 {}
 
-void PuzzleSolver::execute()
+std::vector<Somato::Solution> PuzzleSolver::execute()
 {
   solutions_.reserve(512);
 
@@ -240,6 +239,8 @@ void PuzzleSolver::execute()
     column.push_back({});
 
   recurse(0, {});
+
+  return std::move(solutions_);
 }
 
 void PuzzleSolver::recurse(int col, Cube cube)
@@ -272,76 +273,24 @@ void PuzzleSolver::recurse(int col, Cube cube)
 namespace Somato
 {
 
-// MS Visual C++ complains about the use of 'this' in an initializer list.
-// However, it harmless in this case as only a base object will be accessed.
-#ifdef _MSC_VER
-# pragma warning(push)
-# pragma warning(disable: 4355)
-#endif
 PuzzleThread::PuzzleThread()
-:
-  thread_exit_ {signal_exit_.connect(sigc::mem_fun(*this, &PuzzleThread::on_thread_exit))}
 {}
-#ifdef _MSC_VER
-# pragma warning(pop)
-#endif
 
 PuzzleThread::~PuzzleThread()
 {
-  thread_exit_.disconnect();
-
-  // Normally, the thread should not be running anymore at this point,
-  // but in case it is we have to wait in order to ensure proper cleanup.
-  if (thread_.joinable())
-    thread_.join();
-}
-
-void PuzzleThread::set_on_done(std::function<void ()> func)
-{
-  done_func_ = std::move(func);
-}
-
-void PuzzleThread::run()
-{
-  g_return_if_fail(!thread_.joinable());
-
-  thread_ = std::thread{std::bind(&PuzzleThread::execute, this)};
+  wait_finish();
 }
 
 std::vector<Solution> PuzzleThread::acquire_results()
 {
-  g_warn_if_fail(!thread_.joinable());
-
+  rethrow_any_error();
   return std::move(solutions_);
 }
 
-/*
- * We can get away without any explicit synchronization, as long as the
- * thread is always properly joined in response to its exit notification.
- */
 void PuzzleThread::execute()
 {
-  try
-  {
-    PuzzleSolver solver;
-
-    solver.execute();
-    solutions_ = std::move(solver.result());
-  }
-  catch (...)
-  {
-    signal_exit_(); // emit
-    throw;
-  }
-  signal_exit_(); // emit
-}
-
-void PuzzleThread::on_thread_exit()
-{
-  thread_.join();
-
-  if (done_func_)
-    done_func_();
+  PuzzleSolver solver;
+  solutions_ = solver.execute();
 }
 
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
