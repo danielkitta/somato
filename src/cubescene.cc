@@ -198,8 +198,8 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
   heading_     {create_layout_texture()},
   footing_     {create_layout_texture()}
 {
-  heading_->color().assign(0.85, 0.85, 0.85, 1.);
-  footing_->color().assign(0.65, 0.65, 0.65, 1.);
+  heading_->color() = {0.85, 0.85, 0.85, 1.};
+  footing_->color() = {0.65, 0.65, 0.65, 1.};
 
   set_can_focus(true);
 
@@ -442,7 +442,9 @@ void CubeScene::rotate(int axis, float angle)
 {
   g_return_if_fail(axis >= Cube::AXIS_X && axis <= Cube::AXIS_Z);
 
-  const Math::Vector4 axis_vec {Math::Matrix4::identity[axis]};
+  Math::Vector4 axis_vec;
+  axis_vec[axis] = 1.f;
+
   set_rotation(Math::Quat::from_axis(axis_vec, angle * rad_per_deg) * rotation_);
 }
 
@@ -1416,16 +1418,10 @@ void CubeScene::gl_draw_cell_grid()
     cage_shader_.use();
     glBindVertexArray(cage_vertex_array_);
 
-    Matrix4 modelview {Matrix4::identity[0],
-                       Matrix4::identity[1],
-                       Matrix4::identity[2],
-                       Vector4{0., 0., view_z_offset, 1.}};
+    Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
 
     modelview *= Math::Quat::to_matrix(rotation_);
-    modelview *= Matrix4{Vector4{zoom_, 0., 0., 0.},
-                         Vector4{0., zoom_, 0., 0.},
-                         Vector4{0., 0., zoom_, 0.},
-                         Matrix4::identity[3]};
+    modelview *= Matrix4::scaling(zoom_);
 
     glUniformMatrix4fv(cage_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
@@ -1508,7 +1504,7 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
           const auto& mesh = mesh_data_[data.cube_index];
           triangle_count += mesh.triangle_count;
 
-          gl_draw_piece_elements(data, Math::Matrix4::identity[3]);
+          gl_draw_piece_elements(data, {0.f, 0.f, 0.f, 1.f});
         }
     }
 
@@ -1542,10 +1538,7 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
   using Math::Matrix4;
   using Math::Vector4;
 
-  Matrix4 modelview {Matrix4::identity[0],
-                     Matrix4::identity[1],
-                     Matrix4::identity[2],
-                     Vector4{0., 0., view_z_offset, 1.}};
+  Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
 
   modelview *= Math::Quat::to_matrix(rotation_);
   modelview *= Matrix4{Vector4{zoom_, 0., 0., 0.},

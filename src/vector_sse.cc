@@ -31,8 +31,7 @@
 namespace
 {
 
-static inline
-__m128 vector4_dot(__m128 a, __m128 b)
+inline __m128 vector4_dot(__m128 a, __m128 b)
 {
   __m128 c = _mm_mul_ps(a, b);
   __m128 d = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1));
@@ -43,8 +42,7 @@ __m128 vector4_dot(__m128 a, __m128 b)
   return _mm_add_ss(c, d);
 }
 
-static inline
-__m128 vector3_mag(__m128 v)
+inline __m128 vector3_mag(__m128 v)
 {
   __m128 c = _mm_mul_ps(v, v);
   __m128 d = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1));
@@ -57,11 +55,10 @@ __m128 vector3_mag(__m128 v)
 
 #if SOMATO_CUSTOM_ALLOC
 
-static void* v4_align_alloc(std::size_t size) noexcept G_GNUC_MALLOC;
+void* v4_align_alloc(std::size_t size) noexcept G_GNUC_MALLOC;
 
 # if SOMATO_HAVE_POSIX_MEMALIGN
 
-static
 void* v4_align_alloc(std::size_t size) noexcept
 {
   if (size == 0)
@@ -85,15 +82,13 @@ void* v4_align_alloc(std::size_t size) noexcept
   return 0;
 }
 
-static inline
-void v4_align_free(void* p) noexcept
+inline void v4_align_free(void* p) noexcept
 {
   std::free(p);
 }
 
 # else /* !SOMATO_HAVE_POSIX_MEMALIGN */
 
-static
 void* v4_align_alloc(std::size_t size) noexcept
 {
   if (size == 0)
@@ -104,8 +99,7 @@ void* v4_align_alloc(std::size_t size) noexcept
   return _mm_malloc(size, alignment);
 }
 
-static inline
-void v4_align_free(void* p) noexcept
+inline void v4_align_free(void* p) noexcept
 {
   _mm_free(p);
 }
@@ -185,20 +179,18 @@ void operator delete[](void* p, const std::nothrow_t&) throw()
 namespace Math
 {
 
-// static
 __m128 Vector4::mag_(__m128 v)
 {
   return _mm_sqrt_ss(vector4_dot(v, v));
 }
 
-// static
 __m128 Vector4::dot_(__m128 a, __m128 b)
 {
   return vector4_dot(a, b);
 }
 
 #if !SOMATO_VECTOR_USE_SSE2
-// static
+
 __m128 Vector4::rint_(__m128 v)
 {
   __m128 u = _mm_movehl_ps(v, v);
@@ -214,51 +206,62 @@ __m128 Vector4::rint_(__m128 v)
 
   return _mm_movelh_ps(v, u);
 }
+
 #endif /* !SOMATO_VECTOR_USE_SSE2 */
 
-const Matrix4::array_type Matrix4::identity =
+Matrix4::Matrix4()
 {
-  { 1.0f, 0.0f, 0.0f, 0.0f },
-  { 0.0f, 1.0f, 0.0f, 0.0f },
-  { 0.0f, 0.0f, 1.0f, 0.0f },
-  { 0.0f, 0.0f, 0.0f, 1.0f }
-};
-
-void Matrix4::assign(const Matrix4::column_type* b)
-{
-  m_[0] = b[0];
-  m_[1] = b[1];
-  m_[2] = b[2];
-  m_[3] = b[3];
+  __m128 v = _mm_set_ss(1.f);
+  m_[0] = v;
+  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,2,0,1));
+  m_[1] = v;
+  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,1,2,0));
+  m_[2] = v;
+  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2,3,1,0));
+  m_[3] = v;
 }
 
-void Matrix4::assign(const Matrix4::value_type b[][4])
+Matrix4& Matrix4::operator=(const value_type b[][4])
 {
-  m_[0] = _mm_loadu_ps(b[0]);
-  m_[1] = _mm_loadu_ps(b[1]);
-  m_[2] = _mm_loadu_ps(b[2]);
-  m_[3] = _mm_loadu_ps(b[3]);
+  const __m128 b0 = _mm_loadu_ps(b[0]);
+  const __m128 b1 = _mm_loadu_ps(b[1]);
+  const __m128 b2 = _mm_loadu_ps(b[2]);
+  const __m128 b3 = _mm_loadu_ps(b[3]);
+
+  m_[0] = b0;
+  m_[1] = b1;
+  m_[2] = b2;
+  m_[3] = b3;
+
+  return *this;
+}
+
+void Matrix4::translation_(__m128 t, __m128* result)
+{
+  __m128 v = _mm_set_ss(1.f);
+  result[0] = v;
+  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,2,0,1));
+  result[1] = v;
+  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,1,2,0));
+  result[2] = v;
+  result[3] = t;
+}
+
+void Matrix4::scaling_(__m128 s, __m128* result)
+{
+  result[0] = s;
+  s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(3,2,0,1));
+  result[1] = s;
+  s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(3,1,2,0));
+  result[2] = s;
+  result[3] = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
 }
 
 void Matrix4::transpose()
 {
-  const __m128 c0 = m_[0];
-  const __m128 c1 = m_[1];
-  const __m128 c2 = m_[2];
-  const __m128 c3 = m_[3];
-
-  const __m128 t0 = _mm_unpacklo_ps(c0, c1);
-  const __m128 t1 = _mm_unpacklo_ps(c2, c3);
-  const __m128 t2 = _mm_unpackhi_ps(c0, c1);
-  const __m128 t3 = _mm_unpackhi_ps(c2, c3);
-
-  m_[0] = _mm_movelh_ps(t0, t1);
-  m_[1] = _mm_movehl_ps(t1, t0);
-  m_[2] = _mm_movelh_ps(t2, t3);
-  m_[3] = _mm_movehl_ps(t3, t2);
+  _MM_TRANSPOSE4_PS(m_[0], m_[1], m_[2], m_[3]);
 }
 
-// static
 __m128 Matrix4::mul_(const __m128* a, __m128 b)
 {
   const __m128 c0 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(0,0,0,0)), a[0]);
@@ -272,7 +275,6 @@ __m128 Matrix4::mul_(const __m128* a, __m128 b)
   return _mm_add_ps(s0, s2);
 }
 
-// static
 void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
 {
   const __m128 a0 = a[0];
@@ -300,10 +302,8 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
   }
 }
 
-// static
 const Quat::CastVec4 Quat::mask_xyz_ = {{ -1, -1, -1, 0 }};
 
-// static
 __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 {
   const float phi_2 = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
@@ -317,7 +317,7 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 #endif
 
   // Normalize the axis vector first.
-  __m128 u = a.data();
+  __m128 u = a.v_;
   const __m128 mag = vector3_mag(u);
   u = _mm_div_ps(u, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
 
@@ -330,7 +330,6 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
   return _mm_or_ps(_mm_and_ps(_mm_mul_ps(u, s), mask_xyz_.v), c);
 }
 
-// static
 void Quat::to_matrix_(__m128 quat, __m128* result)
 {
   const __m128 mask = mask_xyz_.v;
@@ -351,50 +350,44 @@ void Quat::to_matrix_(__m128 quat, __m128* result)
   const __m128 t1 = _mm_sub_ps(xy_yz_xz, wz_wx_wy);
   const __m128 t2 = _mm_add_ps(xz_xy_yz, wy_wz_wx);
 
-  static const __m128 v1110 = { 1.0f, 1.0f, 1.0f, 0.0f };
+  const __m128 v0001 = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
+  result[3] = v0001;
 
+  const __m128 v1110 = _mm_shuffle_ps(v0001, v0001, _MM_SHUFFLE(0,3,3,3));
   const __m128 c0 = _mm_sub_ps(v1110, _mm_add_ps(t0, t0));
   const __m128 c1 = _mm_add_ps(t1, t1);
   const __m128 c2 = _mm_add_ps(t2, t2);
 
-  const __m128 v0001 = Matrix4::identity[3];
-
   result[0] = _mm_move_ss(_mm_shuffle_ps(c2, c1, _MM_SHUFFLE(3,2,1,0)), c0);
   result[1] = _mm_move_ss(_mm_shuffle_ps(c0, c2, _MM_SHUFFLE(3,2,1,0)), c1);
   result[2] = _mm_move_ss(_mm_shuffle_ps(c1, c0, _MM_SHUFFLE(3,2,1,0)), c2);
-  result[3] = v0001;
 }
 
-// static
 float Quat::angle_(__m128 quat)
 {
   const __m128 cosine = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3));
   const __m128 sine   = vector3_mag(quat);
 
   const float a = std::atan2(_mm_cvtss_f32(sine), _mm_cvtss_f32(cosine));
-  return 2.0f * a;
+  return 2.f * a;
 }
 
-// static
 __m128 Quat::renormalize_(__m128 quat, __m128 epsilon)
 {
   static const union { int i; float f; } absmasku = { 0x7FFFFFFF };
   const __m128 absmask = _mm_load_ss(&absmasku.f);
 
   const __m128 norm  = vector4_dot(quat, quat);
-  const __m128 error = _mm_and_ps(_mm_sub_ss(_mm_set_ss(1.0f), norm), absmask);
+  const __m128 error = _mm_and_ps(_mm_sub_ss(_mm_set_ss(1.f), norm), absmask);
 
   if (_mm_ucomige_ss(error, epsilon))
   {
     const __m128 mag = _mm_sqrt_ss(norm);
-
     quat = _mm_div_ps(quat, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
   }
-
   return quat;
 }
 
-// static
 __m128 Quat::mul_(__m128 a, __m128 b)
 {
   // x = aw * bx + ax * bw + ay * bz - az * by
@@ -423,7 +416,7 @@ __m128 Quat::mul_(__m128 a, __m128 b)
   //
   // result = ((c1 + c2) ^ signbit3) + (c0 - c3)
 
-  static const __m128 signbit3 = { 0.0f, 0.0f, 0.0f, -0.0f };
+  const __m128 signbit3 = _mm_setr_ps(0.f, 0.f, 0.f, -0.f);
 
   const __m128 c12 = _mm_add_ps(c1, c2);
   const __m128 c03 = _mm_sub_ps(c0, c3);
@@ -433,4 +426,4 @@ __m128 Quat::mul_(__m128 a, __m128 b)
 
 } // namespace Math
 
-#endif /* SOMATO_VECTOR_USE_SSE */
+#endif // SOMATO_VECTOR_USE_SSE

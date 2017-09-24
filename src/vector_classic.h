@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -22,22 +22,21 @@
 namespace Math
 {
 
+class Matrix4;
+
 class Vector4
 {
 private:
   float v_[4];
 
-  static void rint_(const float* v, float* result);
-  static void sign_(const float* v, float* result);
-  static void mask_ifzero_   (const float* a, const float* b, float* result);
-  static void mask_ifnonzero_(const float* a, const float* b, float* result);
-
-public:
-  typedef float         array_type[4];
-  typedef float         value_type;
-  typedef unsigned int  size_type;
+  friend class Matrix4;
+  friend class Quat;
+  friend Vector4 operator*(const Matrix4& a, const Vector4& b);
+  friend Vector4 operator*(const Matrix4& a, const float* b);
+  friend Vector4 operator*(const float a[][4], const Vector4& b);
 
   enum Uninitialized { uninitialized };
+  explicit Vector4(Uninitialized) {}
 
   static void  add_  (const float* a, const float* b, float* result);
   static void  sub_  (const float* a, const float* b, float* result);
@@ -46,24 +45,22 @@ public:
   static float dot_  (const float* a, const float* b);
   static void  cross_(const float* a, const float* b, float* result);
   static bool  equal_(const float* a, const float* b);
+  static void  rint_ (const float* v, float* result);
+  static void  sign_ (const float* v, float* result);
+  static void  mask_ifzero_   (const float* a, const float* b, float* result);
+  static void  mask_ifnonzero_(const float* a, const float* b, float* result);
 
-  explicit Vector4(Uninitialized) {}
+public:
+  typedef float         value_type;
+  typedef unsigned int  size_type;
 
-  void assign(value_type x_, value_type y_, value_type z_, value_type w_ = 0.0)
-    { v_[0] = x_; v_[1] = y_; v_[2] = z_; v_[3] = w_; }
+  constexpr Vector4() : v_ {0.f, 0.f, 0.f, 0.f} {}
+  explicit Vector4(const value_type* b) : v_ {b[0], b[1], b[2], b[3]} {}
+  constexpr Vector4(value_type x_, value_type y_, value_type z_, value_type w_ = 0.f)
+    : v_ {x_, y_, z_, w_} {}
 
-  Vector4() { v_[0] = 0.0; v_[1] = 0.0; v_[2] = 0.0; v_[3] = 0.0; }
-  Vector4(const Vector4& b) { assign(b.v_[0], b.v_[1], b.v_[2], b.v_[3]); }
-  explicit Vector4(const value_type* b) { assign(b[0], b[1], b[2], b[3]); }
-
-  Vector4(value_type x_, value_type y_, value_type z_, value_type w_ = 0.0)
-    { v_[0] = x_; v_[1] = y_; v_[2] = z_; v_[3] = w_; }
-
-  Vector4& operator=(const Vector4& b) { assign(b.v_[0], b.v_[1], b.v_[2], b.v_[3]); return *this; }
-  Vector4& operator=(const value_type* b) { assign(b[0], b[1], b[2], b[3]); return *this; }
-
-  value_type*       data()       { return v_; }
-  const value_type* data() const { return v_; }
+  Vector4& operator=(const value_type* b)
+    { v_[0] = b[0]; v_[1] = b[1]; v_[2] = b[2]; v_[3] = b[3]; return *this; }
 
   value_type&       operator[](size_type i)       { return v_[i]; }
   const value_type& operator[](size_type i) const { return v_[i]; }
@@ -82,246 +79,232 @@ public:
   Vector4& operator%=(const Vector4& b)    { cross_(v_, b.v_, v_); return *this; }
   Vector4& operator%=(const value_type* b) { cross_(v_, b, v_);    return *this; }
 
+  friend Vector4 operator+(const Vector4& a, const Vector4& b)
+    { Vector4 r (uninitialized); add_(a.v_, b.v_, r.v_); return r; }
+
+  friend Vector4 operator+(const Vector4& a, const value_type* b)
+    { Vector4 r (uninitialized); add_(a.v_, b, r.v_); return r; }
+
+  friend Vector4 operator+(const value_type* a, const Vector4& b)
+    { Vector4 r (uninitialized); add_(a, b.v_, r.v_); return r; }
+
+  friend Vector4 operator-(const Vector4& a, const Vector4& b)
+    { Vector4 r (uninitialized); sub_(a.v_, b.v_, r.v_); return r; }
+
+  friend Vector4 operator-(const Vector4& a, const value_type* b)
+    { Vector4 r (uninitialized); sub_(a.v_, b, r.v_); return r; }
+
+  friend Vector4 operator-(const value_type* a, const Vector4& b)
+    { Vector4 r (uninitialized); sub_(a, b.v_, r.v_); return r; }
+
+  friend Vector4 operator*(const Vector4& a, value_type b)
+    { Vector4 r (uninitialized); mul_(a.v_, b, r.v_); return r; }
+
+  friend Vector4 operator*(value_type a, const Vector4& b)
+    { Vector4 r (uninitialized); mul_(b.v_, a, r.v_); return r; }
+
+  friend Vector4 operator/(const Vector4& a, value_type b)
+    { Vector4 r (uninitialized); div_(a.v_, b, r.v_); return r; }
+
+  friend value_type operator*(const Vector4& a, const Vector4& b)
+    { return dot_(a.v_, b.v_); }
+
+  friend value_type operator*(const Vector4& a, const value_type* b)
+    { return dot_(a.v_, b); }
+
+  friend value_type operator*(const value_type* a, const Vector4& b)
+    { return dot_(a, b.v_); }
+
+  friend Vector4 operator%(const Vector4& a, const Vector4& b)
+    { Vector4 r (uninitialized); cross_(a.v_, b.v_, r.v_); return r; }
+
+  friend Vector4 operator%(const Vector4& a, const value_type* b)
+    { Vector4 r (uninitialized); cross_(a.v_, b, r.v_); return r; }
+
+  friend Vector4 operator%(const value_type* a, const Vector4& b)
+    { Vector4 r (uninitialized); cross_(a, b.v_, r.v_); return r; }
+
+  friend bool operator==(const Vector4& a, const Vector4& b)
+    { return equal_(a.v_, b.v_); }
+
+  friend bool operator==(const Vector4& a, const value_type* b)
+    { return equal_(a.v_, b); }
+
+  friend bool operator==(const value_type* a, const Vector4& b)
+    { return equal_(a, b.v_); }
+
+  friend bool operator!=(const Vector4& a, const Vector4& b)
+    { return !equal_(a.v_, b.v_); }
+
+  friend bool operator!=(const Vector4& a, const value_type* b)
+    { return !equal_(a.v_, b); }
+
+  friend bool operator!=(const value_type* a, const Vector4& b)
+    { return !equal_(a, b.v_); }
+
   static value_type mag(const value_type* v);
   static value_type mag(const Vector4& v) { return mag(v.v_); }
 
-  static inline Vector4 rint(const Vector4& v);
-  static inline Vector4 rint(const value_type* v);
-  static inline Vector4 sign(const Vector4& v);
-  static inline Vector4 sign(const value_type* v);
+  static Vector4 rint(const Vector4& v)
+    { Vector4 r (uninitialized); rint_(v.v_, r.v_); return r; }
 
-  static inline Vector4 mask_ifzero(const Vector4& a,    const Vector4& b);
-  static inline Vector4 mask_ifzero(const value_type* a, const Vector4& b);
-  static inline Vector4 mask_ifzero(const Vector4& a,    const value_type* b);
-  static inline Vector4 mask_ifzero(const value_type* a, const value_type* b);
+  static Vector4 rint(const value_type* v)
+    { Vector4 r (uninitialized); rint_(v, r.v_); return r; }
 
-  static inline Vector4 mask_ifnonzero(const Vector4& a,    const Vector4& b);
-  static inline Vector4 mask_ifnonzero(const value_type* a, const Vector4& b);
-  static inline Vector4 mask_ifnonzero(const Vector4& a,    const value_type* b);
-  static inline Vector4 mask_ifnonzero(const value_type* a, const value_type* b);
+  static Vector4 sign(const Vector4& v)
+    { Vector4 r (uninitialized); sign_(v.v_, r.v_); return r; }
+
+  static Vector4 sign(const value_type* v)
+    { Vector4 r (uninitialized); sign_(v, r.v_); return r; }
+
+  static Vector4 mask_ifzero(const Vector4& a, const Vector4& b)
+    { Vector4 r (uninitialized); mask_ifzero_(a.v_, b.v_, r.v_); return r; }
+
+  static Vector4 mask_ifzero(const Vector4& a, const value_type* b)
+    { Vector4 r (uninitialized); mask_ifzero_(a.v_, b, r.v_); return r; }
+
+  static Vector4 mask_ifzero(const value_type* a, const Vector4& b)
+    { Vector4 r (uninitialized); mask_ifzero_(a, b.v_, r.v_); return r; }
+
+  static Vector4 mask_ifzero(const value_type* a, const value_type* b)
+    { Vector4 r (uninitialized); mask_ifzero_(a, b, r.v_); return r; }
+
+  static Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b)
+    { Vector4 r (uninitialized); mask_ifnonzero_(a.v_, b.v_, r.v_); return r; }
+
+  static Vector4 mask_ifnonzero(const Vector4& a, const value_type* b)
+    { Vector4 r (uninitialized); mask_ifnonzero_(a.v_, b, r.v_); return r; }
+
+  static Vector4 mask_ifnonzero(const value_type* a, const Vector4& b)
+    { Vector4 r (uninitialized); mask_ifnonzero_(a, b.v_, r.v_); return r; }
+
+  static Vector4 mask_ifnonzero(const value_type* a, const value_type* b)
+    { Vector4 r (uninitialized); mask_ifnonzero_(a, b, r.v_); return r; }
 };
 
-inline Vector4 Vector4::rint(const Vector4& v)
-  { Vector4 r (uninitialized); rint_(v.v_, r.v_); return r; }
-
-inline Vector4 Vector4::rint(const Vector4::value_type* v)
-  { Vector4 r (uninitialized); rint_(v, r.v_); return r; }
-
-inline Vector4 Vector4::sign(const Vector4& v)
-  { Vector4 r (uninitialized); sign_(v.v_, r.v_); return r; }
-
-inline Vector4 Vector4::sign(const Vector4::value_type* v)
-  { Vector4 r (uninitialized); sign_(v, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifzero(const Vector4& a, const Vector4& b)
-  { Vector4 r (uninitialized); mask_ifzero_(a.v_, b.v_, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifzero(const Vector4& a, const Vector4::value_type* b)
-  { Vector4 r (uninitialized); mask_ifzero_(a.v_, b, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifzero(const Vector4::value_type* a, const Vector4& b)
-  { Vector4 r (uninitialized); mask_ifzero_(a, b.v_, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifzero(const Vector4::value_type* a, const Vector4::value_type* b)
-  { Vector4 r (uninitialized); mask_ifzero_(a, b, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifnonzero(const Vector4& a, const Vector4& b)
-  { Vector4 r (uninitialized); mask_ifnonzero_(a.v_, b.v_, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifnonzero(const Vector4& a, const Vector4::value_type* b)
-  { Vector4 r (uninitialized); mask_ifnonzero_(a.v_, b, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifnonzero(const Vector4::value_type* a, const Vector4& b)
-  { Vector4 r (uninitialized); mask_ifnonzero_(a, b.v_, r.v_); return r; }
-
-inline Vector4 Vector4::mask_ifnonzero(const Vector4::value_type* a, const Vector4::value_type* b)
-  { Vector4 r (uninitialized); mask_ifnonzero_(a, b, r.v_); return r; }
-
 inline Vector4 operator+(const Vector4& v)
-  { return Vector4(v); }
+  { return v; }
 
 inline Vector4 operator-(const Vector4& v)
-  { return Vector4(-v[0], -v[1], -v[2], -v[3]); }
-
-inline Vector4 operator+(const Vector4& a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::add_(a.data(), b.data(), r.data()); return r; }
-
-inline Vector4 operator+(const Vector4& a, const Vector4::value_type* b)
-  { Vector4 r (Vector4::uninitialized); Vector4::add_(a.data(), b, r.data()); return r; }
-
-inline Vector4 operator+(const Vector4::value_type* a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::add_(a, b.data(), r.data()); return r; }
-
-inline Vector4 operator-(const Vector4& a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::sub_(a.data(), b.data(), r.data()); return r; }
-
-inline Vector4 operator-(const Vector4& a, const Vector4::value_type* b)
-  { Vector4 r (Vector4::uninitialized); Vector4::sub_(a.data(), b, r.data()); return r; }
-
-inline Vector4 operator-(const Vector4::value_type* a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::sub_(a, b.data(), r.data()); return r; }
-
-inline Vector4 operator*(const Vector4& a, Vector4::value_type b)
-  { Vector4 r (Vector4::uninitialized); Vector4::mul_(a.data(), b, r.data()); return r; }
-
-inline Vector4 operator*(Vector4::value_type a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::mul_(b.data(), a, r.data()); return r; }
-
-inline Vector4 operator/(const Vector4& a, Vector4::value_type b)
-  { Vector4 r (Vector4::uninitialized); Vector4::div_(a.data(), b, r.data()); return r; }
-
-inline Vector4::value_type operator*(const Vector4& a, const Vector4& b)
-  { return Vector4::dot_(a.data(), b.data()); }
-
-inline Vector4::value_type operator*(const Vector4& a, const Vector4::value_type* b)
-  { return Vector4::dot_(a.data(), b); }
-
-inline Vector4::value_type operator*(const Vector4::value_type* a, const Vector4& b)
-  { return Vector4::dot_(a, b.data()); }
-
-inline Vector4 operator%(const Vector4& a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::cross_(a.data(), b.data(), r.data()); return r; }
-
-inline Vector4 operator%(const Vector4& a, const Vector4::value_type* b)
-  { Vector4 r (Vector4::uninitialized); Vector4::cross_(a.data(), b, r.data()); return r; }
-
-inline Vector4 operator%(const Vector4::value_type* a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Vector4::cross_(a, b.data(), r.data()); return r; }
-
-inline bool operator==(const Vector4& a, const Vector4& b)
-  { return Vector4::equal_(a.data(), b.data()); }
-
-inline bool operator==(const Vector4& a, const Vector4::value_type* b)
-  { return Vector4::equal_(a.data(), b); }
-
-inline bool operator==(const Vector4::value_type* a, const Vector4& b)
-  { return Vector4::equal_(a, b.data()); }
-
-inline bool operator!=(const Vector4& a, const Vector4& b)
-  { return !Vector4::equal_(a.data(), b.data()); }
-
-inline bool operator!=(const Vector4& a, const Vector4::value_type* b)
-  { return !Vector4::equal_(a.data(), b); }
-
-inline bool operator!=(const Vector4::value_type* a, const Vector4& b)
-  { return !Vector4::equal_(a, b.data()); }
-
+  { return {-v[0], -v[1], -v[2], -v[3]}; }
 
 class Matrix4
 {
 private:
   float m_[4][4];
 
-  void assign_(const float* c0, const float* c1, const float* c2, const float* c3);
-
-public:
-  typedef Vector4::array_type array_type[4];
-  typedef Vector4::array_type column_type;
-  typedef Vector4::value_type value_type;
-  typedef Vector4::size_type  size_type;
+  friend class Quat;
 
   enum Uninitialized { uninitialized };
+  explicit Matrix4(Uninitialized) {}
 
-  static const array_type identity;
-
+  static void translation_(const float* t, float result[][4]);
+  static void scaling_(float s, float result[][4]);
   static void mul_(const float a[][4], const float* b, float* result);
   static void mul_(const float a[][4], const float b[][4], float result[][4]);
 
-  explicit Matrix4(Uninitialized) {}
+public:
+  typedef Vector4::value_type value_type;
+  typedef Vector4::size_type  size_type;
 
-  void assign(const value_type b[][4]);
+  Matrix4(); // load identity matrix
+  constexpr Matrix4(const Vector4& c0, const Vector4& c1,
+                    const Vector4& c2, const Vector4& c3 = {0.f, 0.f, 0.f, 1.f})
+    : m_ {{c0.v_[0], c0.v_[1], c0.v_[2], c0.v_[3]},
+          {c1.v_[0], c1.v_[1], c1.v_[2], c1.v_[3]},
+          {c2.v_[0], c2.v_[1], c2.v_[2], c2.v_[3]},
+          {c3.v_[0], c3.v_[1], c3.v_[2], c3.v_[3]}} {}
 
-  Matrix4()                                 { assign(identity); }
-  Matrix4(const Matrix4& b)                 { assign(b.m_); }
-  explicit Matrix4(const value_type b[][4]) { assign(b); }
+  explicit Matrix4(const value_type b[][4]) { *this = b; }
+  Matrix4& operator=(const value_type b[][4]);
 
-  inline Matrix4(const Vector4& c0, const Vector4& c1, const Vector4& c2, const Vector4& c3);
-
-  Matrix4& operator=(const Matrix4& b)        { assign(b.m_); return *this; }
-  Matrix4& operator=(const value_type b[][4]) { assign(b);    return *this; }
+  static Matrix4 translation(const Vector4& t)
+    { Matrix4 r (uninitialized); translation_(t.v_, r.m_); return r; }
+  static Matrix4 translation(const Vector4::value_type* t)
+    { Matrix4 r (uninitialized); translation_(t, r.m_); return r; }
+  static Matrix4 scaling(float s)
+    { Matrix4 r (uninitialized); scaling_(s, r.m_); return r; }
 
   Matrix4& operator*=(const Matrix4& b)        { mul_(m_, b.m_, m_); return *this; }
   Matrix4& operator*=(const value_type b[][4]) { mul_(m_, b, m_);    return *this; }
 
-  void transpose();
+  friend Vector4 operator*(const Matrix4& a, const Vector4& b)
+    { Vector4 r (Vector4::uninitialized); mul_(a.m_, b.v_, r.v_); return r; }
 
-  column_type*       data()       { return m_; }
-  const column_type* data() const { return m_; }
+  friend Vector4 operator*(const Matrix4& a, const Vector4::value_type* b)
+    { Vector4 r (Vector4::uninitialized); mul_(a.m_, b, r.v_); return r; }
+
+  friend Vector4 operator*(const value_type a[][4], const Vector4& b)
+    { Vector4 r (Vector4::uninitialized); mul_(a, b.v_, r.v_); return r; }
+
+  friend Matrix4 operator*(const Matrix4& a, const Matrix4& b)
+    { Matrix4 r (uninitialized); mul_(a.m_, b.m_, r.m_); return r; }
+
+  friend Matrix4 operator*(const Matrix4& a, const value_type b[][4])
+    { Matrix4 r (uninitialized); mul_(a.m_, b, r.m_); return r; }
+
+  friend Matrix4 operator*(const value_type a[][4], const Matrix4& b)
+    { Matrix4 r (uninitialized); mul_(a, b.m_, r.m_); return r; }
+
+  void transpose();
 
   value_type*       operator[](size_type i)       { return m_[i]; }
   const value_type* operator[](size_type i) const { return m_[i]; }
 };
-
-inline Matrix4::Matrix4(const Vector4& c0, const Vector4& c1, const Vector4& c2, const Vector4& c3)
-  { assign_(c0.data(), c1.data(), c2.data(), c3.data()); }
-
-inline Vector4 operator*(const Matrix4& a, const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Matrix4::mul_(a.data(), b.data(), r.data()); return r; }
-
-inline Vector4 operator*(const Matrix4& a, const Vector4::value_type* b)
-  { Vector4 r (Vector4::uninitialized); Matrix4::mul_(a.data(), b, r.data()); return r; }
-
-inline Vector4 operator*(const Matrix4::value_type a[][4], const Vector4& b)
-  { Vector4 r (Vector4::uninitialized); Matrix4::mul_(a, b.data(), r.data()); return r; }
-
-inline Matrix4 operator*(const Matrix4& a, const Matrix4& b)
-  { Matrix4 r (Matrix4::uninitialized); Matrix4::mul_(a.data(), b.data(), r.data()); return r; }
-
-inline Matrix4 operator*(const Matrix4& a, const Matrix4::value_type b[][4])
-  { Matrix4 r (Matrix4::uninitialized); Matrix4::mul_(a.data(), b, r.data()); return r; }
-
-inline Matrix4 operator*(const Matrix4::value_type a[][4], const Matrix4& b)
-  { Matrix4 r (Matrix4::uninitialized); Matrix4::mul_(a, b.data(), r.data()); return r; }
-
 
 class Quat
 {
 private:
   float v_[4];
 
+  enum Uninitialized { uninitialized };
+  explicit Quat(Uninitialized) {}
+
   static void from_axis_(const float* a, float phi, float* result);
   static void to_matrix_(const float* quat, float result[][4]);
+  static void mul_(const float* a, const float* b, float* result);
 
 public:
-  typedef Vector4::array_type array_type;
   typedef Vector4::value_type value_type;
   typedef Vector4::size_type  size_type;
 
-  enum Uninitialized { uninitialized };
+  constexpr Quat() : v_ {0.f, 0.f, 0.f, 1.f} {}
+  constexpr Quat(value_type x_, value_type y_, value_type z_, value_type w_)
+    : v_ {x_, y_, z_, w_} {}
 
-  static void mul_(const float* a, const float* b, float* result);
+  explicit Quat(const value_type* b) : v_ {b[0], b[1], b[2], b[3]} {}
+  Quat& operator=(const value_type* b)
+    { v_[0] = b[0]; v_[1] = b[1]; v_[2] = b[2]; v_[3] = b[3]; return *this; }
 
-  explicit Quat(Uninitialized) {}
+  static Quat from_axis(const Vector4& a, value_type phi)
+    { Quat r (uninitialized); from_axis_(a.v_, phi, r.v_); return r; }
 
-  void assign(value_type x_, value_type y_, value_type z_, value_type w_)
-    { v_[0] = x_; v_[1] = y_; v_[2] = z_; v_[3] = w_; }
+  static Quat from_axis(const Vector4::value_type* a, value_type phi)
+    { Quat r (uninitialized); from_axis_(a, phi, r.v_); return r; }
 
-  Quat() { v_[0] = 0.0; v_[1] = 0.0; v_[2] = 0.0; v_[3] = 1.0; }
-  Quat(const Quat& b) { assign(b.v_[0], b.v_[1], b.v_[2], b.v_[3]); }
-  explicit Quat(const value_type* b) { assign(b[0], b[1], b[2], b[3]); }
+  static Matrix4 to_matrix(const Quat& quat)
+    { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat.v_, r.m_); return r; }
 
-  Quat(value_type x_, value_type y_, value_type z_, value_type w_)
-    { v_[0] = x_; v_[1] = y_; v_[2] = z_; v_[3] = w_; }
+  static Matrix4 to_matrix(const value_type* quat)
+    { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat, r.m_); return r; }
 
-  Quat& operator=(const Quat& b) { assign(b.v_[0], b.v_[1], b.v_[2], b.v_[3]); return *this; }
-  Quat& operator=(const value_type* b) { assign(b[0], b[1], b[2], b[3]); return *this; }
-
-  static inline Quat    from_axis(const Vector4& a, value_type phi);
-  static inline Quat    from_axis(const Vector4::value_type* a, value_type phi);
-  static inline Matrix4 to_matrix(const Quat& quat);
-  static inline Matrix4 to_matrix(const value_type* quat);
-
-  inline Vector4 axis()  const; // returns (x,y,z,0)
-  value_type     angle() const; // extracts the rotation angle phi
+  Vector4 axis() const { return {v_[0], v_[1], v_[2], 0.f}; }
+  value_type angle() const; // extracts the rotation angle phi
 
   Quat& operator*=(const Quat& b)       { mul_(v_, b.v_, v_); return *this; }
   Quat& operator*=(const value_type* b) { mul_(v_, b, v_);    return *this; }
 
+  friend Quat operator*(const Quat& a, const Quat& b)
+    { Quat r (uninitialized); mul_(a.v_, b.v_, r.v_); return r; }
+
+  friend Quat operator*(const Quat& a, const value_type* b)
+    { Quat r (uninitialized); mul_(a.v_, b, r.v_); return r; }
+
+  friend Quat operator*(const value_type* a, const Quat& b)
+    { Quat r (uninitialized); mul_(a, b.v_, r.v_); return r; }
+
   // Renormalize if the norm is off by more than epsilon.
   void renormalize(value_type epsilon);
-
-  value_type*       data()       { return v_; }
-  const value_type* data() const { return v_; }
 
   value_type&       operator[](size_type i)       { return v_[i]; }
   const value_type& operator[](size_type i) const { return v_[i]; }
@@ -331,34 +314,6 @@ public:
   value_type z() const { return v_[2]; }
   value_type w() const { return v_[3]; }
 };
-
-// static
-inline Quat Quat::from_axis(const Vector4& a, Quat::value_type phi)
-  { Quat r (uninitialized); from_axis_(a.data(), phi, r.v_); return r; }
-
-// static
-inline Quat Quat::from_axis(const Vector4::value_type* a, Quat::value_type phi)
-  { Quat r (uninitialized); from_axis_(a, phi, r.v_); return r; }
-
-// static
-inline Matrix4 Quat::to_matrix(const Quat& quat)
-  { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat.v_, r.data()); return r; }
-
-// static
-inline Matrix4 Quat::to_matrix(const Quat::value_type* quat)
-  { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat, r.data()); return r; }
-
-inline Vector4 Quat::axis() const
-  { return Vector4(v_[0], v_[1], v_[2]); }
-
-inline Quat operator*(const Quat& a, const Quat& b)
-  { Quat r (Quat::uninitialized); Quat::mul_(a.data(), b.data(), r.data()); return r; }
-
-inline Quat operator*(const Quat& a, const Quat::value_type* b)
-  { Quat r (Quat::uninitialized); Quat::mul_(a.data(), b, r.data()); return r; }
-
-inline Quat operator*(const Quat::value_type* a, const Quat& b)
-  { Quat r (Quat::uninitialized); Quat::mul_(a, b.data(), r.data()); return r; }
 
 } // namespace Math
 

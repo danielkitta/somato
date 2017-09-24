@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -33,20 +33,18 @@ namespace
  * behave if the default rounding direction is selected.  That is, round to
  * the nearest integer, with halfway cases to nearest even.
  */
-static
 float round_nearest(float r)
 {
   const float ri = std::floor(r + 0.5f);
 
   if (ri == r + 0.5f)
-    return 2.0f * std::floor(ri / 2.0f);
+    return 2.f * std::floor(ri * 0.5f);
   else
     return ri;
 }
 #endif /* !SOMATO_HAVE_LRINTF */
 
-static inline
-void set_vector(float* result, float x, float y, float z, float w)
+inline void set_vector(float* result, float x, float y, float z, float w)
 {
   result[0] = x;
   result[1] = y;
@@ -54,28 +52,24 @@ void set_vector(float* result, float x, float y, float z, float w)
   result[3] = w;
 }
 
-static inline
-float vector3_mag(const float* v)
+inline float vector3_mag(const float* v)
 {
   return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 } // anonymous namespace
 
-
 namespace Math
 {
 
-// static
 void Vector4::sign_(const float* v, float* result)
 {
-  set_vector(result, int(v[0] > 0.0f) - int(v[0] < 0.0f),
-                     int(v[1] > 0.0f) - int(v[1] < 0.0f),
-                     int(v[2] > 0.0f) - int(v[2] < 0.0f),
-                     int(v[3] > 0.0f) - int(v[3] < 0.0f));
+  set_vector(result, int{v[0] > 0.f} - int{v[0] < 0.f},
+                     int{v[1] > 0.f} - int{v[1] < 0.f},
+                     int{v[2] > 0.f} - int{v[2] < 0.f},
+                     int{v[3] > 0.f} - int{v[3] < 0.f});
 }
 
-// static
 void Vector4::rint_(const float* v, float* result)
 {
 #if SOMATO_HAVE_LRINTF
@@ -89,90 +83,87 @@ void Vector4::rint_(const float* v, float* result)
 #endif
 }
 
-// static
 void Vector4::mask_ifzero_(const float* a, const float* b, float* result)
 {
-  set_vector(result, (b[0] == 0.0f) ? 0.0f : a[0],
-                     (b[1] == 0.0f) ? 0.0f : a[1],
-                     (b[2] == 0.0f) ? 0.0f : a[2],
-                     (b[3] == 0.0f) ? 0.0f : a[3]);
+  set_vector(result, (b[0] == 0.f) ? 0.f : a[0],
+                     (b[1] == 0.f) ? 0.f : a[1],
+                     (b[2] == 0.f) ? 0.f : a[2],
+                     (b[3] == 0.f) ? 0.f : a[3]);
 }
 
-// static
 void Vector4::mask_ifnonzero_(const float* a, const float* b, float* result)
 {
-  set_vector(result, (b[0] != 0.0f) ? 0.0f : a[0],
-                     (b[1] != 0.0f) ? 0.0f : a[1],
-                     (b[2] != 0.0f) ? 0.0f : a[2],
-                     (b[3] != 0.0f) ? 0.0f : a[3]);
+  set_vector(result, (b[0] != 0.f) ? 0.f : a[0],
+                     (b[1] != 0.f) ? 0.f : a[1],
+                     (b[2] != 0.f) ? 0.f : a[2],
+                     (b[3] != 0.f) ? 0.f : a[3]);
 }
 
-// static
 void Vector4::add_(const float* a, const float* b, float* result)
 {
   set_vector(result, a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]);
 }
 
-// static
 void Vector4::sub_(const float* a, const float* b, float* result)
 {
   set_vector(result, a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]);
 }
 
-// static
 void Vector4::mul_(const float* a, float b, float* result)
 {
   set_vector(result, a[0] * b, a[1] * b, a[2] * b, a[3] * b);
 }
 
-// static
 void Vector4::div_(const float* a, float b, float* result)
 {
   set_vector(result, a[0] / b, a[1] / b, a[2] / b, a[3] / b);
 }
 
-// static
 float Vector4::dot_(const float* a, const float* b)
 {
   return (a[0] * b[0] + a[1] * b[1]) + (a[2] * b[2] + a[3] * b[3]);
 }
 
-// static
 void Vector4::cross_(const float* a, const float* b, float* result)
 {
   set_vector(result, a[1] * b[2] - a[2] * b[1],
                      a[2] * b[0] - a[0] * b[2],
                      a[0] * b[1] - a[1] * b[0],
-                     0.0);
+                     0.f);
 }
 
-// static
 bool Vector4::equal_(const float* a, const float* b)
 {
   return (a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3]);
 }
 
-// static
-Vector4::value_type Vector4::mag(const Vector4::value_type* v)
+Vector4::value_type Vector4::mag(const value_type* v)
 {
   return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
 }
 
-const Matrix4::array_type Matrix4::identity =
-{
-  { 1.0, 0.0, 0.0, 0.0 },
-  { 0.0, 1.0, 0.0, 0.0 },
-  { 0.0, 0.0, 1.0, 0.0 },
-  { 0.0, 0.0, 0.0, 1.0 }
-};
+Matrix4::Matrix4()
+:
+  m_ {{1.f, 0.f, 0.f, 0.f},
+      {0.f, 1.f, 0.f, 0.f},
+      {0.f, 0.f, 1.f, 0.f},
+      {0.f, 0.f, 0.f, 1.f}}
+{}
 
-void Matrix4::assign(const Matrix4::value_type b[][4])
+void Matrix4::translation_(const float* t, float result[][4])
 {
-  // It is assumed that m_[] and b[] either refer to the same location
-  // in memory or are completely distinct, i.e. not partially overlapping.
+  set_vector(result[0], 1.f, 0.f, 0.f, 0.f);
+  set_vector(result[1], 0.f, 1.f, 0.f, 0.f);
+  set_vector(result[2], 0.f, 0.f, 1.f, 0.f);
+  set_vector(result[3], t[0], t[1], t[2], t[3]);
+}
 
-  if (&m_[0] != &b[0])
-    std::memcpy(m_, b, sizeof(m_));
+void Matrix4::scaling_(float s, float result[][4])
+{
+  set_vector(result[0], s,   0.f, 0.f, 0.f);
+  set_vector(result[1], 0.f, s,   0.f, 0.f);
+  set_vector(result[2], 0.f, 0.f, s,   0.f);
+  set_vector(result[3], 0.f, 0.f, 0.f, 1.f);
 }
 
 void Matrix4::transpose()
@@ -185,15 +176,16 @@ void Matrix4::transpose()
   std::swap(m_[3][2], m_[2][3]);
 }
 
-void Matrix4::assign_(const float* c0, const float* c1, const float* c2, const float* c3)
+Matrix4& Matrix4::operator=(const value_type b[][4])
 {
-  set_vector(m_[0], c0[0], c0[1], c0[2], c0[3]);
-  set_vector(m_[1], c1[0], c1[1], c1[2], c1[3]);
-  set_vector(m_[2], c2[0], c2[1], c2[2], c2[3]);
-  set_vector(m_[3], c3[0], c3[1], c3[2], c3[3]);
+  set_vector(m_[0], b[0][0], b[0][1], b[0][2], b[0][3]);
+  set_vector(m_[1], b[1][0], b[1][1], b[1][2], b[1][3]);
+  set_vector(m_[2], b[2][0], b[2][1], b[2][2], b[2][3]);
+  set_vector(m_[3], b[3][0], b[3][1], b[3][2], b[3][3]);
+
+  return *this;
 }
 
-// static
 void Matrix4::mul_(const float a[][4], const float* b, float* result)
 {
   const float b0 = b[0];
@@ -207,11 +199,11 @@ void Matrix4::mul_(const float a[][4], const float* b, float* result)
   result[3] = a[0][3] * b0 + a[1][3] * b1 + a[2][3] * b2 + a[3][3] * b3;
 }
 
-// static
 void Matrix4::mul_(const float a[][4], const float b[][4], float result[][4])
 {
   Matrix4 temp (uninitialized);
 
+  using column_type = value_type[4];
   const column_type* pa = a;
 
   if (pa == &result[0])
@@ -237,21 +229,19 @@ void Matrix4::mul_(const float a[][4], const float b[][4], float result[][4])
   }
 }
 
-// static
 void Quat::from_axis_(const float* a, float phi, float* result)
 {
   Vector4::div_(a, vector3_mag(a), result);
-  Vector4::mul_(result, std::sin(phi / 2.0f), result);
+  Vector4::mul_(result, std::sin(phi * 0.5f), result);
 
-  result[3] = std::cos(phi / 2.0f);
+  result[3] = std::cos(phi * 0.5f);
 }
 
 Quat::value_type Quat::angle() const
 {
-  return 2.0f * std::atan2(vector3_mag(v_), v_[3]);
+  return 2.f * std::atan2(vector3_mag(v_), v_[3]);
 }
 
-// static
 void Quat::to_matrix_(const float* quat, float result[][4])
 {
   const float qx = quat[0];
@@ -259,28 +249,27 @@ void Quat::to_matrix_(const float* quat, float result[][4])
   const float qz = quat[2];
   const float qw = quat[3];
 
-  result[0][0] = 1.0f - 2.0f * (qy * qy + qz * qz);
-  result[0][1] =        2.0f * (qx * qy + qz * qw);
-  result[0][2] =        2.0f * (qz * qx - qy * qw);
-  result[0][3] = 0.0f;
+  result[0][0] = 1.f - 2.f * (qy * qy + qz * qz);
+  result[0][1] =       2.f * (qx * qy + qz * qw);
+  result[0][2] =       2.f * (qz * qx - qy * qw);
+  result[0][3] = 0.f;
 
-  result[1][0] =        2.0f * (qx * qy - qz * qw);
-  result[1][1] = 1.0f - 2.0f * (qz * qz + qx * qx);
-  result[1][2] =        2.0f * (qy * qz + qx * qw);
-  result[1][3] = 0.0f;
+  result[1][0] =       2.f * (qx * qy - qz * qw);
+  result[1][1] = 1.f - 2.f * (qz * qz + qx * qx);
+  result[1][2] =       2.f * (qy * qz + qx * qw);
+  result[1][3] = 0.f;
 
-  result[2][0] =        2.0f * (qz * qx + qy * qw);
-  result[2][1] =        2.0f * (qy * qz - qx * qw);
-  result[2][2] = 1.0f - 2.0f * (qy * qy + qx * qx);
-  result[2][3] = 0.0f;
+  result[2][0] =       2.f * (qz * qx + qy * qw);
+  result[2][1] =       2.f * (qy * qz - qx * qw);
+  result[2][2] = 1.f - 2.f * (qy * qy + qx * qx);
+  result[2][3] = 0.f;
 
-  result[3][0] = 0.0f;
-  result[3][1] = 0.0f;
-  result[3][2] = 0.0f;
-  result[3][3] = 1.0f;
+  result[3][0] = 0.f;
+  result[3][1] = 0.f;
+  result[3][2] = 0.f;
+  result[3][3] = 1.f;
 }
 
-// static
 void Quat::mul_(const float* a, const float* b, float* result)
 {
   const float qx = a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1];
@@ -294,11 +283,11 @@ void Quat::mul_(const float* a, const float* b, float* result)
   result[3] = qw;
 }
 
-void Quat::renormalize(Quat::value_type epsilon)
+void Quat::renormalize(value_type epsilon)
 {
   const float norm = Vector4::dot_(v_, v_);
 
-  if (std::abs(1.0f - norm) > epsilon)
+  if (std::abs(1.f - norm) > epsilon)
   {
     // Renormalize quat to fix accumulated error
     Vector4::div_(v_, std::sqrt(norm), v_);
@@ -307,4 +296,4 @@ void Quat::renormalize(Quat::value_type epsilon)
 
 } // namespace Math
 
-#endif /* !SOMATO_VECTOR_USE_SSE */
+#endif // !SOMATO_VECTOR_USE_SSE

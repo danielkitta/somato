@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2008  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -27,6 +27,8 @@
 namespace Math
 {
 
+class Matrix4;
+
 /*
  * Math::Vector4 represents a vector of four single-precision floating point
  * scalars.  Most of the common vector operations are made available via
@@ -41,62 +43,90 @@ class Vector4
 private:
   __m128 v_;
 
+  friend class Matrix4;
+  friend class Quat;
+  friend Vector4 operator*(const Matrix4& a, const Vector4& b);
+
+  explicit Vector4(__m128 v) : v_ {v} {}
+
+  static        __m128 dot_  (__m128 a, __m128 b); // scalar product across (x,y,z,w)
+  static inline __m128 cross_(__m128 a, __m128 b); // 3-D vector product, returns w = 0
 #if !SOMATO_VECTOR_USE_SSE2
   static __m128 rint_(__m128 v);
 #endif
   static __m128 mag_(__m128 v); // magnitude of (x,y,z,w)
 
 public:
-  typedef __m128        array_type;
   typedef float         value_type;
   typedef unsigned int  size_type;
 
-  static        __m128 dot_  (__m128 a, __m128 b); // scalar product across (x,y,z,w)
-  static inline __m128 cross_(__m128 a, __m128 b); // 3-D vector product, returns w = 0
+  constexpr Vector4() : v_ {0.f, 0.f, 0.f, 0.f} {}
+  explicit Vector4(const value_type* b) : v_ (_mm_loadu_ps(b)) {}
+  constexpr Vector4(value_type x_, value_type y_, value_type z_, value_type w_ = 0.f)
+    : v_ {x_, y_, z_, w_} {}
 
-  inline Vector4();
-  inline Vector4(const Vector4& b) : v_ (b.v_) {}
-  inline Vector4(array_type b) : v_ (b) {}
-  explicit inline Vector4(const value_type* b);
-  inline Vector4(value_type x_, value_type y_, value_type z_, value_type w_ = 0.0f);
+  Vector4& operator=(const value_type* b) { v_ = _mm_loadu_ps(b); return *this; }
 
-  inline Vector4& operator=(const Vector4& b) { v_ = b.v_; return *this; }
-  inline Vector4& operator=(const value_type* b);
+  Vector4& operator+=(const Vector4& b) { v_ = _mm_add_ps(v_, b.v_); return *this; }
+  Vector4& operator-=(const Vector4& b) { v_ = _mm_sub_ps(v_, b.v_); return *this; }
+  Vector4& operator*=(value_type b) { v_ = _mm_mul_ps(v_, _mm_set1_ps(b)); return *this; }
+  Vector4& operator/=(value_type b) { v_ = _mm_div_ps(v_, _mm_set1_ps(b)); return *this; }
+  Vector4& operator%=(const Vector4& b) { v_ = cross_(v_, b.v_); return *this; }
 
-  inline void assign(value_type x_, value_type y_, value_type z_, value_type w_ = 0.0f);
+  friend Vector4 operator+(const Vector4& a, const Vector4& b)
+    { return Vector4(_mm_add_ps(a.v_, b.v_)); }
 
-  inline Vector4& operator+=(const Vector4& b) { v_ = _mm_add_ps(v_, b.v_); return *this; }
-  inline Vector4& operator-=(const Vector4& b) { v_ = _mm_sub_ps(v_, b.v_); return *this; }
-  inline Vector4& operator*=(value_type b) { v_ = _mm_mul_ps(v_, _mm_set1_ps(b)); return *this; }
-  inline Vector4& operator/=(value_type b) { v_ = _mm_div_ps(v_, _mm_set1_ps(b)); return *this; }
-  inline Vector4& operator%=(const Vector4& b);
+  friend Vector4 operator-(const Vector4& a, const Vector4& b)
+    { return Vector4(_mm_sub_ps(a.v_, b.v_)); }
 
-  static inline value_type mag(const Vector4& v) { return _mm_cvtss_f32(mag_(v.v_)); }
+  friend Vector4 operator*(const Vector4& a, value_type b)
+    { return Vector4(_mm_mul_ps(a.v_, _mm_set1_ps(b))); }
+
+  friend Vector4 operator*(value_type a, const Vector4& b)
+    { return Vector4(_mm_mul_ps(_mm_set1_ps(a), b.v_)); }
+
+  friend Vector4 operator/(const Vector4& a, value_type b)
+    { return Vector4(_mm_div_ps(a.v_, _mm_set1_ps(b))); }
+
+  friend value_type operator*(const Vector4& a, const Vector4& b)
+    { return _mm_cvtss_f32(dot_(a.v_, b.v_)); }
+
+  friend Vector4 operator%(const Vector4& a, const Vector4& b)
+    { return Vector4(cross_(a.v_, b.v_)); }
+
+  friend Vector4 operator+(const Vector4& v) { return Vector4(v.v_); }
+  friend Vector4 operator-(const Vector4& v)
+    { return Vector4(_mm_xor_ps(_mm_set1_ps(-0.f), v.v_)); }
+
+  friend bool operator==(const Vector4& a, const Vector4& b)
+    { return (_mm_movemask_ps(_mm_cmpneq_ps(a.v_, b.v_)) == 0); }
+
+  friend bool operator!=(const Vector4& a, const Vector4& b)
+    { return (_mm_movemask_ps(_mm_cmpneq_ps(a.v_, b.v_)) != 0); }
+
+  static value_type mag(const Vector4& v) { return _mm_cvtss_f32(mag_(v.v_)); }
   static inline Vector4 sign(const Vector4& v); // returns 1, -1 or 0 depending on sign of input
   static inline Vector4 rint(const Vector4& v); // round to nearest integer, halfway cases to even
 
   static inline Vector4 mask_ifzero   (const Vector4& a, const Vector4& b);
   static inline Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b);
 
-  inline array_type data() const { return v_; }
-
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.
-  inline value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
-  inline const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
+  value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
+  const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
 
-  inline value_type x() const { return _mm_cvtss_f32(v_); }
-  inline value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
-  inline value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
-  inline value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
+  value_type x() const { return _mm_cvtss_f32(v_); }
+  value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
+  value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
+  value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
 };
 
 /*
  * Although the actual function call overhead would be small, inlining
- * cross_() and sign() in fact reduces code size.  And more importantly,
+ * cross_() and sign() in fact reduces code size. And more importantly,
  * it avoids register save and restore overhead in computation chains.
  */
-// static
 inline __m128 Vector4::cross_(__m128 a, __m128 b)
 {
   // x = ay * bz - az * by
@@ -112,7 +142,6 @@ inline __m128 Vector4::cross_(__m128 a, __m128 b)
   return _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(3,0,2,1));
 }
 
-// static
 inline Vector4 Vector4::sign(const Vector4& v)
 {
   const __m128 u = v.v_;
@@ -121,7 +150,7 @@ inline Vector4 Vector4::sign(const Vector4& v)
   const __m128 n = _mm_cmplt_ps(u, zero);
   const __m128 p = _mm_cmplt_ps(zero, u);
 
-  static const __m128 neg1 = { -1.0f, -1.0f, -1.0f, -1.0f };
+  const __m128 neg1 = _mm_set1_ps(-1.f);
 
   // a - b calculated as (-b) - (-a) to avoid a register move.
   const __m128 s = _mm_sub_ps(_mm_and_ps(n, neg1), _mm_and_ps(p, neg1));
@@ -129,7 +158,6 @@ inline Vector4 Vector4::sign(const Vector4& v)
   return Vector4(s);
 }
 
-// static
 inline Vector4 Vector4::rint(const Vector4& v)
 {
 #if SOMATO_VECTOR_USE_SSE2
@@ -139,69 +167,11 @@ inline Vector4 Vector4::rint(const Vector4& v)
 #endif
 }
 
-// static
 inline Vector4 Vector4::mask_ifzero(const Vector4& a, const Vector4& b)
-  { return Vector4(_mm_and_ps(a.data(), _mm_cmpneq_ps(_mm_setzero_ps(), b.data()))); }
+  { return Vector4(_mm_and_ps(a.v_, _mm_cmpneq_ps(_mm_setzero_ps(), b.v_))); }
 
-// static
 inline Vector4 Vector4::mask_ifnonzero(const Vector4& a, const Vector4& b)
-  { return Vector4(_mm_and_ps(a.data(), _mm_cmpeq_ps(_mm_setzero_ps(), b.data()))); }
-
-inline Vector4::Vector4()
-  : v_ (_mm_setzero_ps()) {}
-
-inline Vector4::Vector4(const Vector4::value_type* b)
-  : v_ (_mm_loadu_ps(b)) {}
-
-inline Vector4::Vector4(Vector4::value_type x_, Vector4::value_type y_,
-                        Vector4::value_type z_, Vector4::value_type w_)
-  : v_ (_mm_setr_ps(x_, y_, z_, w_)) {}
-
-inline Vector4& Vector4::operator=(const Vector4::value_type* b)
-  { v_ = _mm_loadu_ps(b); return *this; }
-
-inline void Vector4::assign(Vector4::value_type x_, Vector4::value_type y_,
-                            Vector4::value_type z_, Vector4::value_type w_)
-  { v_ = _mm_setr_ps(x_, y_, z_, w_); }
-
-inline Vector4& Vector4::operator%=(const Vector4& b)
-  { v_ = Vector4::cross_(v_, b.v_); return *this; }
-
-inline Vector4 operator+(const Vector4& v)
-  { return Vector4(v.data());  }
-
-inline Vector4 operator-(const Vector4& v)
-{
-  static const __m128 signmask = { -0.0f, -0.0f, -0.0f, -0.0f };
-  return Vector4(_mm_xor_ps(v.data(), signmask));
-}
-
-inline Vector4 operator+(const Vector4& a, const Vector4& b)
-  { return Vector4(_mm_add_ps(a.data(), b.data())); }
-
-inline Vector4 operator-(const Vector4& a, const Vector4& b)
-  { return Vector4(_mm_sub_ps(a.data(), b.data())); }
-
-inline Vector4 operator*(const Vector4& a, Vector4::value_type b)
-  { return Vector4(_mm_mul_ps(a.data(), _mm_set1_ps(b))); }
-
-inline Vector4 operator*(Vector4::value_type a, const Vector4& b)
-  { return Vector4(_mm_mul_ps(_mm_set1_ps(a), b.data())); }
-
-inline Vector4 operator/(const Vector4& a, Vector4::value_type b)
-  { return Vector4(_mm_div_ps(a.data(), _mm_set1_ps(b))); }
-
-inline Vector4::value_type operator*(const Vector4& a, const Vector4& b)
-  { return _mm_cvtss_f32(Vector4::dot_(a.data(), b.data())); }
-
-inline Vector4 operator%(const Vector4& a, const Vector4& b)
-  { return Vector4(Vector4::cross_(a.data(), b.data())); }
-
-inline bool operator==(const Vector4& a, const Vector4& b)
-  { return (_mm_movemask_ps(_mm_cmpneq_ps(a.data(), b.data())) == 0); }
-
-inline bool operator!=(const Vector4& a, const Vector4& b)
-  { return (_mm_movemask_ps(_mm_cmpneq_ps(a.data(), b.data())) != 0); }
+  { return Vector4(_mm_and_ps(a.v_, _mm_cmpeq_ps(_mm_setzero_ps(), b.v_))); }
 
 /*
  * Math::Matrix4 represents a 4x4 square matrix of single-precision
@@ -214,61 +184,46 @@ class Matrix4
 private:
   __m128 m_[4];
 
-public:
-  typedef Vector4::array_type array_type[4];
-  typedef Vector4::array_type column_type;
-  typedef Vector4::value_type value_type;
-  typedef Vector4::size_type  size_type;
+  friend class Quat;
 
   enum Uninitialized { uninitialized };
+  explicit Matrix4(Uninitialized) {}
 
-  static const array_type identity;
-
+  static void translation_(__m128 t, __m128* result);
+  static void scaling_(__m128 s, __m128* result);
   static __m128 mul_(const __m128* a, __m128 b);
   static void   mul_(const __m128* a, const __m128* b, __m128* result);
 
-  explicit inline Matrix4(Uninitialized) {}
+public:
+  typedef Vector4::value_type value_type;
+  typedef Vector4::size_type  size_type;
 
-  void assign(const column_type* b);
-  void assign(const value_type b[][4]);
+  Matrix4(); // load identity matrix
+  constexpr Matrix4(const Vector4& c0, const Vector4& c1,
+                    const Vector4& c2, const Vector4& c3 = {0.f, 0.f, 0.f, 1.f})
+    : m_ {c0.v_, c1.v_, c2.v_, c3.v_} {}
 
-  inline Matrix4()                                 { assign(identity); }
-  inline Matrix4(const Matrix4& b)                 { assign(b.m_); }
-  explicit inline Matrix4(const column_type* b)    { assign(b); }
-  explicit inline Matrix4(const value_type b[][4]) { assign(b); }
+  explicit Matrix4(const value_type b[][4]) { *this = b; }
+  Matrix4& operator=(const value_type b[][4]);
 
-  inline Matrix4(const Vector4& c0, const Vector4& c1, const Vector4& c2, const Vector4& c3);
+  static Matrix4 translation(const Vector4& t)
+    { Matrix4 r (uninitialized); translation_(t.v_, r.m_); return r; }
+  static Matrix4 scaling(float s)
+    { Matrix4 r (uninitialized); scaling_(_mm_set_ss(s), r.m_); return r; }
 
-  inline Matrix4& operator=(const Matrix4& b)        { assign(b.m_); return *this; }
-  inline Matrix4& operator=(const column_type* b)    { assign(b);    return *this; }
-  inline Matrix4& operator=(const value_type b[][4]) { assign(b);    return *this; }
+  Matrix4& operator*=(const Matrix4& b) { mul_(m_, b.m_, m_); return *this; }
 
-  inline Matrix4& operator*=(const Matrix4& b)     { mul_(m_, b.m_, m_); return *this; }
-  inline Matrix4& operator*=(const column_type* b) { mul_(m_, b, m_);    return *this; }
+  friend Matrix4 operator*(const Matrix4& a, const Matrix4& b)
+    { Matrix4 r (uninitialized); Matrix4::mul_(a.m_, b.m_, r.m_); return r; }
+
+  friend Vector4 operator*(const Matrix4& a, const Vector4& b)
+    { return Vector4(Matrix4::mul_(a.m_, b.v_)); }
 
   void transpose();
 
-  inline column_type*       data()       { return m_; }
-  inline const column_type* data() const { return m_; }
-
-  inline value_type*       operator[](size_type i)       { return reinterpret_cast<float*>(&m_[i]); }
-  inline const value_type* operator[](size_type i) const { return reinterpret_cast<const float*>(&m_[i]); }
+  value_type*       operator[](size_type i)       { return reinterpret_cast<float*>(&m_[i]); }
+  const value_type* operator[](size_type i) const { return reinterpret_cast<const float*>(&m_[i]); }
 };
-
-inline Matrix4::Matrix4(const Vector4& c0, const Vector4& c1, const Vector4& c2, const Vector4& c3)
-  { m_[0] = c0.data(); m_[1] = c1.data(); m_[2] = c2.data(); m_[3] = c3.data(); }
-
-inline Vector4 operator*(const Matrix4& a, const Vector4& b)
-  { return Vector4(Matrix4::mul_(a.data(), b.data())); }
-
-inline Matrix4 operator*(const Matrix4& a, const Matrix4& b)
-  { Matrix4 r (Matrix4::uninitialized); Matrix4::mul_(a.data(), b.data(), r.data()); return r; }
-
-inline Matrix4 operator*(const Matrix4& a, const Matrix4::column_type* b)
-  { Matrix4 r (Matrix4::uninitialized); Matrix4::mul_(a.data(), b, r.data()); return r; }
-
-inline Matrix4 operator*(const Matrix4::column_type* a, const Matrix4& b)
-  { Matrix4 r (Matrix4::uninitialized); Matrix4::mul_(a, b.data(), r.data()); return r; }
 
 /*
  * Math::Quat represents a unit quaternion.  The interface provides
@@ -282,89 +237,50 @@ private:
   union CastVec4 { int i[4]; __m128 v; };
   static const CastVec4 mask_xyz_;
 
+  explicit Quat(__m128 v) : v_ {v} {}
+
+  static __m128 mul_(__m128 a, __m128 b);
   static __m128 from_axis_(const Vector4& a, __m128 phi);
   static void   to_matrix_(__m128 quat, __m128* result);
   static float  angle_(__m128 quat);
   static __m128 renormalize_(__m128 quat, __m128 epsilon);
 
 public:
-  typedef Vector4::array_type array_type;
   typedef Vector4::value_type value_type;
   typedef Vector4::size_type  size_type;
 
-  static __m128 mul_(__m128 a, __m128 b);
+  constexpr Quat() : v_ {0.f, 0.f, 0.f, 1.f} {}
+  constexpr Quat(value_type x_, value_type y_, value_type z_, value_type w_)
+    : v_ {x_, y_, z_, w_} {}
 
-  inline Quat();
-  inline Quat(value_type x_, value_type y_, value_type z_, value_type w_);
-  inline Quat(const Quat& b) : v_ (b.v_) {}
-  inline Quat(array_type b)  : v_ (b) {}
-  explicit inline Quat(const value_type* b);
+  explicit Quat(const value_type* b) : v_ {_mm_loadu_ps(b)} {}
+  Quat& operator=(const value_type* b) { v_ = _mm_loadu_ps(b); return *this; }
 
-  inline void assign(value_type x_, value_type y_, value_type z_, value_type w_);
+  static Quat from_axis(const Vector4& a, value_type phi)
+    { return Quat(from_axis_(a, _mm_set_ss(phi))); }
 
-  inline Quat& operator=(const Quat& b) { v_ = b.v_; return *this; }
-  inline Quat& operator=(const value_type* b);
+  static Matrix4 to_matrix(const Quat& quat)
+    { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat.v_, r.m_); return r; }
 
-  static inline Quat    from_axis(const Vector4& a, value_type phi);
-  static inline Matrix4 to_matrix(const Quat& quat);
+  Vector4 axis() const { return Vector4(_mm_and_ps(v_, mask_xyz_.v)); }
+  value_type angle() const { return angle_(v_); }
 
-  inline Vector4    axis()  const; // returns (x,y,z,0)
-  inline value_type angle() const; // extracts the rotation angle phi
-
-  inline Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }
+  Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }
+  friend Quat operator*(const Quat& a, const Quat& b) { return Quat(mul_(a.v_, b.v_)); }
 
   // Renormalize if the norm is off by more than epsilon.
-  inline void renormalize(value_type epsilon);
-
-  inline array_type data() const { return v_; }
+  void renormalize(value_type epsilon) { v_ = renormalize_(v_, _mm_set_ss(epsilon)); }
 
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.
-  inline value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
-  inline const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
+  value_type&       operator[](size_type i)       { return reinterpret_cast<float*>(&v_)[i]; }
+  const value_type& operator[](size_type i) const { return reinterpret_cast<const float*>(&v_)[i]; }
 
-  inline value_type x() const { return _mm_cvtss_f32(v_); }
-  inline value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
-  inline value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
-  inline value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
+  value_type x() const { return _mm_cvtss_f32(v_); }
+  value_type y() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(1,1,1,1))); }
+  value_type z() const { return _mm_cvtss_f32(_mm_unpackhi_ps(v_, v_)); }
+  value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
 };
-
-inline Quat::Quat()
-  : v_ (Matrix4::identity[3]) {}
-
-inline Quat::Quat(Quat::value_type x_, Quat::value_type y_,
-                  Quat::value_type z_, Quat::value_type w_)
-  : v_ (_mm_setr_ps(x_, y_, z_, w_)) {}
-
-inline Quat::Quat(const Quat::value_type* b)
-  : v_ (_mm_loadu_ps(b)) {}
-
-inline void Quat::assign(Quat::value_type x_, Quat::value_type y_,
-                         Quat::value_type z_, Quat::value_type w_)
-  { v_ = _mm_setr_ps(x_, y_, z_, w_); }
-
-inline Quat& Quat::operator=(const Quat::value_type* b)
-  { v_ = _mm_loadu_ps(b); return *this; }
-
-// static
-inline Quat Quat::from_axis(const Vector4& a, Quat::value_type phi)
-  { return Quat(from_axis_(a, _mm_set_ss(phi))); }
-
-// static
-inline Matrix4 Quat::to_matrix(const Quat& quat)
-  { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat.v_, r.data()); return r; }
-
-inline Vector4 Quat::axis() const
-  { return Vector4(_mm_and_ps(v_, Quat::mask_xyz_.v)); }
-
-inline Quat::value_type Quat::angle() const
-  { return angle_(v_); }
-
-inline void Quat::renormalize(Quat::value_type epsilon)
-  { v_ = renormalize_(v_, _mm_set_ss(epsilon)); }
-
-inline Quat operator*(const Quat& a, const Quat& b)
-  { return Quat(Quat::mul_(a.data(), b.data())); }
 
 } // namespace Math
 

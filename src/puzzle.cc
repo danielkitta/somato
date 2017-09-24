@@ -181,10 +181,7 @@ bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
       {
         if (piece_x == original)
         {
-          transform *= Matrix4{Matrix4::identity[0],
-                               Matrix4::identity[1],
-                               Matrix4::identity[2],
-                               Vector4(x, y, z, 1.0f)};
+          transform *= Matrix4::translation(Vector4(x, y, z, 1.f));
           return true;
         }
         ++x;
@@ -298,18 +295,17 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 {
   using Math::Matrix4;
 
-  static const Matrix4::array_type rotate90[3] =
+  static const Matrix4 rotate90[3] =
   {
-    { {1, 0,  0, 0}, { 0, 0, -1, 0}, {0, 1, 0, 0}, {0, 0, 0, 1} }, // 90 deg around x
-    { {0, 0, -1, 0}, { 0, 1,  0, 0}, {1, 0, 0, 0}, {0, 0, 0, 1} }, // 90 deg around y
-    { {0, 1,  0, 0}, {-1, 0,  0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1} }  // 90 deg around z
+    {{1, 0,  0}, { 0, 0, -1}, {0, 1, 0}}, // 90 deg around x
+    {{0, 0, -1}, { 0, 1,  0}, {1, 0, 0}}, // 90 deg around y
+    {{0, 1,  0}, {-1, 0,  0}, {0, 0, 1}}  // 90 deg around z
   };
-
-  Matrix4 transform {Matrix4::identity};
+  Matrix4 transform;
 
   g_return_val_if_fail(piece_idx >= 0 && piece_idx < CUBE_PIECE_COUNT, transform);
 
-  const Cube original {cube_piece_data[piece_idx]};
+  const Cube original = cube_piece_data[piece_idx];
 
   for (size_t i = 0; i < 6; ++i)
   {
