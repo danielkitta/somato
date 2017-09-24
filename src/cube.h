@@ -32,6 +32,7 @@ public:
 
   enum : int { N = 3 };
   enum : int { AXIS_X, AXIS_Y, AXIS_Z };
+  enum ClipMode : int { CULL = 0, SLICE = -1 };
 
   constexpr Cube() : data_ {0} {}
   constexpr Cube(std::initializer_list<bool> bits)
@@ -46,10 +47,10 @@ public:
   Cube& rotate(int axis) // clockwise
     { data_ = rotate_(data_, axis); return *this; }
 
-  Cube& shift(int axis, bool clip = false) // rightward
+  Cube& shift(int axis, ClipMode clip = CULL) // rightward
     { data_ = shift_(data_, axis, clip); return *this; }
 
-  Cube& shift_rev(int axis, bool clip = false) // leftward
+  Cube& shift_rev(int axis, ClipMode clip = CULL) // leftward
     { data_ = shift_rev_(data_, axis, clip); return *this; }
 
   Cube& operator&=(Cube other) { data_ &= other.data_; return *this; }
@@ -77,8 +78,8 @@ private:
   static Bits put_(Bits data, int x, int y, int z, bool value);
 
   static Bits rotate_(Bits data, int axis);
-  static Bits shift_(Bits data, int axis, bool clip);
-  static Bits shift_rev_(Bits data, int axis, bool clip);
+  static Bits shift_(Bits data, int axis, ClipMode clip);
+  static Bits shift_rev_(Bits data, int axis, ClipMode clip);
 
   Bits data_;
 };

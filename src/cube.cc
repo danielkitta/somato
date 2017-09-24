@@ -20,15 +20,6 @@
 #include <config.h>
 #include "cube.h"
 
-namespace
-{
-
-using Somato::Cube;
-
-const unsigned char shift_count[3] = { Cube::N * Cube::N, Cube::N, 1 };
-
-} // anonymous namespace
-
 namespace Somato
 {
 
@@ -76,38 +67,32 @@ Cube::Bits Cube::rotate_(Bits data, int axis)
   return result;
 }
 
-Cube::Bits Cube::shift_(Bits data, int axis, bool clip)
+Cube::Bits Cube::shift_(Bits data, int axis, ClipMode clip)
 {
-  static const Bits shift_mask[3] =
+  static const struct { int dist; Bits mask; } shift_mask[3] =
   {
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * ~(~Bits{0} << (N-1)*N*N),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * ~(~Bits{0} << (N-1)*N),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * ~(~Bits{0} << (N-1))
+    { N*N, ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * ~(~Bits{0} << (N-1)*N*N) },
+    { N,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * ~(~Bits{0} << (N-1)*N)   },
+    { 1,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * ~(~Bits{0} << (N-1))     }
   };
+  const Bits mask = shift_mask[axis].mask;
+  const Bits clip_mask = (data & ~mask) ? mask & clip : mask;
 
-  const Bits source = shift_mask[axis] & data;
-
-  if (clip || source == data)
-    return source << shift_count[axis];
-
-  return 0;
+  return (data & clip_mask) << shift_mask[axis].dist;
 }
 
-Cube::Bits Cube::shift_rev_(Bits data, int axis, bool clip)
+Cube::Bits Cube::shift_rev_(Bits data, int axis, ClipMode clip)
 {
-  static const Bits shift_mask[3] =
+  static const struct { int dist; Bits mask; } shift_mask[3] =
   {
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * (~(~Bits{0} << (N-1)*N*N) << (N*N)),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * (~(~Bits{0} << (N-1)*N) << N),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * (~(~Bits{0} << (N-1)) << 1)
+    { N*N, ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * (~(~Bits{0} << (N-1)*N*N) << (N*N)) },
+    { N,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * (~(~Bits{0} << (N-1)*N)   << N)     },
+    { 1,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * (~(~Bits{0} << (N-1))     << 1)     }
   };
+  const Bits mask = shift_mask[axis].mask;
+  const Bits clip_mask = (data & ~mask) ? mask & clip : mask;
 
-  const Bits source = shift_mask[axis] & data;
-
-  if (clip || source == data)
-    return source >> shift_count[axis];
-
-  return 0;
+  return (data & clip_mask) >> shift_mask[axis].dist;
 }
 
 } // namespace Somato

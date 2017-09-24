@@ -177,7 +177,7 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
         direction[2] = movement.z;
         return;
       }
-      moving.shift(movement.axis, true);
+      moving.shift(movement.axis, Cube::SLICE);
     }
     while ((fixed & moving) == Cube{});
   }
