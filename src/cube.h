@@ -20,6 +20,8 @@
 #ifndef SOMATO_CUBE_H_INCLUDED
 #define SOMATO_CUBE_H_INCLUDED
 
+#include <initializer_list>
+
 namespace Somato
 {
 
@@ -32,7 +34,8 @@ public:
   enum : int { AXIS_X, AXIS_Y, AXIS_Z };
 
   constexpr Cube() : data_ {0} {}
-  explicit Cube(const bool data[N][N][N]) : data_ {from_array(data)} {}
+  constexpr Cube(std::initializer_list<bool> bits)
+    : data_ {init_bits(0, bits.begin(), bits.end())} {}
 
   void clear() { data_ = 0; }
   bool empty() const { return (data_ == 0); }
@@ -64,8 +67,12 @@ private:
 
   explicit Cube(Bits data) : data_ {data} {}
 
-  static Bits from_array(const bool data[N][N][N]);
-
+  static constexpr Bits init_bits(Bits data,
+                                  std::initializer_list<bool>::const_iterator start,
+                                  std::initializer_list<bool>::const_iterator pos)
+  {
+    return (pos == start) ? data : init_bits((data << 1) | pos[-1], start, pos - 1);
+  }
   static bool get_(Bits data, int x, int y, int z);
   static Bits put_(Bits data, int x, int y, int z, bool value);
 

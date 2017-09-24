@@ -32,18 +32,6 @@ const unsigned char shift_count[3] = { Cube::N * Cube::N, Cube::N, 1 };
 namespace Somato
 {
 
-// static
-Cube::Bits Cube::from_array(const bool data[N][N][N])
-{
-  const bool *const source = &data[0][0][0];
-  Bits result = 0;
-
-  for (int i = N*N*N - 1; i >= 0; --i)
-    result = (result << 1) | Bits(source[i]);
-
-  return result;
-}
-
 bool Cube::get_(Bits data, int x, int y, int z)
 {
   const int index = N*N*x + N*y + z;
