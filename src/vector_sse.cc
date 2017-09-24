@@ -130,21 +130,9 @@ void v4_align_free(void* p) noexcept
  *
  * Note that the GNU C library already uses a minimum alignment of 16 bytes
  * on 64-bit systems, thus the explicit alignment is actually not necessary
- * on these systems.  Unfortunately, there does not seem to be a reliable way
- * to detect the alignment used by malloc at compile time.  Detecting a glibc
- * system running on a 64-bit architecture at configure time is probably too
- * weak an indicator to justify relying on behavior outside the requirements
- * of the C standard.  On top of that, it would be perfectly valid for a C++
- * implementation to implement its own memory allocation scheme instead of
- * just wrapping the C library interface.
+ * on these systems.
  */
 #if SOMATO_CUSTOM_ALLOC
-
-// MSVC++ is broken and wants to tell us about it.  No shame.
-# ifdef _MSC_VER
-#  pragma warning(push)
-#  pragma warning(disable: 4290)
-# endif
 
 void* operator new(std::size_t size)
 {
@@ -161,10 +149,6 @@ void* operator new[](std::size_t size)
   else
     throw std::bad_alloc();
 }
-
-# ifdef _MSC_VER
-#  pragma warning(pop)
-# endif
 
 void operator delete(void* p) throw()
 {
