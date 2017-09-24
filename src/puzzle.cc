@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <numeric>
 
@@ -102,7 +103,6 @@ const std::array<Cube, Somato::CUBE_PIECE_COUNT> cube_piece_data
 /*
  * Rotate the cube.  This takes care of all orientations possible.
  */
-static
 void compute_rotations(Cube cube, PieceStore& store)
 {
   for (unsigned int i = 0;; ++i)
@@ -129,7 +129,6 @@ void compute_rotations(Cube cube, PieceStore& store)
  * imaginable.  Note that the block is assumed to be positioned initially
  * in the (0, 0, 0) corner of the cube.
  */
-static
 void shuffle_cube_piece(Cube cube, PieceStore& store)
 {
   // Make sure the piece is positioned where we expect it to be.
@@ -149,7 +148,6 @@ void shuffle_cube_piece(Cube cube, PieceStore& store)
  * item.  This is not a universally applicable utility function; the input
  * is assumed to have come straight out of shuffle_cube_piece().
  */
-static
 void filter_rotations(PieceStore& store)
 {
   g_return_if_fail(store.size() % 24 == 0);
@@ -164,7 +162,6 @@ void filter_rotations(PieceStore& store)
   store.erase(pdest, store.end());
 }
 
-static
 bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
 {
   using Math::Matrix4;
@@ -207,7 +204,7 @@ PuzzleSolver::~PuzzleSolver()
 
 std::vector<Somato::Solution> PuzzleSolver::execute()
 {
-  solutions_.reserve(512);
+  solutions_.reserve(480);
 
   for (size_t i = 0; i < Somato::CUBE_PIECE_COUNT; ++i)
   {
@@ -248,19 +245,17 @@ void PuzzleSolver::recurse(int col, Cube cube)
 
   for (;;)
   {
-    const Cube cell = *row;
+    const Cube piece = *row++;
 
-    ++row;
-
-    if ((cell & cube) == Cube{})
+    if ((piece & cube) == Cube{})
     {
-      if (cell == Cube{})
+      if (piece == Cube{})
         break;
 
-      state_[col] = cell;
+      state_[col] = piece;
 
       if (col < Somato::CUBE_PIECE_COUNT - 1)
-        recurse(col + 1, cube | cell);
+        recurse(col + 1, cube | piece);
       else
         solutions_.push_back(state_);
     }
@@ -288,8 +283,15 @@ std::vector<Solution> PuzzleThread::acquire_results()
 
 void PuzzleThread::execute()
 {
-  PuzzleSolver solver;
-  solutions_ = solver.execute();
+  const auto start = std::chrono::steady_clock::now();
+  {
+    PuzzleSolver solver;
+    solutions_ = solver.execute();
+  }
+  const auto stop = std::chrono::steady_clock::now();
+  const std::chrono::duration<double, std::milli> elapsed = stop - start;
+
+  g_info("Puzzle solve time: %0.1f ms", elapsed.count());
 }
 
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
