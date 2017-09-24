@@ -159,15 +159,15 @@ private:
   int                         uf_diffuse_material_  = -1;
   int                         uf_piece_texture_     = -1;
 
-  GL::ShaderProgram           cage_shader_;
-  int                         cage_uf_modelview_    = -1;
-  int                         cage_uf_projection_   = -1;
+  GL::ShaderProgram           grid_shader_;
+  int                         grid_uf_modelview_    = -1;
+  int                         grid_uf_projection_   = -1;
 
   unsigned int                cube_texture_         = 0;
   unsigned int                mesh_buffers_[2]      = {0, 0};
   unsigned int                cell_grid_buffers_[2] = {0, 0};
   unsigned int                pieces_vertex_array_  = 0;
-  unsigned int                cage_vertex_array_    = 0;
+  unsigned int                grid_vertex_array_    = 0;
 
   int                         track_last_x_         = TRACK_UNSET;
   int                         track_last_y_         = TRACK_UNSET;
@@ -210,7 +210,7 @@ private:
   void gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArray& nodes,
                               unsigned int total_vertices, unsigned int indices_size);
   void gl_create_piece_shader();
-  void gl_create_cage_shader();
+  void gl_create_grid_shader();
   void gl_create_cell_grid();
   void gl_delete_cell_grid();
   void gl_draw_cell_grid();

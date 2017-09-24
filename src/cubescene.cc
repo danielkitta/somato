@@ -462,7 +462,7 @@ void CubeScene::gl_initialize()
   }
 
   gl_create_piece_shader();
-  gl_create_cage_shader();
+  gl_create_grid_shader();
 
   GL::Scene::gl_initialize();
 
@@ -511,7 +511,7 @@ void CubeScene::gl_create_piece_shader()
   piece_shader_ = std::move(program);
 }
 
-void CubeScene::gl_create_cage_shader()
+void CubeScene::gl_create_grid_shader()
 {
   GL::ShaderProgram program;
 
@@ -523,10 +523,10 @@ void CubeScene::gl_create_cage_shader()
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 
-  cage_uf_modelview_  = program.get_uniform_location("modelToCameraMatrix");
-  cage_uf_projection_ = program.get_uniform_location("cameraToClipMatrix");
+  grid_uf_modelview_  = program.get_uniform_location("modelToCameraMatrix");
+  grid_uf_projection_ = program.get_uniform_location("cameraToClipMatrix");
 
-  cage_shader_ = std::move(program);
+  grid_shader_ = std::move(program);
 }
 
 void CubeScene::gl_cleanup()
@@ -535,11 +535,11 @@ void CubeScene::gl_cleanup()
   uf_projection_       = -1;
   uf_diffuse_material_ = -1;
   uf_piece_texture_    = -1;
-  cage_uf_modelview_   = -1;
-  cage_uf_projection_  = -1;
+  grid_uf_modelview_   = -1;
+  grid_uf_projection_  = -1;
 
   piece_shader_.reset();
-  cage_shader_.reset();
+  grid_shader_.reset();
 
   gl_delete_cell_grid();
 
@@ -656,10 +656,10 @@ void CubeScene::gl_update_projection()
     piece_shader_.use();
     glUniformMatrix4fv(uf_projection_, 1, GL_FALSE, &projection[0][0]);
   }
-  if (cage_shader_)
+  if (grid_shader_)
   {
-    cage_shader_.use();
-    glUniformMatrix4fv(cage_uf_projection_, 1, GL_FALSE, &projection[0][0]);
+    grid_shader_.use();
+    glUniformMatrix4fv(grid_uf_projection_, 1, GL_FALSE, &projection[0][0]);
   }
   GL::ShaderProgram::unuse();
 }
@@ -1309,16 +1309,16 @@ void CubeScene::process_track_motion(int x, int y)
  */
 void CubeScene::gl_create_cell_grid()
 {
-  g_return_if_fail(cage_vertex_array_ == 0);
+  g_return_if_fail(grid_vertex_array_ == 0);
   g_return_if_fail(cell_grid_buffers_[VERTICES] == 0 && cell_grid_buffers_[INDICES] == 0);
 
-  glGenVertexArrays(1, &cage_vertex_array_);
-  GL::Error::throw_if_fail(cage_vertex_array_ != 0);
+  glGenVertexArrays(1, &grid_vertex_array_);
+  GL::Error::throw_if_fail(grid_vertex_array_ != 0);
 
   glGenBuffers(2, cell_grid_buffers_);
   GL::Error::throw_if_fail(cell_grid_buffers_[VERTICES] != 0 && cell_grid_buffers_[INDICES] != 0);
 
-  glBindVertexArray(cage_vertex_array_);
+  glBindVertexArray(grid_vertex_array_);
 
   glBindBuffer(GL_ARRAY_BUFFER, cell_grid_buffers_[VERTICES]);
   glBufferData(GL_ARRAY_BUFFER,
@@ -1393,10 +1393,10 @@ void CubeScene::gl_create_cell_grid()
 
 void CubeScene::gl_delete_cell_grid()
 {
-  if (cage_vertex_array_)
+  if (grid_vertex_array_)
   {
-    glDeleteVertexArrays(1, &cage_vertex_array_);
-    cage_vertex_array_ = 0;
+    glDeleteVertexArrays(1, &grid_vertex_array_);
+    grid_vertex_array_ = 0;
   }
 
   if (cell_grid_buffers_[VERTICES] || cell_grid_buffers_[INDICES])
@@ -1412,18 +1412,18 @@ void CubeScene::gl_draw_cell_grid()
   using Math::Matrix4;
   using Math::Vector4;
 
-  if (cage_shader_ && cage_vertex_array_
+  if (grid_shader_ && grid_vertex_array_
       && cell_grid_buffers_[VERTICES] && cell_grid_buffers_[INDICES])
   {
-    cage_shader_.use();
-    glBindVertexArray(cage_vertex_array_);
+    grid_shader_.use();
+    glBindVertexArray(grid_vertex_array_);
 
     Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
 
     modelview *= Math::Quat::to_matrix(rotation_);
     modelview *= Matrix4::scaling(zoom_);
 
-    glUniformMatrix4fv(cage_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
+    glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, WIREFRAME_VERTEX_COUNT - 1,
                         2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE,
