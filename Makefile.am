@@ -62,6 +62,7 @@ dist_pkgdata_DATA =		\
 	ui/cubescene.css	\
 	ui/mainwindow.glade	\
 	ui/puzzlepieces.dae	\
+	ui/shortcuts-window.ui	\
 	ui/woodtexture.png
 
 shaderdir = $(pkgdatadir)/shaders

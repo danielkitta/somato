@@ -26,6 +26,7 @@
 #include <giomm/menumodel.h>
 #include <gtkmm/aboutdialog.h>
 #include <gtkmm/builder.h>
+#include <gtkmm/shortcutswindow.h>
 
 #include <algorithm>
 #include <memory>
@@ -128,6 +129,28 @@ void Application::on_window_removed(Gtk::Window* window)
 
 void Application::show_shortcuts()
 {
+  MainWindow* main_window = nullptr;
+
+  for (Gtk::Window *const window : get_windows())
+  {
+    if (auto *const shortcuts = dynamic_cast<Gtk::ShortcutsWindow*>(window))
+    {
+      shortcuts->present();
+      return;
+    }
+    if (!main_window)
+      main_window = dynamic_cast<MainWindow*>(window);
+  }
+  const auto ui = Gtk::Builder::create_from_file(Util::locate_data_file("shortcuts-window.ui"));
+
+  Gtk::ShortcutsWindow* shortcuts = nullptr;
+  ui->get_widget("shortcuts_window", shortcuts);
+
+  if (main_window)
+    shortcuts->set_transient_for(*main_window);
+
+  add_window(*shortcuts);
+  shortcuts->present();
 }
 
 void Application::show_about()
