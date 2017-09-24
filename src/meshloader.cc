@@ -29,6 +29,7 @@
 #include <assimp/scene.h>
 
 #include <algorithm>
+#include <chrono>
 
 namespace GL
 {
@@ -195,7 +196,14 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
 
 void MeshLoader::execute()
 {
+  const auto start = std::chrono::steady_clock::now();
+
   pimpl_->execute();
+
+  const auto stop = std::chrono::steady_clock::now();
+  const std::chrono::duration<double, std::milli> elapsed = stop - start;
+
+  g_info("Mesh load time: %0.1f ms", elapsed.count());
 }
 
 } // namespace GL
