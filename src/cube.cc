@@ -25,7 +25,6 @@ namespace
 
 using Somato::Cube;
 
-static
 const unsigned char shift_count[3] = { Cube::N * Cube::N, Cube::N, 1 };
 
 } // anonymous namespace
@@ -45,29 +44,21 @@ Cube::Bits Cube::from_array(const bool data[N][N][N])
   return result;
 }
 
-bool Cube::get(int x, int y, int z) const
+bool Cube::get_(Bits data, int x, int y, int z)
 {
   const int index = N*N*x + N*y + z;
 
-  return ((data_ >> index) & Bits(1));
+  return ((data >> index) & Bits{1});
 }
 
-bool Cube::getsafe(int x, int y, int z) const
-{
-  const int index = N*N*x + N*y + z;
-  // This code is not optimal, but on balance probably better than three
-  // consecutive branches within the first few instructions of a function.
-  return (x >= 0 && x < N) & (y >= 0 && y < N) & (z >= 0 && z < N) & (data_ >> index);
-}
-
-void Cube::put(int x, int y, int z, bool value)
+Cube::Bits Cube::put_(Bits data, int x, int y, int z, bool value)
 {
   const int index = N*N*x + N*y + z;
 
-  data_ = (data_ & ~(Bits(1) << index)) | (Bits(value) << index);
+  return (data & ~(Bits{1} << index)) | (Bits{value} << index);
 }
 
-Cube& Cube::rotate(int axis)
+Cube::Bits Cube::rotate_(Bits data, int axis)
 {
   // This table is specific to the N = 3 case and requires
   // modification for other values of N.
@@ -92,48 +83,43 @@ Cube& Cube::rotate(int axis)
   Bits result = 0;
 
   for (int i = 0; i < N*N*N; ++i)
-    result = (result << 1) | ((data_ >> shuffle_order[axis][i]) & Bits(1));
+    result = (result << 1) | ((data >> shuffle_order[axis][i]) & Bits{1});
 
-  data_ = result;
-  return *this;
+  return result;
 }
 
-Cube& Cube::shift(int axis, bool clip)
+Cube::Bits Cube::shift_(Bits data, int axis, bool clip)
 {
   static const Bits shift_mask[3] =
   {
-    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N*N - 1)) * ~(~Bits(0) << (N-1)*N*N),
-    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N   - 1)) * ~(~Bits(0) << (N-1)*N),
-    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N     - 1)) * ~(~Bits(0) << (N-1))
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * ~(~Bits{0} << (N-1)*N*N),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * ~(~Bits{0} << (N-1)*N),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * ~(~Bits{0} << (N-1))
   };
 
-  const Bits source = shift_mask[axis] & data_;
+  const Bits source = shift_mask[axis] & data;
 
-  if (clip || source == data_)
-    data_ = source << shift_count[axis];
-  else
-    data_ = 0;
+  if (clip || source == data)
+    return source << shift_count[axis];
 
-  return *this;
+  return 0;
 }
 
-Cube& Cube::shift_rev(int axis, bool clip)
+Cube::Bits Cube::shift_rev_(Bits data, int axis, bool clip)
 {
   static const Bits shift_mask[3] =
   {
-    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N*N - 1)) * (~(~Bits(0) << (N-1)*N*N) << (N*N)),
-    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N*N   - 1)) * (~(~Bits(0) << (N-1)*N) << N),
-    ~(~Bits(1) << (N*N*N - 1)) / ~(~Bits(1) << (N     - 1)) * (~(~Bits(0) << (N-1)) << 1)
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * (~(~Bits{0} << (N-1)*N*N) << (N*N)),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * (~(~Bits{0} << (N-1)*N) << N),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * (~(~Bits{0} << (N-1)) << 1)
   };
 
-  const Bits source = shift_mask[axis] & data_;
+  const Bits source = shift_mask[axis] & data;
 
-  if (clip || source == data_)
-    data_ = source >> shift_count[axis];
-  else
-    data_ = 0;
+  if (clip || source == data)
+    return source >> shift_count[axis];
 
-  return *this;
+  return 0;
 }
 
 } // namespace Somato

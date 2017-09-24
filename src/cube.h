@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -26,134 +26,61 @@ namespace Somato
 class Cube
 {
 public:
-  class SortPredicate;
+  struct SortPredicate;
 
-  enum { N = 3 };
-  enum { AXIS_X = 0, AXIS_Y = 1, AXIS_Z = 2 };
+  enum : int { N = 3 };
+  enum : int { AXIS_X, AXIS_Y, AXIS_Z };
 
-  inline Cube();
-  explicit inline Cube(const bool data[N][N][N]);
+  constexpr Cube() : data_ {0} {}
+  explicit Cube(const bool data[N][N][N]) : data_ {from_array(data)} {}
 
-  inline void clear();
-  inline bool empty() const;
+  void clear() { data_ = 0; }
+  bool empty() const { return (data_ == 0); }
 
-  bool get(int x, int y, int z) const;
-  bool getsafe(int x, int y, int z) const;
-  void put(int x, int y, int z, bool value);
+  bool get(int x, int y, int z) const { return get_(data_, x, y, z); }
+  void put(int x, int y, int z, bool value) { data_ = put_(data_, x, y, z, value); }
 
-  Cube& rotate(int axis);                   // clockwise rotation
-  Cube& shift(int axis, bool clip = false); // rightward shifting
-  Cube& shift_rev(int axis, bool clip = false); // leftward shifting
-  
-  inline Cube& operator&=(Cube other);
-  inline Cube& operator|=(Cube other);
-  inline Cube operator~() const;
+  Cube& rotate(int axis) // clockwise
+    { data_ = rotate_(data_, axis); return *this; }
 
-  friend inline Cube operator&(Cube a, Cube b);
-  friend inline Cube operator|(Cube a, Cube b);
+  Cube& shift(int axis, bool clip = false) // rightward
+    { data_ = shift_(data_, axis, clip); return *this; }
 
-  friend inline bool operator==(Cube a, Cube b);
-  friend inline bool operator!=(Cube a, Cube b);
+  Cube& shift_rev(int axis, bool clip = false) // leftward
+    { data_ = shift_rev_(data_, axis, clip); return *this; }
+
+  Cube& operator&=(Cube other) { data_ &= other.data_; return *this; }
+  Cube& operator|=(Cube other) { data_ |= other.data_; return *this; }
+  Cube operator~() const { return Cube(data_ ^ ~(~Bits{1} << (N*N*N - 1))); }
+
+  friend Cube operator&(Cube a, Cube b) { return Cube(a.data_ & b.data_); }
+  friend Cube operator|(Cube a, Cube b) { return Cube(a.data_ | b.data_); }
+
+  friend bool operator==(Cube a, Cube b) { return (a.data_ == b.data_); }
+  friend bool operator!=(Cube a, Cube b) { return (a.data_ != b.data_); }
 
 private:
   typedef unsigned int Bits;
 
-  Bits data_;
+  explicit Cube(Bits data) : data_ {data} {}
 
-  explicit inline Cube(Bits data);
   static Bits from_array(const bool data[N][N][N]);
+
+  static bool get_(Bits data, int x, int y, int z);
+  static Bits put_(Bits data, int x, int y, int z, bool value);
+
+  static Bits rotate_(Bits data, int axis);
+  static Bits shift_(Bits data, int axis, bool clip);
+  static Bits shift_rev_(Bits data, int axis, bool clip);
+
+  Bits data_;
 };
 
-class Cube::SortPredicate
+struct Cube::SortPredicate
 {
-public:
-  typedef Cube first_argument_type;
-  typedef Cube second_argument_type;
-  typedef bool result_type;
-
-  inline bool operator()(Cube a, Cube b) const;
+  bool operator()(Cube a, Cube b) const { return (a.data_ < b.data_); }
 };
-
-inline
-Cube::Cube(Cube::Bits data)
-:
-  data_ (data)
-{}
-
-inline
-Cube::Cube()
-:
-  data_ (0)
-{}
-
-inline
-Cube::Cube(const bool data[Cube::N][Cube::N][Cube::N])
-:
-  data_ (Cube::from_array(data))
-{}
-
-inline
-void Cube::clear()
-{
-  data_ = 0;
-}
-
-inline
-bool Cube::empty() const
-{
-  return (data_ == 0);
-}
-
-inline
-Cube& Cube::operator&=(Cube other)
-{
-  data_ &= other.data_;
-  return *this;
-}
-
-inline
-Cube& Cube::operator|=(Cube other)
-{
-  data_ |= other.data_;
-  return *this;
-}
-
-inline
-Cube Cube::operator~() const
-{
-  return Cube(data_ ^ ~(~Bits(1) << (N*N*N - 1)));
-}
-
-inline
-Cube operator&(Cube a, Cube b)
-{
-  return Cube(a.data_ & b.data_);
-}
-
-inline
-Cube operator|(Cube a, Cube b)
-{
-  return Cube(a.data_ | b.data_);
-}
-
-inline
-bool operator==(Cube a, Cube b)
-{
-  return (a.data_ == b.data_);
-}
-
-inline
-bool operator!=(Cube a, Cube b)
-{
-  return (a.data_ != b.data_);
-}
-
-inline
-bool Cube::SortPredicate::operator()(Cube a, Cube b) const
-{
-  return (a.data_ < b.data_);
-}
 
 } // namespace Somato
 
-#endif /* SOMATO_CUBE_H_INCLUDED */
+#endif // !SOMATO_CUBE_H_INCLUDED
