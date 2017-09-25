@@ -49,7 +49,7 @@ enum
 enum
 {
   ATTRIB_POSITION = 0,
-  ATTRIB_TEXCOORD = 2
+  ATTRIB_TEXCOORD = 1
 };
 
 enum
