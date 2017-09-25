@@ -24,7 +24,7 @@
 
 #include <memory>
 #include <string>
-#include <cstdint>
+#include <cstddef>
 
 struct aiNode;
 
@@ -43,7 +43,7 @@ struct MeshVertex
   }
 };
 
-typedef uint16_t MeshIndex;
+typedef unsigned short MeshIndex;
 
 class MeshLoader : public Async::Task
 {

@@ -24,7 +24,6 @@
 #include "asynctask.h"
 #include "cube.h"
 #include "cubescene.h"
-#include "glutils.h"
 #include "mathutils.h"
 #include "vectormath.h"
 

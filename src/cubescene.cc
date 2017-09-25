@@ -55,14 +55,8 @@ typedef GLushort GridIndex;
 
 enum
 {
-  GRID_INDEX_TYPE   = GL_UNSIGNED_SHORT,
   GRID_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
   GRID_LINE_COUNT   = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
-};
-
-enum
-{
-  MESH_INDEX_TYPE = GL_UNSIGNED_SHORT
 };
 
 /* Vertex shader input attribute locations.
@@ -701,9 +695,15 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
         loader.get_node_vertices(node, start, mesh.element_count());
       }
   }
-  glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(GL::MeshVertex),
+  glVertexAttribPointer(ATTRIB_POSITION,
+                        G_N_ELEMENTS(GL::MeshVertex::vertex),
+                        GL::type_id<decltype(GL::MeshVertex::vertex[0])>,
+                        GL_FALSE, sizeof(GL::MeshVertex),
                         GL::buffer_offset(offsetof(GL::MeshVertex, vertex)));
-  glVertexAttribPointer(ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE, sizeof(GL::MeshVertex),
+  glVertexAttribPointer(ATTRIB_NORMAL,
+                        G_N_ELEMENTS(GL::MeshVertex::normal),
+                        GL::type_id<decltype(GL::MeshVertex::normal[0])>,
+                        GL_FALSE, sizeof(GL::MeshVertex),
                         GL::buffer_offset(offsetof(GL::MeshVertex, normal)));
   glEnableVertexAttribArray(ATTRIB_POSITION);
   glEnableVertexAttribArray(ATTRIB_NORMAL);
@@ -1350,8 +1350,8 @@ void CubeScene::gl_create_cell_grid()
           pv += 3;
         }
   }
-  glVertexAttribPointer(ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
-                        3 * sizeof(GLfloat), GL::buffer_offset(0));
+  glVertexAttribPointer(ATTRIB_POSITION, 3, GL::type_id<GLfloat>, GL_FALSE,
+                        3 * sizeof(GLfloat), GL::buffer_offset<GLfloat>(0));
   glEnableVertexAttribArray(ATTRIB_POSITION);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell_grid_buffers_[INDICES]);
@@ -1424,8 +1424,8 @@ void CubeScene::gl_draw_cell_grid()
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
-                        2 * GRID_LINE_COUNT, GRID_INDEX_TYPE,
-                        GL::buffer_offset(0));
+                        2 * GRID_LINE_COUNT, GL::type_id<GridIndex>,
+                        GL::buffer_offset<GridIndex>(0));
 
     glBindVertexArray(0);
     GL::ShaderProgram::unuse();
@@ -1553,8 +1553,8 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
   const auto& mesh = mesh_data_[data.cube_index];
 
   glDrawRangeElements(GL_TRIANGLES, mesh.element_first, mesh.element_last,
-                      3 * mesh.triangle_count, MESH_INDEX_TYPE,
-                      GL::buffer_offset(mesh.indices_offset * sizeof(GL::MeshIndex)));
+                      3 * mesh.triangle_count, GL::type_id<GL::MeshIndex>,
+                      GL::buffer_offset<GL::MeshIndex>(mesh.indices_offset));
 }
 
 void CubeScene::gl_init_cube_texture()
