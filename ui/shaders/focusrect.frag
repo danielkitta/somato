@@ -3,11 +3,12 @@ uniform vec4 focusColor;
 out vec4 outputColor;
 
 const float stippleStep = 1. / 3.;
+const float epsilon     = 1. / 1024.;
 
 void main()
 {
-  float coord = dot(vec3(gl_FragCoord.xy, 0.5), vec3(stippleStep));
-  float alpha = step(stippleStep, fract(coord));
+  float coord = dot(gl_FragCoord.xy, vec2(stippleStep));
+  float alpha = round(fract(coord - epsilon));
 
   outputColor = focusColor * alpha;
 
