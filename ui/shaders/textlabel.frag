@@ -7,10 +7,9 @@ out vec4 outputColor;
 
 void main()
 {
-  ivec2 texPos = ivec2(interpTexcoord);
-  vec4 text = texelFetchOffset(labelTexture, texPos, 0, ivec2(1, 1));
-  vec4 shadow = texelFetch(labelTexture, texPos, 0);
-  float alpha = max(text.r, shadow.r);
+  float shadow = texelFetch(labelTexture, ivec2(interpTexcoord), 0).r;
+  vec4 text = texelFetchOffset(labelTexture, ivec2(interpTexcoord), 0, ivec2(1, 1));
+  float alpha = max(text.r, shadow);
 
   outputColor = textColor * vec4(text.rrr, alpha);
 }
