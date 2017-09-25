@@ -125,7 +125,7 @@ MeshLoader::count_node_vertices_triangles(Node node) const
   return counts;
 }
 
-size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
+size_t MeshLoader::get_node_vertices(Node node, volatile MeshVertex* buffer,
                                      size_t max_vertices) const
 {
   size_t n_written = 0;
@@ -147,8 +147,8 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
                                                max_vertices - n_written);
     for (size_t i = 0; i < n_vertices; ++i)
     {
-      buffer[n_written + i].set_vertex(vertices[i].x, vertices[i].y, vertices[i].z);
-      buffer[n_written + i].set_normal(normals[i].x, normals[i].y, normals[i].z);
+      buffer[n_written + i].set(vertices[i].x, vertices[i].y, vertices[i].z,
+                                normals [i].x, normals [i].y, normals [i].z);
     }
     n_written += n_vertices;
   }
@@ -156,7 +156,7 @@ size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
 }
 
 size_t MeshLoader::get_node_indices(Node node, unsigned int base,
-                                    MeshIndex* buffer, size_t max_indices) const
+                                    volatile MeshIndex* buffer, size_t max_indices) const
 {
   size_t n_written = 0;
 

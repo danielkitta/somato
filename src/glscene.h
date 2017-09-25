@@ -52,11 +52,11 @@ struct Extensions
 
 struct UIVertex
 {
-  float vertex[2]   = {0., 0.};
-  float texcoord[2] = {0., 0.};
+  float vertex[2];
+  float texcoord[2];
 
-  void set_vertex(float x, float y) { vertex[0] = x; vertex[1] = y; }
-  void set_texcoord(float s, float t) { texcoord[0] = s; texcoord[1] = t; }
+  void set(float x, float y, float s, float t) volatile
+    { vertex[0] = x; vertex[1] = y; texcoord[0] = s; texcoord[1] = t; }
 };
 
 typedef std::vector<std::unique_ptr<LayoutTexture>> LayoutVector;
@@ -148,8 +148,8 @@ private:
 
   void gl_update_layouts();
   void gl_update_ui_buffer();
-  void gl_build_focus(UIVertex* vertices);
-  void gl_build_layouts(UIVertex* vertices);
+  void gl_build_focus(volatile UIVertex* vertices);
+  void gl_build_layouts(volatile UIVertex* vertices);
 
   void gl_render_focus();
   int  gl_render_layouts(LayoutVector::const_iterator first);

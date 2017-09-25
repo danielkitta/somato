@@ -36,8 +36,11 @@ struct MeshVertex
   float vertex[3];
   float normal[3];
 
-  void set_vertex(float x, float y, float z) { vertex[0] = x; vertex[1] = y; vertex[2] = z; }
-  void set_normal(float x, float y, float z) { normal[0] = x; normal[1] = y; normal[2] = z; }
+  void set(float vx, float vy, float vz, float nx, float ny, float nz) volatile
+  {
+    vertex[0] = vx; vertex[1] = vy; vertex[2] = vz;
+    normal[0] = nx; normal[1] = ny; normal[2] = nz;
+  }
 };
 
 typedef uint16_t MeshIndex;
@@ -65,9 +68,10 @@ public:
   Node lookup_node(const char* name) const;
   VertexTriangleCounts count_node_vertices_triangles(Node node) const;
 
-  size_t get_node_vertices(Node node, MeshVertex* buffer, size_t max_vertices) const;
+  size_t get_node_vertices(Node node, volatile MeshVertex* buffer,
+                           size_t max_vertices) const;
   size_t get_node_indices(Node node, unsigned int base,
-                          MeshIndex* buffer, size_t max_indices) const;
+                          volatile MeshIndex* buffer, size_t max_indices) const;
 
   static unsigned int aligned_index_count(unsigned int count)
     { return (count + 3) & ~3u; }

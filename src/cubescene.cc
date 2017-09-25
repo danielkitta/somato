@@ -690,7 +690,7 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
                                   | GL_MAP_INVALIDATE_BUFFER_BIT
                                   | GL_MAP_UNSYNCHRONIZED_BIT})
   {
-    auto *const vertex_data = buffer.get<GL::MeshVertex*>();
+    auto *const vertex_data = buffer.get<GL::MeshVertex>();
 
     for (size_t i = 0; i < nodes.size(); ++i)
       if (const auto node = nodes[i])
@@ -720,7 +720,7 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
                                   | GL_MAP_INVALIDATE_BUFFER_BIT
                                   | GL_MAP_UNSYNCHRONIZED_BIT})
   {
-    auto *const index_data = buffer.get<GL::MeshIndex*>();
+    auto *const index_data = buffer.get<GL::MeshIndex>();
 
     for (size_t i = 0; i < nodes.size(); ++i)
       if (const auto node = nodes[i])
@@ -1338,7 +1338,7 @@ void CubeScene::gl_create_cell_grid()
     for (int i = 0; i < N; ++i)
       stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.f);
 
-    auto* pv = buffer.get<GLfloat*>();
+    auto* pv = buffer.get<GLfloat>();
 
     for (int z = 0; z < N; ++z)
       for (int y = 0; y < N; ++y)
@@ -1368,7 +1368,7 @@ void CubeScene::gl_create_cell_grid()
                                   | GL_MAP_UNSYNCHRONIZED_BIT})
   {
     enum { N = Cube::N + 1 };
-    auto* pi = buffer.get<WireframeIndex*>();
+    auto* pi = buffer.get<WireframeIndex>();
 
     for (int i = 0; i < N; ++i)
       for (int k = 0; k < N; ++k)

@@ -70,15 +70,15 @@ public:
                   std::size_t length, unsigned int access);
   ~ScopedMapBuffer();
 
-  operator void*() const { return data_; }
-  template <class T> T get() const { return static_cast<T>(data_); }
+  operator volatile void*() const { return data_; }
+  template <class T> volatile T* get() const { return static_cast<volatile T*>(data_); }
 
   ScopedMapBuffer(const ScopedMapBuffer& other) = delete;
   ScopedMapBuffer& operator=(const ScopedMapBuffer& other) = delete;
 
 private:
-  void*        data_;
-  unsigned int target_;
+  volatile void* data_;
+  unsigned int   target_;
 };
 
 /* Return whether the user requested OpenGL debug mode.

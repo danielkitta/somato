@@ -72,7 +72,7 @@ void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
  * Generate vertices for drawing the focus indicator of the GL widget.
  */
 void generate_focus_rect(int width, int height, int padding,
-                         GL::UIVertex* geometry)
+                         volatile GL::UIVertex* geometry)
 {
   g_return_if_fail(width > 0 && height > 0);
 
@@ -81,17 +81,10 @@ void generate_focus_rect(int width, int height, int padding,
   const float x1 = static_cast<float>(width  - 2 * padding - 1) / width;
   const float y1 = static_cast<float>(height - 2 * padding - 1) / height;
 
-  geometry[0].set_vertex(x0, y0);
-  geometry[0].set_texcoord(0., 0.);
-
-  geometry[1].set_vertex(x1, y0);
-  geometry[1].set_texcoord(1., 0.);
-
-  geometry[2].set_vertex(x1, y1);
-  geometry[2].set_texcoord(1., 1.);
-
-  geometry[3].set_vertex(x0, y1);
-  geometry[3].set_texcoord(0., 1.);
+  geometry[0].set(x0, y0, 0., 0.);
+  geometry[1].set(x1, y0, 1., 0.);
+  geometry[2].set(x1, y1, 1., 1.);
+  geometry[3].set(x0, y1, 0., 1.);
 }
 
 /*
@@ -837,14 +830,14 @@ void Scene::gl_update_ui_buffer()
                                   | GL_MAP_INVALIDATE_RANGE_BIT
                                   | GL_MAP_INVALIDATE_BUFFER_BIT})
   {
-    auto *const vertices = buffer.get<UIVertex*>();
+    auto *const vertices = buffer.get<UIVertex>();
 
     gl_build_focus(vertices);
     gl_build_layouts(vertices);
   }
 }
 
-void Scene::gl_build_focus(UIVertex* vertices)
+void Scene::gl_build_focus(volatile UIVertex* vertices)
 {
   g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_vertex_count_);
 
@@ -868,7 +861,7 @@ void Scene::gl_build_focus(UIVertex* vertices)
 /*
  * Generate vertices and texture coordinates for the text layouts.
  */
-void Scene::gl_build_layouts(UIVertex* vertices)
+void Scene::gl_build_layouts(volatile UIVertex* vertices)
 {
   const int view_width  = get_viewport_width();
   const int view_height = get_viewport_height();
@@ -893,19 +886,12 @@ void Scene::gl_build_layouts(UIVertex* vertices)
 
     g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_vertex_count_);
 
-    UIVertex *const geometry = vertices + layout->array_offset_;
+    volatile UIVertex *const geometry = vertices + layout->array_offset_;
 
-    geometry[0].set_vertex(x0, y0);
-    geometry[0].set_texcoord(s0, t0);
-
-    geometry[1].set_vertex(x1, y0);
-    geometry[1].set_texcoord(s1, t0);
-
-    geometry[2].set_vertex(x0, y1);
-    geometry[2].set_texcoord(s0, t1);
-
-    geometry[3].set_vertex(x1, y1);
-    geometry[3].set_texcoord(s1, t1);
+    geometry[0].set(x0, y0, s0, t0);
+    geometry[1].set(x1, y0, s1, t0);
+    geometry[2].set(x0, y1, s0, t1);
+    geometry[3].set(x1, y1, s1, t1);
   }
 }
 
