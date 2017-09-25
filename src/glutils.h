@@ -23,7 +23,11 @@
 #include <glib.h>
 #include <glibmm/ustring.h>
 #include <gdkmm/glcontext.h>
+
+#include <type_traits>
 #include <cstddef>
+
+#include <epoxy/gl.h>
 
 namespace GL
 {
@@ -81,15 +85,29 @@ private:
   unsigned int   target_;
 };
 
+template <typename T> constexpr GLenum type_id_;
+
+template <> constexpr GLenum type_id_<GLbyte>   = GL_BYTE;
+template <> constexpr GLenum type_id_<GLubyte>  = GL_UNSIGNED_BYTE;
+template <> constexpr GLenum type_id_<GLshort>  = GL_SHORT;
+template <> constexpr GLenum type_id_<GLushort> = GL_UNSIGNED_SHORT;
+template <> constexpr GLenum type_id_<GLint>    = GL_INT;
+template <> constexpr GLenum type_id_<GLuint>   = GL_UNSIGNED_INT;
+template <> constexpr GLenum type_id_<GLfloat>  = GL_FLOAT;
+
+template <typename T>
+constexpr GLenum type_id = type_id_<std::remove_reference_t<T>>;
+
 /* Return whether the user requested OpenGL debug mode.
  */
 bool debug_mode_requested();
 
 /* Convert a VBO offset to a pointer.
  */
+template <typename T = char>
 constexpr void* buffer_offset(std::size_t offset)
 {
-  return static_cast<char*>(0) + offset;
+  return static_cast<T*>(0) + offset;
 }
 
 } // namespace GL
