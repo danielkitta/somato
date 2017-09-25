@@ -47,17 +47,17 @@ namespace
 
 using Somato::Cube;
 
-/* The type of indices into the cell grid vertex array.
- * Although GLubyte would suffice to represent the range of indices, it is
- * not an optimal configuration with my current hardware (Radeon HD5670).
+/* The type of indices into the cell grid vertex array. Although GLubyte
+ * would suffice to represent the range of indices, some hardware reacts
+ * rather sensitively to less commonly used index types.
  */
-typedef GLushort WireframeIndex;
+typedef GLushort GridIndex;
 
 enum
 {
-  WIREFRAME_INDEX_TYPE   = GL_UNSIGNED_SHORT,
-  WIREFRAME_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
-  WIREFRAME_LINE_COUNT   = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
+  GRID_INDEX_TYPE   = GL_UNSIGNED_SHORT,
+  GRID_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
+  GRID_LINE_COUNT   = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
 };
 
 enum
@@ -1321,12 +1321,11 @@ void CubeScene::gl_create_cell_grid()
   glBindVertexArray(grid_vertex_array_);
 
   glBindBuffer(GL_ARRAY_BUFFER, cell_grid_buffers_[VERTICES]);
-  glBufferData(GL_ARRAY_BUFFER,
-               WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
+  glBufferData(GL_ARRAY_BUFFER, GRID_VERTEX_COUNT * sizeof(GLfloat) * 3,
                nullptr, GL_STATIC_DRAW);
 
   if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
-                                  0, WIREFRAME_VERTEX_COUNT * sizeof(GLfloat) * 3,
+                                  0, GRID_VERTEX_COUNT * sizeof(GLfloat) * 3,
                                   GL_MAP_WRITE_BIT
                                   | GL_MAP_INVALIDATE_RANGE_BIT
                                   | GL_MAP_INVALIDATE_BUFFER_BIT
@@ -1356,19 +1355,18 @@ void CubeScene::gl_create_cell_grid()
   glEnableVertexAttribArray(ATTRIB_POSITION);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell_grid_buffers_[INDICES]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, GRID_LINE_COUNT * sizeof(GridIndex) * 2,
                nullptr, GL_STATIC_DRAW);
 
   if (GL::ScopedMapBuffer buffer {GL_ELEMENT_ARRAY_BUFFER,
-                                  0, WIREFRAME_LINE_COUNT * sizeof(WireframeIndex) * 2,
+                                  0, GRID_LINE_COUNT * sizeof(GridIndex) * 2,
                                   GL_MAP_WRITE_BIT
                                   | GL_MAP_INVALIDATE_RANGE_BIT
                                   | GL_MAP_INVALIDATE_BUFFER_BIT
                                   | GL_MAP_UNSYNCHRONIZED_BIT})
   {
     enum { N = Cube::N + 1 };
-    auto* pi = buffer.get<WireframeIndex>();
+    auto* pi = buffer.get<GridIndex>();
 
     for (int i = 0; i < N; ++i)
       for (int k = 0; k < N; ++k)
@@ -1425,8 +1423,8 @@ void CubeScene::gl_draw_cell_grid()
 
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
-    glDrawRangeElements(GL_LINES, 0, WIREFRAME_VERTEX_COUNT - 1,
-                        2 * WIREFRAME_LINE_COUNT, WIREFRAME_INDEX_TYPE,
+    glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
+                        2 * GRID_LINE_COUNT, GRID_INDEX_TYPE,
                         GL::buffer_offset(0));
 
     glBindVertexArray(0);
