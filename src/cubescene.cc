@@ -696,10 +696,10 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
       }
   }
   glVertexAttribPointer(ATTRIB_POSITION,
-                        G_N_ELEMENTS(GL::MeshVertex::vertex),
-                        GL::type_id<decltype(GL::MeshVertex::vertex[0])>,
+                        G_N_ELEMENTS(GL::MeshVertex::position),
+                        GL::type_id<decltype(GL::MeshVertex::position[0])>,
                         GL_FALSE, sizeof(GL::MeshVertex),
-                        GL::buffer_offset(offsetof(GL::MeshVertex, vertex)));
+                        GL::buffer_offset(offsetof(GL::MeshVertex, position)));
   glVertexAttribPointer(ATTRIB_NORMAL,
                         G_N_ELEMENTS(GL::MeshVertex::normal),
                         GL::type_id<decltype(GL::MeshVertex::normal[0])>,

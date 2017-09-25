@@ -52,11 +52,11 @@ struct Extensions
 
 struct UIVertex
 {
-  float vertex[2];
+  float position[2];
   float texcoord[2];
 
   void set(float x, float y, float s, float t) volatile
-    { vertex[0] = x; vertex[1] = y; texcoord[0] = s; texcoord[1] = t; }
+    { position[0] = x; position[1] = y; texcoord[0] = s; texcoord[1] = t; }
 };
 
 typedef std::vector<std::unique_ptr<LayoutTexture>> LayoutVector;

@@ -33,13 +33,13 @@ namespace GL
 
 struct MeshVertex
 {
-  float vertex[3];
-  float normal[3];
+  float position[3];
+  float normal  [3];
 
-  void set(float vx, float vy, float vz, float nx, float ny, float nz) volatile
+  void set(float px, float py, float pz, float nx, float ny, float nz) volatile
   {
-    vertex[0] = vx; vertex[1] = vy; vertex[2] = vz;
-    normal[0] = nx; normal[1] = ny; normal[2] = nz;
+    position[0] = px; position[1] = py; position[2] = pz;
+    normal  [0] = nx; normal  [1] = ny; normal  [2] = nz;
   }
 };
 
