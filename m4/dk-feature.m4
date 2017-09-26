@@ -15,7 +15,7 @@
 ## You should have received a copy of the GNU General Public License along
 ## with danielk's Autostuff.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20170922
+#serial 20170926
 
 ## _DK_SH_VAR_PUSH_DEPTH(depth, variable, [value])
 ##
@@ -97,4 +97,29 @@ _DK_CHECK_FEATURE_VAR([$1], [$2],
                       m4_quote(AS_TR_SH([dk_cv_feature_$1])),
                       m4_quote(AS_TR_CPP(AC_PACKAGE_TARNAME[_FEATURE_$1])),
                       m4_quote(AS_TR_CPP(AC_PACKAGE_TARNAME[_HAVE_$1])))[]dnl
+])
+
+## DK_CHECK_COMPILE_FLAGS(flags-var, description, flags)
+##
+## Find a compiler flag for <description>. For each flag in <flags>, check
+## if the compiler for the current language accepts it. On success, stop the
+## search and append the last tested flag to <flags-var>. Calls AC_SUBST
+## on <flags-var>.
+##
+AC_DEFUN([DK_CHECK_COMPILE_FLAGS],
+[dnl
+m4_assert([$# >= 3])[]dnl
+AC_MSG_CHECKING([compiler flag for $2])
+dk_ccf_result=no
+dk_ccf_save_CPPFLAGS=$CPPFLAGS
+for dk_flag in $3
+do
+  CPPFLAGS="$dk_ccf_save_CPPFLAGS $dk_flag"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])], [dk_ccf_result=$dk_flag])
+  test "x$dk_ccf_result" = xno || break
+done
+CPPFLAGS=$dk_ccf_save_CPPFLAGS
+AS_IF([test "x$dk_ccf_result" != xno], [$1=[$]{$1:+' '}$dk_ccf_result])
+AC_MSG_RESULT([$dk_ccf_result])
+AC_SUBST([$1])
 ])

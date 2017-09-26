@@ -97,6 +97,7 @@ dist_desktop_DATA = ui/somato.desktop
 
 global_defs	  = -DSOMATO_PKGDATADIR=\""$(pkgdatadir)"\" -I$(top_builddir)
 AM_CPPFLAGS	  = $(global_defs) $(SOMATO_MODULES_CFLAGS) $(SOMATO_WARNING_FLAGS)
+AM_CXXFLAGS	  = $(SOMATO_EXTRA_CXXFLAGS)
 src_somato_LDADD  = $(SOMATO_MODULES_LIBS)
 
 update_icon_cache = $(GTK_UPDATE_ICON_CACHE) --ignore-theme-index --force
