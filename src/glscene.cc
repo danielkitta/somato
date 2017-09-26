@@ -894,9 +894,12 @@ void Scene::gl_build_layouts(volatile UIVertex* vertices)
     const int width  = layout->ink_width_  + 1;
     const int height = layout->ink_height_ + 1;
 
-    const float s0 = -1.;
-    const float t0 = height;
-    const float s1 = width - 1;
+    const float tex_width  = layout->tex_width_;
+    const float tex_height = layout->tex_height_;
+
+    const float s0 = -1. / tex_width;
+    const float t0 = height / tex_height;
+    const float s1 = (width - 1) / tex_width;
     const float t1 = 0.;
 
     const int view_x = layout->window_x_ + layout->ink_x_;
