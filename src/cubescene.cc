@@ -47,12 +47,6 @@ namespace
 
 using Somato::Cube;
 
-/* The type of indices into the cell grid vertex array. Although GLubyte
- * would suffice to represent the range of indices, some hardware reacts
- * rather sensitively to less commonly used index types.
- */
-typedef GLushort GridIndex;
-
 enum
 {
   GRID_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
@@ -381,10 +375,8 @@ void CubeScene::set_show_cell_grid(bool show_cell_grid)
   {
     show_cell_grid_ = show_cell_grid;
 
-    if (auto guard = scoped_make_current())
-      gl_update_cell_grid();
-
-    queue_static_draw();
+    if (pieces_vertex_array_)
+      queue_static_draw();
   }
 }
 
@@ -480,8 +472,6 @@ void CubeScene::gl_initialize()
   piece_shader_.use();
   glUniform1i(uf_piece_texture_, 0);
   GL::ShaderProgram::unuse();
-
-  gl_update_cell_grid();
 }
 
 void CubeScene::gl_create_piece_shader()
@@ -534,8 +524,6 @@ void CubeScene::gl_cleanup()
 
   piece_shader_.reset();
   grid_shader_.reset();
-
-  gl_delete_cell_grid();
 
   if (pieces_vertex_array_)
   {
@@ -594,29 +582,32 @@ int CubeScene::gl_render()
     if (depth_order_changed_)
       update_depth_order();
 
-    glEnable(GL_DEPTH_TEST);
-
-    if (show_cell_grid_)
+    if (pieces_vertex_array_ && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
     {
-      const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE : GL_POLYGON_OFFSET_FILL;
+      glEnable(GL_DEPTH_TEST);
+      glBindVertexArray(pieces_vertex_array_);
 
-      gl_draw_cell_grid();
+      if (show_cell_grid_)
+      {
+        const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE : GL_POLYGON_OFFSET_FILL;
 
-      glPolygonOffset(1., 4.);
-      glEnable(offset_mode);
+        gl_draw_cell_grid();
 
-      triangle_count += gl_draw_cube();
+        glPolygonOffset(1., 4.);
+        glEnable(offset_mode);
 
-      glDisable(offset_mode);
+        triangle_count += gl_draw_cube();
+
+        glDisable(offset_mode);
+      }
+      else
+      {
+        triangle_count += gl_draw_cube();
+      }
+      glBindVertexArray(0);
+      glDisable(GL_DEPTH_TEST);
     }
-    else
-    {
-      triangle_count += gl_draw_cube();
-    }
-
-    glDisable(GL_DEPTH_TEST);
   }
-
   triangle_count += GL::Scene::gl_render();
 
   return triangle_count;
@@ -686,6 +677,8 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
   {
     auto *const vertex_data = buffer.get<GL::MeshVertex>();
 
+    gl_generate_grid_vertices(vertex_data);
+
     for (size_t i = 0; i < nodes.size(); ++i)
       if (const auto node = nodes[i])
       {
@@ -721,6 +714,8 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
                                   | GL_MAP_UNSYNCHRONIZED_BIT})
   {
     auto *const index_data = buffer.get<GL::MeshIndex>();
+
+    gl_generate_grid_indices(index_data);
 
     for (size_t i = 0; i < nodes.size(); ++i)
       if (const auto node = nodes[i])
@@ -768,8 +763,8 @@ void CubeScene::on_meshes_loaded()
 
   mesh_data_.assign(nodes.size(), MeshData{});
 
-  unsigned int total_vertices = 0;
-  unsigned int indices_offset = 0;
+  unsigned int total_vertices = GRID_VERTEX_COUNT;
+  unsigned int indices_offset = GL::MeshLoader::aligned_index_count(GRID_LINE_COUNT * 2);
 
   for (size_t i = 0; i < nodes.size(); ++i)
     if (const auto node = nodes[i])
@@ -1307,102 +1302,45 @@ void CubeScene::process_track_motion(int x, int y)
  * Note that the lines are split at the crossing points in order to avoid
  * gaps, and also to more closely match the tesselation of the cube parts.
  */
-void CubeScene::gl_create_cell_grid()
+void CubeScene::gl_generate_grid_vertices(volatile GL::MeshVertex* vertices)
 {
-  g_return_if_fail(grid_vertex_array_ == 0);
-  g_return_if_fail(cell_grid_buffers_[VERTICES] == 0 && cell_grid_buffers_[INDICES] == 0);
+  enum { N = Cube::N + 1 };
+  float stride[N];
 
-  glGenVertexArrays(1, &grid_vertex_array_);
-  GL::Error::throw_if_fail(grid_vertex_array_ != 0);
+  for (int i = 0; i < N; ++i)
+    stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.f);
 
-  glGenBuffers(2, cell_grid_buffers_);
-  GL::Error::throw_if_fail(cell_grid_buffers_[VERTICES] != 0 && cell_grid_buffers_[INDICES] != 0);
+  auto* pv = vertices;
 
-  glBindVertexArray(grid_vertex_array_);
-
-  glBindBuffer(GL_ARRAY_BUFFER, cell_grid_buffers_[VERTICES]);
-  glBufferData(GL_ARRAY_BUFFER, GRID_VERTEX_COUNT * sizeof(GLfloat) * 3,
-               nullptr, GL_STATIC_DRAW);
-
-  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
-                                  0, GRID_VERTEX_COUNT * sizeof(GLfloat) * 3,
-                                  GL_MAP_WRITE_BIT
-                                  | GL_MAP_INVALIDATE_RANGE_BIT
-                                  | GL_MAP_INVALIDATE_BUFFER_BIT
-                                  | GL_MAP_UNSYNCHRONIZED_BIT})
-  {
-    enum { N = Cube::N + 1 };
-    float stride[N];
-
-    for (int i = 0; i < N; ++i)
-      stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.f);
-
-    auto* pv = buffer.get<GLfloat>();
-
-    for (int z = 0; z < N; ++z)
-      for (int y = 0; y < N; ++y)
-        for (int x = 0; x < N; ++x)
-        {
-          pv[0] = stride[x];
-          pv[1] = stride[y];
-          pv[2] = stride[z];
-
-          pv += 3;
-        }
-  }
-  glVertexAttribPointer(ATTRIB_POSITION, 3, GL::attrib_type<GLfloat>, GL_FALSE,
-                        3 * sizeof(GLfloat), GL::buffer_offset<GLfloat>(0));
-  glEnableVertexAttribArray(ATTRIB_POSITION);
-
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cell_grid_buffers_[INDICES]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, GRID_LINE_COUNT * sizeof(GridIndex) * 2,
-               nullptr, GL_STATIC_DRAW);
-
-  if (GL::ScopedMapBuffer buffer {GL_ELEMENT_ARRAY_BUFFER,
-                                  0, GRID_LINE_COUNT * sizeof(GridIndex) * 2,
-                                  GL_MAP_WRITE_BIT
-                                  | GL_MAP_INVALIDATE_RANGE_BIT
-                                  | GL_MAP_INVALIDATE_BUFFER_BIT
-                                  | GL_MAP_UNSYNCHRONIZED_BIT})
-  {
-    enum { N = Cube::N + 1 };
-    auto* pi = buffer.get<GridIndex>();
-
-    for (int i = 0; i < N; ++i)
-      for (int k = 0; k < N; ++k)
-        for (int m = 0; m < N - 1; ++m)
-        {
-          pi[0] = N*N*i + N*k + m;
-          pi[1] = N*N*i + N*k + m + 1;
-
-          pi[2] = N*N*i + N*m + k;
-          pi[3] = N*N*i + N*m + k + N;
-
-          pi[4] = N*N*m + N*i + k;
-          pi[5] = N*N*m + N*i + k + N*N;
-
-          pi += 6;
-        }
-  }
-  glBindVertexArray(0);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  for (int z = 0; z < N; ++z)
+    for (int y = 0; y < N; ++y)
+      for (int x = 0; x < N; ++x)
+      {
+        pv->set(stride[x], stride[y], stride[z]);
+        ++pv;
+      }
 }
 
-void CubeScene::gl_delete_cell_grid()
+void CubeScene::gl_generate_grid_indices(volatile GL::MeshIndex* indices)
 {
-  if (grid_vertex_array_)
-  {
-    glDeleteVertexArrays(1, &grid_vertex_array_);
-    grid_vertex_array_ = 0;
-  }
+  enum { N = Cube::N + 1 };
+  auto* pi = indices;
 
-  if (cell_grid_buffers_[VERTICES] || cell_grid_buffers_[INDICES])
-  {
-    glDeleteBuffers(2, cell_grid_buffers_);
-    cell_grid_buffers_[VERTICES] = 0;
-    cell_grid_buffers_[INDICES]  = 0;
-  }
+  for (int i = 0; i < N; ++i)
+    for (int k = 0; k < N; ++k)
+      for (int m = 0; m < N - 1; ++m)
+      {
+        pi[0] = N*N*i + N*k + m;
+        pi[1] = N*N*i + N*k + m + 1;
+
+        pi[2] = N*N*i + N*m + k;
+        pi[3] = N*N*i + N*m + k + N;
+
+        pi[4] = N*N*m + N*i + k;
+        pi[5] = N*N*m + N*i + k + N*N;
+
+        pi += 6;
+      }
 }
 
 void CubeScene::gl_draw_cell_grid()
@@ -1410,11 +1348,9 @@ void CubeScene::gl_draw_cell_grid()
   using Math::Matrix4;
   using Math::Vector4;
 
-  if (grid_shader_ && grid_vertex_array_
-      && cell_grid_buffers_[VERTICES] && cell_grid_buffers_[INDICES])
+  if (grid_shader_)
   {
     grid_shader_.use();
-    glBindVertexArray(grid_vertex_array_);
 
     Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
 
@@ -1424,10 +1360,9 @@ void CubeScene::gl_draw_cell_grid()
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
-                        2 * GRID_LINE_COUNT, GL::attrib_type<GridIndex>,
-                        GL::buffer_offset<GridIndex>(0));
+                        2 * GRID_LINE_COUNT, GL::attrib_type<GL::MeshIndex>,
+                        GL::buffer_offset<GL::MeshIndex>(0));
 
-    glBindVertexArray(0);
     GL::ShaderProgram::unuse();
   }
 }
@@ -1482,11 +1417,9 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
 {
   int triangle_count = 0;
 
-  if (piece_shader_ && pieces_vertex_array_
-      && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
+  if (piece_shader_)
   {
     piece_shader_.use();
-    glBindVertexArray(pieces_vertex_array_);
 
     int last_fixed = last;
 
@@ -1505,7 +1438,6 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
           gl_draw_piece_elements(data, {0.f, 0.f, 0.f, 1.f});
         }
     }
-
     if (last != last_fixed)
     {
       const auto& data = animation_data_[last];
@@ -1522,11 +1454,8 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
                                      1.};
       gl_draw_piece_elements(data, translate);
     }
-
-    glBindVertexArray(0);
     GL::ShaderProgram::unuse();
   }
-
   return triangle_count;
 }
 
@@ -1628,25 +1557,6 @@ void CubeScene::update_footing()
     footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
   else
     footing_->set_content({});
-}
-
-void CubeScene::gl_update_cell_grid()
-{
-  gl_delete_cell_grid();
-
-  if (show_cell_grid_)
-  {
-    try
-    {
-      gl_create_cell_grid();
-    }
-    catch (...)
-    {
-      gl_reset_state();
-      gl_delete_cell_grid();
-      throw;
-    }
-  }
 }
 
 } // namespace Somato

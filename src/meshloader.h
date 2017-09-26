@@ -44,6 +44,13 @@ struct MeshVertex
     position[2] = pz;
     normal = pack_normal(nx, ny, nz);
   }
+  void set(float px, float py, float pz) volatile
+  {
+    position[0] = px;
+    position[1] = py;
+    position[2] = pz;
+    normal = static_cast<Int_2_10_10_10_rev>(0);
+  }
 };
 
 typedef unsigned short MeshIndex;

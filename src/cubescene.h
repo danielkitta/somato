@@ -165,9 +165,7 @@ private:
 
   unsigned int                cube_texture_         = 0;
   unsigned int                mesh_buffers_[2]      = {0, 0};
-  unsigned int                cell_grid_buffers_[2] = {0, 0};
   unsigned int                pieces_vertex_array_  = 0;
-  unsigned int                grid_vertex_array_    = 0;
 
   int                         track_last_x_         = TRACK_UNSET;
   int                         track_last_y_         = TRACK_UNSET;
@@ -211,8 +209,8 @@ private:
                               unsigned int total_vertices, unsigned int indices_size);
   void gl_create_piece_shader();
   void gl_create_grid_shader();
-  void gl_create_cell_grid();
-  void gl_delete_cell_grid();
+  void gl_generate_grid_vertices(volatile GL::MeshVertex* vertices);
+  void gl_generate_grid_indices(volatile GL::MeshIndex* indices);
   void gl_draw_cell_grid();
 
   int  gl_draw_cube();
@@ -221,7 +219,6 @@ private:
   void gl_draw_piece_elements(const AnimationData& data, Math::Vector4 animpos);
 
   void gl_init_cube_texture();
-  void gl_update_cell_grid();
 };
 
 } // namespace Somato
