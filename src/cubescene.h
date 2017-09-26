@@ -165,7 +165,7 @@ private:
 
   unsigned int                cube_texture_         = 0;
   unsigned int                mesh_buffers_[2]      = {0, 0};
-  unsigned int                pieces_vertex_array_  = 0;
+  unsigned int                mesh_vertex_array_    = 0;
 
   int                         track_last_x_         = TRACK_UNSET;
   int                         track_last_y_         = TRACK_UNSET;

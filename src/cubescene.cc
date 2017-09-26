@@ -375,7 +375,7 @@ void CubeScene::set_show_cell_grid(bool show_cell_grid)
   {
     show_cell_grid_ = show_cell_grid;
 
-    if (pieces_vertex_array_)
+    if (mesh_vertex_array_)
       queue_static_draw();
   }
 }
@@ -525,10 +525,10 @@ void CubeScene::gl_cleanup()
   piece_shader_.reset();
   grid_shader_.reset();
 
-  if (pieces_vertex_array_)
+  if (mesh_vertex_array_)
   {
-    glDeleteVertexArrays(1, &pieces_vertex_array_);
-    pieces_vertex_array_ = 0;
+    glDeleteVertexArrays(1, &mesh_vertex_array_);
+    mesh_vertex_array_ = 0;
   }
 
   if (mesh_buffers_[VERTICES] || mesh_buffers_[INDICES])
@@ -582,10 +582,10 @@ int CubeScene::gl_render()
     if (depth_order_changed_)
       update_depth_order();
 
-    if (pieces_vertex_array_ && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
+    if (mesh_vertex_array_ && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
     {
       glEnable(GL_DEPTH_TEST);
-      glBindVertexArray(pieces_vertex_array_);
+      glBindVertexArray(mesh_vertex_array_);
 
       if (show_cell_grid_)
       {
@@ -652,7 +652,7 @@ void CubeScene::gl_update_projection()
 void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArray& nodes,
                                        unsigned int total_vertices, unsigned int indices_size)
 {
-  g_return_if_fail(pieces_vertex_array_ == 0);
+  g_return_if_fail(mesh_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
 
   if (!gl_ext()->vertex_type_2_10_10_10_rev)
@@ -661,13 +661,13 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
           "Packed integer vector format 2:10:10:10 not supported");
     return;
   }
-  glGenVertexArrays(1, &pieces_vertex_array_);
-  GL::Error::throw_if_fail(pieces_vertex_array_ != 0);
+  glGenVertexArrays(1, &mesh_vertex_array_);
+  GL::Error::throw_if_fail(mesh_vertex_array_ != 0);
 
   glGenBuffers(2, mesh_buffers_);
   GL::Error::throw_if_fail(mesh_buffers_[VERTICES] != 0 && mesh_buffers_[INDICES] != 0);
 
-  glBindVertexArray(pieces_vertex_array_);
+  glBindVertexArray(mesh_vertex_array_);
 
   glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[VERTICES]);
   glBufferData(GL_ARRAY_BUFFER,
