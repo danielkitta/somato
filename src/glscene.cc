@@ -410,12 +410,12 @@ void Scene::gl_update_ui()
 
     glVertexAttribPointer(ATTRIB_POSITION,
                           GL::attrib_size<decltype(UIVertex::position)>,
-                          GL::type_id<decltype(UIVertex::position)>,
+                          GL::attrib_type<decltype(UIVertex::position)>,
                           GL_FALSE, sizeof(UIVertex),
                           GL::buffer_offset(offsetof(UIVertex, position)));
     glVertexAttribPointer(ATTRIB_TEXCOORD,
                           GL::attrib_size<decltype(UIVertex::texcoord)>,
-                          GL::type_id<decltype(UIVertex::texcoord)>,
+                          GL::attrib_type<decltype(UIVertex::texcoord)>,
                           GL_FALSE, sizeof(UIVertex),
                           GL::buffer_offset(offsetof(UIVertex, texcoord)));
     glEnableVertexAttribArray(ATTRIB_POSITION);

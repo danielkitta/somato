@@ -90,20 +90,19 @@ private:
  */
 enum Int_2_10_10_10_rev : unsigned int {};
 
-template <typename T> constexpr GLenum type_id_;
-template <typename T, size_t N> constexpr GLenum type_id_<T[N]>;
+template <typename T> constexpr GLenum attrib_type_;
 
-template <> constexpr GLenum type_id_<GLbyte>   = GL_BYTE;
-template <> constexpr GLenum type_id_<GLubyte>  = GL_UNSIGNED_BYTE;
-template <> constexpr GLenum type_id_<GLshort>  = GL_SHORT;
-template <> constexpr GLenum type_id_<GLushort> = GL_UNSIGNED_SHORT;
-template <> constexpr GLenum type_id_<GLint>    = GL_INT;
-template <> constexpr GLenum type_id_<GLuint>   = GL_UNSIGNED_INT;
-template <> constexpr GLenum type_id_<GLfloat>  = GL_FLOAT;
-template <> constexpr GLenum type_id_<Int_2_10_10_10_rev> = GL_INT_2_10_10_10_REV;
+template <> constexpr GLenum attrib_type_<GLbyte>   = GL_BYTE;
+template <> constexpr GLenum attrib_type_<GLubyte>  = GL_UNSIGNED_BYTE;
+template <> constexpr GLenum attrib_type_<GLshort>  = GL_SHORT;
+template <> constexpr GLenum attrib_type_<GLushort> = GL_UNSIGNED_SHORT;
+template <> constexpr GLenum attrib_type_<GLint>    = GL_INT;
+template <> constexpr GLenum attrib_type_<GLuint>   = GL_UNSIGNED_INT;
+template <> constexpr GLenum attrib_type_<GLfloat>  = GL_FLOAT;
+template <> constexpr GLenum attrib_type_<Int_2_10_10_10_rev> = GL_INT_2_10_10_10_REV;
 
-template <typename T>
-constexpr GLenum type_id = type_id_<std::remove_all_extents_t<std::remove_reference_t<T>>>;
+template <typename T> constexpr GLenum attrib_type =
+    attrib_type_<std::remove_all_extents_t<std::remove_reference_t<T>>>;
 
 template <typename T>           constexpr int attrib_size_ = 1;
 template <typename T, size_t N> constexpr int attrib_size_<T[N]> = N;

@@ -697,12 +697,12 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
   }
   glVertexAttribPointer(ATTRIB_POSITION,
                         GL::attrib_size<decltype(GL::MeshVertex::position)>,
-                        GL::type_id<decltype(GL::MeshVertex::position)>,
+                        GL::attrib_type<decltype(GL::MeshVertex::position)>,
                         GL_FALSE, sizeof(GL::MeshVertex),
                         GL::buffer_offset(offsetof(GL::MeshVertex, position)));
   glVertexAttribPointer(ATTRIB_NORMAL,
                         GL::attrib_size<decltype(GL::MeshVertex::normal)>,
-                        GL::type_id<decltype(GL::MeshVertex::normal)>,
+                        GL::attrib_type<decltype(GL::MeshVertex::normal)>,
                         GL_TRUE, sizeof(GL::MeshVertex),
                         GL::buffer_offset(offsetof(GL::MeshVertex, normal)));
   glEnableVertexAttribArray(ATTRIB_POSITION);
@@ -1350,7 +1350,7 @@ void CubeScene::gl_create_cell_grid()
           pv += 3;
         }
   }
-  glVertexAttribPointer(ATTRIB_POSITION, 3, GL::type_id<GLfloat>, GL_FALSE,
+  glVertexAttribPointer(ATTRIB_POSITION, 3, GL::attrib_type<GLfloat>, GL_FALSE,
                         3 * sizeof(GLfloat), GL::buffer_offset<GLfloat>(0));
   glEnableVertexAttribArray(ATTRIB_POSITION);
 
@@ -1424,7 +1424,7 @@ void CubeScene::gl_draw_cell_grid()
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
-                        2 * GRID_LINE_COUNT, GL::type_id<GridIndex>,
+                        2 * GRID_LINE_COUNT, GL::attrib_type<GridIndex>,
                         GL::buffer_offset<GridIndex>(0));
 
     glBindVertexArray(0);
@@ -1553,7 +1553,7 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
   const auto& mesh = mesh_data_[data.cube_index];
 
   glDrawRangeElements(GL_TRIANGLES, mesh.element_first, mesh.element_last,
-                      3 * mesh.triangle_count, GL::type_id<GL::MeshIndex>,
+                      3 * mesh.triangle_count, GL::attrib_type<GL::MeshIndex>,
                       GL::buffer_offset<GL::MeshIndex>(mesh.indices_offset));
 }
 
