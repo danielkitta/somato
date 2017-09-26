@@ -142,24 +142,6 @@ void LayoutTexture::set_content(const Glib::ustring& content)
   }
 }
 
-/*
- * Prepare a Pango context for the creation of Pango layouts for use with
- * LayoutTexture::gl_set_layout().
- *
- * This creates a dummy cairo context with surface type and transformation
- * matching what we are going to use at draw time, and updates the Pango
- * context accordingly.  The pangocairo documentation warns that not doing
- * so might result in wrong measurements due to possible differences in
- * hinting and such.
- */
-void LayoutTexture::prepare_pango_context(const Glib::RefPtr<Pango::Context>& context)
-{
-  const auto surface = Cairo::ImageSurface::create(Cairo::FORMAT_A8, 1, 1);
-  const auto cairo = Cairo::Context::create(surface);
-
-  context->update_from_cairo_context(cairo);
-}
-
 void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
 {
   // Measure ink extents to determine the dimensions of the texture image,
@@ -170,7 +152,7 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
   Pango::Rectangle logical;
 
   // Note that at this point, the Pango context has already been updated to
-  // the target surface and transformation in prepare_pango_context().
+  // the target surface and transformation in create_texture_pango_layout().
   layout->get_pixel_extents(ink, logical);
 
   // Make sure the extents are within reasonable boundaries.
@@ -990,12 +972,16 @@ Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustri
 {
   if (!texture_context_)
   {
+    // Create a dummy cairo context with surface type and transformation
+    // matching what we are going to use at draw time.
+    const auto surface = Cairo::ImageSurface::create(Cairo::FORMAT_A8, 1, 1);
+    const auto cairo = Cairo::Context::create(surface);
+
     auto context = create_pango_context();
-    LayoutTexture::prepare_pango_context(context);
+    context->update_from_cairo_context(cairo);
 
     texture_context_ = std::move(context);
   }
-
   const auto layout = Pango::Layout::create(texture_context_);
   layout->set_text(text);
 
