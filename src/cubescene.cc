@@ -655,6 +655,12 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
   g_return_if_fail(pieces_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
 
+  if (!gl_ext()->vertex_type_2_10_10_10_rev)
+  {
+    g_log(GL::log_domain, G_LOG_LEVEL_WARNING,
+          "Packed integer vector format 2:10:10:10 not supported");
+    return;
+  }
   glGenVertexArrays(1, &pieces_vertex_array_);
   GL::Error::throw_if_fail(pieces_vertex_array_ != 0);
 

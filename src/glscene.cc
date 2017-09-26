@@ -246,13 +246,24 @@ void LayoutTexture::gl_delete()
   ink_height_ = 0;
 }
 
-void Extensions::gl_query()
+void Extensions::gl_query(bool use_es, int version)
 {
   g_log(GL::log_domain, G_LOG_LEVEL_INFO, "OpenGL version: %s, GLSL version: %s",
         glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-  debug_output = epoxy_has_gl_extension("GL_ARB_debug_output");
-  texture_filter_anisotropic = epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
+  if (version < ((use_es) ? 0x0300 : 0x0302))
+  {
+    g_log(GL::log_domain, G_LOG_LEVEL_WARNING,
+          "At least OpenGL 3.2 or OpenGL ES 3.0 is required");
+  }
+  debug_output = (!use_es && version >= 0x0403)
+      || epoxy_has_gl_extension("GL_ARB_debug_output");
+
+  vertex_type_2_10_10_10_rev = (version >= ((use_es) ? 0x0300 : 0x0303))
+      || epoxy_has_gl_extension("GL_ARB_vertex_type_2_10_10_10_rev");
+
+  texture_filter_anisotropic = (!use_es && version >= 0x0406)
+      || epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
 
   if (texture_filter_anisotropic)
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
@@ -554,19 +565,25 @@ void Scene::on_realize()
 
   if (auto guard = scoped_make_current())
   {
-    gl_extensions_.gl_query();
+    const auto context = get_context();
+    const bool use_es = context->get_use_es();
+
+    int major = 0, minor = 0;
+    context->get_version(major, minor);
+
+    gl_extensions_.gl_query(use_es, (major << 8) | minor);
 
     if (gl_ext()->debug_output)
     {
-      glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
-                               0, nullptr, GL_TRUE);
-      glDebugMessageCallbackARB(&gl_on_debug_message, nullptr);
+      glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
+                            0, nullptr, GL_TRUE);
+      glDebugMessageCallback(&gl_on_debug_message, nullptr);
     }
     max_aa_samples_ = 0;
 
     // Don't enable multi-sample AA on OpenGL ES, as it may be broken
     // even though advertised.
-    if (!get_context()->get_use_es())
+    if (!use_es)
       glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
 
     gl_initialize();
