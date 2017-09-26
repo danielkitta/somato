@@ -21,6 +21,7 @@
 #define SOMATO_MESHLOADER_H_INCLUDED
 
 #include "asynctask.h"
+#include "glutils.h"
 
 #include <memory>
 #include <string>
@@ -33,13 +34,15 @@ namespace GL
 
 struct MeshVertex
 {
-  float position[3];
-  float normal  [3];
+  float              position[3];
+  Int_2_10_10_10_rev normal;
 
   void set(float px, float py, float pz, float nx, float ny, float nz) volatile
   {
-    position[0] = px; position[1] = py; position[2] = pz;
-    normal  [0] = nx; normal  [1] = ny; normal  [2] = nz;
+    position[0] = px;
+    position[1] = py;
+    position[2] = pz;
+    normal = pack_normal(nx, ny, nz);
   }
 };
 

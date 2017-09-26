@@ -25,6 +25,7 @@
 #include <gdkmm/glcontext.h>
 
 #include <type_traits>
+#include <cmath>
 #include <cstddef>
 
 #include <epoxy/gl.h>
@@ -85,7 +86,12 @@ private:
   unsigned int   target_;
 };
 
+/* Vector packed as 32-bit unsigned integer.
+ */
+enum Int_2_10_10_10_rev : unsigned int {};
+
 template <typename T> constexpr GLenum type_id_;
+template <typename T, size_t N> constexpr GLenum type_id_<T[N]>;
 
 template <> constexpr GLenum type_id_<GLbyte>   = GL_BYTE;
 template <> constexpr GLenum type_id_<GLubyte>  = GL_UNSIGNED_BYTE;
@@ -94,9 +100,31 @@ template <> constexpr GLenum type_id_<GLushort> = GL_UNSIGNED_SHORT;
 template <> constexpr GLenum type_id_<GLint>    = GL_INT;
 template <> constexpr GLenum type_id_<GLuint>   = GL_UNSIGNED_INT;
 template <> constexpr GLenum type_id_<GLfloat>  = GL_FLOAT;
+template <> constexpr GLenum type_id_<Int_2_10_10_10_rev> = GL_INT_2_10_10_10_REV;
 
 template <typename T>
-constexpr GLenum type_id = type_id_<std::remove_reference_t<T>>;
+constexpr GLenum type_id = type_id_<std::remove_all_extents_t<std::remove_reference_t<T>>>;
+
+template <typename T>           constexpr int attrib_size_ = 1;
+template <typename T, size_t N> constexpr int attrib_size_<T[N]> = N;
+
+template <> constexpr int attrib_size_<Int_2_10_10_10_rev> = 4;
+
+template <typename T>
+constexpr int attrib_size = attrib_size_<std::remove_reference_t<T>>;
+
+/* Convert a floating-point normal into a packed 10-bit integer format.
+ */
+inline Int_2_10_10_10_rev pack_normal(float x, float y, float z)
+{
+  const int ix = std::lrint(x * 511.f);
+  const int iy = std::lrint(y * 511.f);
+  const int iz = std::lrint(z * 511.f);
+
+  return static_cast<Int_2_10_10_10_rev>((ix & 0x3FFu)
+                                      | ((iy & 0x3FFu) << 10)
+                                      | ((iz & 0x3FFu) << 20));
+}
 
 /* Return whether the user requested OpenGL debug mode.
  */
