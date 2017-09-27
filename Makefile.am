@@ -22,8 +22,6 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 bin_PROGRAMS = src/somato
 
 src_somato_SOURCES =		\
-	src/appdata.cc		\
-	src/appdata.h		\
 	src/application.cc	\
 	src/application.h	\
 	src/assetresourceio.cc	\
@@ -102,8 +100,7 @@ dist_appicon_DATA = ui/somato.png
 desktopdir	  = $(datadir)/applications
 dist_desktop_DATA = ui/somato.desktop
 
-global_defs	  = -DSOMATO_PKGDATADIR=\""$(pkgdatadir)"\" -I$(top_builddir)
-AM_CPPFLAGS	  = $(global_defs) $(SOMATO_MODULES_CFLAGS) $(SOMATO_WARNING_FLAGS)
+AM_CPPFLAGS	  = -I$(top_builddir) $(SOMATO_MODULES_CFLAGS) $(SOMATO_WARNING_FLAGS)
 AM_CXXFLAGS	  = $(SOMATO_EXTRA_CXXFLAGS)
 src_somato_LDADD  = $(SOMATO_MODULES_LIBS)
 
