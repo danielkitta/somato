@@ -628,13 +628,10 @@ void CubeScene::gl_update_projection()
   const float topinv   = G_SQRT2 + 1.; // cot(pi/8)
   const float rightinv = view_height / view_width * topinv;
 
-  using Math::Matrix4;
-  using Math::Vector4;
-
-  Matrix4 projection {Vector4{near * rightinv, 0., 0., 0.},
-                      Vector4{0., near * topinv, 0., 0.},
-                      Vector4{0., 0., (far + near) / (near - far), -1.},
-                      Vector4{0., 0., 2.f * far * near / (near - far), 0.}};
+  Math::Matrix4 projection {{near * rightinv, 0., 0., 0.},
+                            {0., near * topinv, 0., 0.},
+                            {0., 0., (far + near) / (near - far), -1.},
+                            {0., 0., 2.f * far * near / (near - far), 0.}};
   if (piece_shader_)
   {
     piece_shader_.use();
@@ -1351,7 +1348,6 @@ void CubeScene::gl_generate_grid_indices(volatile GL::MeshIndex* indices)
 void CubeScene::gl_draw_cell_grid()
 {
   using Math::Matrix4;
-  using Math::Vector4;
 
   if (grid_shader_)
   {
@@ -1468,14 +1464,13 @@ void CubeScene::gl_draw_piece_elements(const AnimationData& data,
                                        Math::Vector4 animpos)
 {
   using Math::Matrix4;
-  using Math::Vector4;
 
   Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
 
   modelview *= Math::Quat::to_matrix(rotation_);
-  modelview *= Matrix4{Vector4{zoom_, 0., 0., 0.},
-                       Vector4{0., zoom_, 0., 0.},
-                       Vector4{0., 0., zoom_, 0.},
+  modelview *= Matrix4{{zoom_, 0., 0., 0.},
+                       {0., zoom_, 0., 0.},
+                       {0., 0., zoom_, 0.},
                        animpos};
   modelview *= data.transform;
 
