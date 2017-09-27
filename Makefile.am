@@ -26,6 +26,8 @@ src_somato_SOURCES =		\
 	src/appdata.h		\
 	src/application.cc	\
 	src/application.h	\
+	src/assetresourceio.cc	\
+	src/assetresourceio.h	\
 	src/asynctask.cc	\
 	src/asynctask.h		\
 	src/cube.cc		\
