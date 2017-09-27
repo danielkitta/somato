@@ -136,7 +136,7 @@ void Application::show_about()
     if (!main_window)
       main_window = dynamic_cast<MainWindow*>(window);
   }
-  std::unique_ptr<Gtk::AboutDialog> dialog {new Gtk::AboutDialog{}};
+  auto dialog = std::make_unique<Gtk::AboutDialog>();
 
   dialog->set_version(PACKAGE_VERSION);
   dialog->set_logo_icon_name(PACKAGE_TARNAME);

@@ -364,7 +364,7 @@ LayoutTexture* Scene::create_layout_texture()
   // For now, layout textures may only be created at initialization time.
   g_return_val_if_fail(ui_buffer_ == 0, nullptr);
 
-  std::unique_ptr<LayoutTexture> layout {new LayoutTexture{}};
+  auto layout = std::make_unique<LayoutTexture>();
 
   layout->array_offset_ =
     LAYOUTS_ARRAY_OFFSET + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
@@ -395,7 +395,6 @@ void Scene::gl_update_ui()
       glGenBuffers(1, &ui_buffer_);
       GL::Error::throw_if_fail(ui_buffer_ != 0);
     }
-
     glBindVertexArray(ui_vertex_array_);
 
     gl_update_ui_buffer();

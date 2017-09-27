@@ -105,7 +105,7 @@ GLuint compile_shader(GLenum type, const std::string& resource)
 
   if (bufsize > 0)
   {
-    const std::unique_ptr<char[]> buffer {new char[bufsize + 1]};
+    const auto buffer = std::make_unique<char[]>(bufsize + 1);
 
     GLsizei length = 0;
     glGetShaderInfoLog(shader.get(), bufsize, &length, buffer.get());
@@ -178,7 +178,7 @@ void ShaderProgram::link()
 
   if (bufsize > 0)
   {
-    const std::unique_ptr<char[]> buffer {new char[bufsize + 1]};
+    const auto buffer = std::make_unique<char[]>(bufsize + 1);
 
     GLsizei length = 0;
     glGetProgramInfoLog(program_, bufsize, &length, buffer.get());

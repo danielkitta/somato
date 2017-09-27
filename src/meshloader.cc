@@ -64,7 +64,7 @@ MeshLoader::Impl::~Impl()
 
 void MeshLoader::Impl::execute()
 {
-  importer_.reset(new Assimp::Importer{});
+  importer_ = std::make_unique<Assimp::Importer>();
   importer_->SetIOHandler(new Util::AssetResourceIoSystem{});
 
   importer_->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,

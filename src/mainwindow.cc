@@ -112,7 +112,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::run_puzzle_solver()
 {
-  std::unique_ptr<PuzzleThread> thread {new PuzzleThread{}};
+  auto thread = std::make_unique<PuzzleThread>();
 
   thread->signal_done().connect(sigc::mem_fun(*this, &MainWindow::start_animation));
   thread->run();

@@ -433,8 +433,7 @@ void CubeScene::gl_initialize()
 {
   if (!mesh_loader_)
   {
-    std::unique_ptr<GL::MeshLoader> loader
-        {new GL::MeshLoader{RESOURCE_PREFIX "puzzlepieces.dae"}};
+    auto loader = std::make_unique<GL::MeshLoader>(RESOURCE_PREFIX "puzzlepieces.dae");
 
     loader->signal_done().connect(sigc::mem_fun(*this, &CubeScene::on_meshes_loaded));
     loader->run();
