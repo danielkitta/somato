@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/gtk/somato">
+    <file compressed="true" preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
+    <file compressed="true">shaders/cellgrid.frag</file>
+    <file compressed="true">shaders/cellgrid.vert</file>
+    <file compressed="true">shaders/focusrect.frag</file>
+    <file compressed="true">shaders/focusrect.vert</file>
+    <file compressed="true">shaders/puzzlepieces.frag</file>
+    <file compressed="true">shaders/puzzlepieces.vert</file>
+    <file compressed="true">shaders/textlabel.frag</file>
+    <file compressed="true">shaders/textlabel.vert</file>
+    <file compressed="true">cubescene.css</file>
+    <file compressed="true" preprocess="xml-stripblanks">mainwindow.glade</file>
+    <file compressed="true" preprocess="xml-stripblanks">puzzlepieces.dae</file>
+    <file>woodtexture.png</file>
+  </gresource>
+</gresources>

@@ -20,7 +20,6 @@
 #include <config.h>
 
 #include "application.h"
-#include "appdata.h"
 #include "mainwindow.h"
 
 #include <giomm/menumodel.h>
@@ -72,13 +71,9 @@ void Application::on_startup()
 
   Gtk::Window::set_default_icon_name(PACKAGE_TARNAME);
 
-  add_action("shortcuts", sigc::mem_fun(*this, &Application::show_shortcuts));
-  add_action("about",     sigc::mem_fun(*this, &Application::show_about));
-  add_action("quit",      sigc::mem_fun(*this, &Application::close_all));
-  {
-    const auto ui = Gtk::Builder::create_from_file(Util::locate_data_file("app-menu.ui"));
-    set_app_menu(Glib::RefPtr<Gio::MenuModel>::cast_dynamic(ui->get_object("app-menu")));
-  }
+  add_action("about", sigc::mem_fun(*this, &Application::show_about));
+  add_action("quit",  sigc::mem_fun(*this, &Application::close_all));
+
   set_accel_for_action ("app.quit",         "<Primary>q");
   set_accel_for_action ("win.first",        "Home");
   set_accel_for_action ("win.prev",         "Prior");
@@ -111,7 +106,7 @@ void Application::on_activate()
 
   Somato::MainWindow* app_window = nullptr;
   {
-    const auto ui = Gtk::Builder::create_from_file(Util::locate_data_file("mainwindow.glade"));
+    const auto ui = Gtk::Builder::create_from_resource(RESOURCE_PREFIX "mainwindow.glade");
     ui->get_widget_derived("app_window", app_window);
   }
   add_window(*app_window);
@@ -125,32 +120,6 @@ void Application::on_window_removed(Gtk::Window* window)
   Gtk::Application::on_window_removed(window);
 
   delete window;
-}
-
-void Application::show_shortcuts()
-{
-  MainWindow* main_window = nullptr;
-
-  for (Gtk::Window *const window : get_windows())
-  {
-    if (auto *const shortcuts = dynamic_cast<Gtk::ShortcutsWindow*>(window))
-    {
-      shortcuts->present();
-      return;
-    }
-    if (!main_window)
-      main_window = dynamic_cast<MainWindow*>(window);
-  }
-  const auto ui = Gtk::Builder::create_from_file(Util::locate_data_file("shortcuts-window.ui"));
-
-  Gtk::ShortcutsWindow* shortcuts = nullptr;
-  ui->get_widget("shortcuts_window", shortcuts);
-
-  if (main_window)
-    shortcuts->set_transient_for(*main_window);
-
-  add_window(*shortcuts);
-  shortcuts->present();
 }
 
 void Application::show_about()

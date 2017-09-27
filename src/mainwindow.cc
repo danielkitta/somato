@@ -20,7 +20,6 @@
 #include <config.h>
 
 #include "mainwindow.h"
-#include "appdata.h"
 #include "asynctask.h"
 #include "cube.h"
 #include "cubescene.h"

@@ -23,8 +23,9 @@
 #include "glutils.h"
 
 #include <glib.h>
-#include <glibmm/fileutils.h>
+#include <glibmm/bytes.h>
 #include <glibmm/ustring.h>
+#include <giomm/resource.h>
 #include <gdkmm/glcontext.h>
 #include <epoxy/gl.h>
 
@@ -78,9 +79,10 @@ void load_shader_source(GLuint shader, const std::string& filename)
   else
     throw GL::Error{"No current OpenGL context"};
 
-  const std::string source = Glib::file_get_contents(filename);
-  lengths[1]  = source.size();
-  snippets[1] = source.c_str();
+  const auto resource = Gio::Resource::lookup_data_global(filename);
+  gsize size = 0;
+  snippets[1] = static_cast<const char*>(resource->get_data(size));
+  lengths[1]  = size;
 
   glShaderSource(shader, G_N_ELEMENTS(snippets), snippets, lengths);
 }

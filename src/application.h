@@ -39,7 +39,6 @@ protected:
   void on_window_removed(Gtk::Window* window) override;
 
 private:
-  void show_shortcuts();
   void show_about();
   void close_all();
 };

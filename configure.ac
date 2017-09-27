@@ -37,6 +37,9 @@ DK_PKG_CONFIG_SUBST([GLIB_COMPILE_RESOURCES],
 
 DK_PKG_PATH_PROG([GTK_UPDATE_ICON_CACHE], [gtk+-3.0], [gtk-update-icon-cache])
 
+AC_DEFINE([RESOURCE_PREFIX], ["/org/gtk/somato/"],
+          [Base path for loading resources.])
+
 AC_LANG([C++])
 DK_PROG_CXX_STD([14])
 DK_CHECK_COMPILE_FLAGS([SOMATO_EXTRA_CXXFLAGS], [math without errno],

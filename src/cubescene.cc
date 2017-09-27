@@ -20,7 +20,6 @@
 #include <config.h>
 
 #include "cubescene.h"
-#include "appdata.h"
 #include "asynctask.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
@@ -439,7 +438,7 @@ void CubeScene::gl_initialize()
   if (!mesh_loader_)
   {
     std::unique_ptr<GL::MeshLoader> loader
-      {new GL::MeshLoader{Util::locate_data_file("puzzlepieces.dae")}};
+        {new GL::MeshLoader{RESOURCE_PREFIX "puzzlepieces.dae"}};
 
     loader->signal_done().connect(sigc::mem_fun(*this, &CubeScene::on_meshes_loaded));
     loader->run();
@@ -479,9 +478,9 @@ void CubeScene::gl_create_piece_shader()
   GL::ShaderProgram program;
 
   program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  Util::locate_shader_file("puzzlepieces.vert")});
+                                  RESOURCE_PREFIX "shaders/puzzlepieces.vert"});
   program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  Util::locate_shader_file("puzzlepieces.frag")});
+                                  RESOURCE_PREFIX "shaders/puzzlepieces.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
@@ -500,9 +499,9 @@ void CubeScene::gl_create_grid_shader()
   GL::ShaderProgram program;
 
   program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  Util::locate_shader_file("cellgrid.vert")});
+                                  RESOURCE_PREFIX "shaders/cellgrid.vert"});
   program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  Util::locate_shader_file("cellgrid.frag")});
+                                  RESOURCE_PREFIX "shaders/cellgrid.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
@@ -1509,8 +1508,8 @@ void CubeScene::gl_init_cube_texture()
 
   g_return_if_fail(cube_texture_ == 0);
 
-  const auto pixbuf = Gdk::Pixbuf::create_from_file(Util::locate_data_file("woodtexture.png"),
-                                                    WIDTH, HEIGHT, false);
+  const auto pixbuf = Gdk::Pixbuf::create_from_resource(RESOURCE_PREFIX "woodtexture.png",
+                                                        WIDTH, HEIGHT, false);
 
   g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
   g_return_if_fail(pixbuf->get_bits_per_sample() == 8);

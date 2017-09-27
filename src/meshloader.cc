@@ -20,6 +20,7 @@
 #include <config.h>
 
 #include "meshloader.h"
+#include "assetresourceio.h"
 #include "glutils.h"
 
 #include <glib.h>
@@ -64,6 +65,7 @@ MeshLoader::Impl::~Impl()
 void MeshLoader::Impl::execute()
 {
   importer_.reset(new Assimp::Importer{});
+  importer_->SetIOHandler(new Util::AssetResourceIoSystem{});
 
   importer_->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
                                 aiComponent_TANGENTS_AND_BITANGENTS

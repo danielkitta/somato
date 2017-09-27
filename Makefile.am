@@ -59,16 +59,13 @@ EXTRA_src_somato_SOURCES =	\
 	src/vector_sse.cc	\
 	src/vector_sse.h
 
-dist_pkgdata_DATA =		\
-	ui/app-menu.ui		\
-	ui/cubescene.css	\
-	ui/mainwindow.glade	\
-	ui/puzzlepieces.dae	\
-	ui/shortcuts-window.ui	\
-	ui/woodtexture.png
+nodist_src_somato_SOURCES =	\
+	src/resources.cc
 
-shaderdir = $(pkgdatadir)/shaders
-dist_shader_DATA =			\
+resource_desc = ui/somato.gresource.xml
+resource_files =			\
+	ui/gtk/help-overlay.ui		\
+	ui/gtk/menus.ui			\
 	ui/shaders/cellgrid.frag	\
 	ui/shaders/cellgrid.vert	\
 	ui/shaders/focusrect.frag	\
@@ -76,19 +73,27 @@ dist_shader_DATA =			\
 	ui/shaders/puzzlepieces.frag	\
 	ui/shaders/puzzlepieces.vert	\
 	ui/shaders/textlabel.frag	\
-	ui/shaders/textlabel.vert
+	ui/shaders/textlabel.vert	\
+	ui/cubescene.css		\
+	ui/mainwindow.glade		\
+	ui/puzzlepieces.dae		\
+	ui/woodtexture.png
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\
 	autogen.sh
 
 dist_noinst_DATA =		\
+	$(resource_desc)	\
+	$(resource_files)	\
 	debian/changelog	\
 	debian/control		\
 	debian/copyright	\
 	debian/menu		\
 	README.md		\
 	screenshot.png
+
+DISTCLEANFILES	  = src/resources.cc
 
 iconthemedir	  = $(datadir)/icons/hicolor
 appicondir	  = $(iconthemedir)/48x48/apps
@@ -103,6 +108,10 @@ AM_CXXFLAGS	  = $(SOMATO_EXTRA_CXXFLAGS)
 src_somato_LDADD  = $(SOMATO_MODULES_LIBS)
 
 update_icon_cache = $(GTK_UPDATE_ICON_CACHE) --ignore-theme-index --force
+
+src/resources.cc: $(resource_desc) $(resource_files)
+	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --sourcedir="$(srcdir)/ui" \
+	 --generate-source --internal --target="$@" "$(srcdir)/$(resource_desc)"
 
 install-data-hook: install-update-icon-cache
 uninstall-hook: uninstall-update-icon-cache
