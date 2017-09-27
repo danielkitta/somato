@@ -48,19 +48,9 @@ private:
 public:
   const aiScene* scene = nullptr;
 
-  explicit Impl(std::string resource);
-  ~Impl();
-
+  explicit Impl(std::string resource) : resource_ {std::move(resource)} {}
   void execute();
 };
-
-MeshLoader::Impl::Impl(std::string resource)
-:
-  resource_ {std::move(resource)}
-{}
-
-MeshLoader::Impl::~Impl()
-{}
 
 void MeshLoader::Impl::execute()
 {

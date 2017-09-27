@@ -38,22 +38,19 @@ typedef std::array<PieceStore, Somato::CUBE_PIECE_COUNT> ColumnStore;
 
 class PuzzleSolver
 {
+public:
+  PuzzleSolver() = default;
+  std::vector<Solution> execute();
+
+  PuzzleSolver(const PuzzleSolver&) = delete;
+  PuzzleSolver& operator=(const PuzzleSolver&) = delete;
+
 private:
   ColumnStore           columns_;
   std::vector<Solution> solutions_;
   Solution              state_;
 
-  // noncopyable
-  PuzzleSolver(const PuzzleSolver&) = delete;
-  PuzzleSolver& operator=(const PuzzleSolver&) = delete;
-
   void recurse(int col, Cube cube);
-
-public:
-  PuzzleSolver();
-  ~PuzzleSolver();
-
-  std::vector<Solution> execute();
 };
 
 /*
@@ -189,12 +186,6 @@ bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
   }
   return false;
 }
-
-PuzzleSolver::PuzzleSolver()
-{}
-
-PuzzleSolver::~PuzzleSolver()
-{}
 
 std::vector<Somato::Solution> PuzzleSolver::execute()
 {
