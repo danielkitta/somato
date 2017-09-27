@@ -709,10 +709,8 @@ void Scene::gl_create_label_shader()
 {
   GL::ShaderProgram program;
 
-  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  RESOURCE_PREFIX "shaders/textlabel.vert"});
-  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  RESOURCE_PREFIX "shaders/textlabel.frag"});
+  program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/textlabel.vert"});
+  program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/textlabel.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
@@ -728,10 +726,8 @@ void Scene::gl_create_focus_shader()
 {
   GL::ShaderProgram program;
 
-  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  RESOURCE_PREFIX "shaders/focusrect.vert"});
-  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  RESOURCE_PREFIX "shaders/focusrect.frag"});
+  program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/focusrect.vert"});
+  program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/focusrect.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();

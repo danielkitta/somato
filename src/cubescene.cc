@@ -473,10 +473,8 @@ void CubeScene::gl_create_piece_shader()
 {
   GL::ShaderProgram program;
 
-  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  RESOURCE_PREFIX "shaders/puzzlepieces.vert"});
-  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  RESOURCE_PREFIX "shaders/puzzlepieces.frag"});
+  program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/puzzlepieces.vert"});
+  program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/puzzlepieces.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
@@ -494,10 +492,8 @@ void CubeScene::gl_create_grid_shader()
 {
   GL::ShaderProgram program;
 
-  program.attach(GL::ShaderObject{GL_VERTEX_SHADER,
-                                  RESOURCE_PREFIX "shaders/cellgrid.vert"});
-  program.attach(GL::ShaderObject{GL_FRAGMENT_SHADER,
-                                  RESOURCE_PREFIX "shaders/cellgrid.frag"});
+  program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/cellgrid.vert"});
+  program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/cellgrid.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
