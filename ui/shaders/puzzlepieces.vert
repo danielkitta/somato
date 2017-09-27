@@ -22,5 +22,5 @@ void main()
   interpNormal   = normCamSpace.xyz;
   interpTexcoord = texShear * position + texOffset;
 
-  gl_Position = cameraToClipMatrix * posCamSpace;
+  gl_Position = cameraToClipMatrix * vec4(posCamSpace.xyz, 1.);
 }
