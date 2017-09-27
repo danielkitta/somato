@@ -19,6 +19,8 @@
 
 #if defined(SOMATO_VECTORMATH_H_INCLUDED) && !SOMATO_VECTOR_USE_SSE
 
+#include <array>
+
 namespace Math
 {
 
@@ -53,6 +55,8 @@ private:
 public:
   typedef float         value_type;
   typedef unsigned int  size_type;
+
+  static const std::array<Vector4, 4> basis;
 
   constexpr Vector4() : v_ {0.f, 0.f, 0.f, 0.f} {}
   explicit Vector4(const value_type* b) : v_ {b[0], b[1], b[2], b[3]} {}
@@ -198,8 +202,7 @@ private:
   enum Uninitialized { uninitialized };
   explicit Matrix4(Uninitialized) {}
 
-  static void translation_(const float* t, float result[][4]);
-  static void scaling_(float s, float result[][4]);
+  static void scale_(const float a[][4], float s, float result[][4]);
   static void mul_(const float a[][4], const float* b, float* result);
   static void mul_(const float a[][4], const float b[][4], float result[][4]);
 
@@ -217,13 +220,6 @@ public:
 
   explicit Matrix4(const value_type b[][4]) { *this = b; }
   Matrix4& operator=(const value_type b[][4]);
-
-  static Matrix4 translation(const Vector4& t)
-    { Matrix4 r (uninitialized); translation_(t.v_, r.m_); return r; }
-  static Matrix4 translation(const Vector4::value_type* t)
-    { Matrix4 r (uninitialized); translation_(t, r.m_); return r; }
-  static Matrix4 scaling(float s)
-    { Matrix4 r (uninitialized); scaling_(s, r.m_); return r; }
 
   Matrix4& operator*=(const Matrix4& b)        { mul_(m_, b.m_, m_); return *this; }
   Matrix4& operator*=(const value_type b[][4]) { mul_(m_, b, m_);    return *this; }
@@ -245,6 +241,14 @@ public:
 
   friend Matrix4 operator*(const value_type a[][4], const Matrix4& b)
     { Matrix4 r (uninitialized); mul_(a, b.m_, r.m_); return r; }
+
+  void scale(float s) { scale_(m_, s, m_); }
+  Matrix4 scaled(float s) const
+    { Matrix4 r (uninitialized); scale_(m_, s, r.m_); return r; }
+
+  void translate(const Vector4& t) { mul_(m_, t.v_, m_[3]); }
+  Matrix4 translated(const Vector4& t) const
+    { return {Vector4(m_[0]), Vector4(m_[1]), Vector4(m_[2]), *this * t}; }
 
   void transpose();
 

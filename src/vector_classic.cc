@@ -62,6 +62,14 @@ inline float vector3_mag(const float* v)
 namespace Math
 {
 
+const std::array<Vector4, 4> Vector4::basis =
+{{
+  {1.f, 0.f, 0.f, 0.f},
+  {0.f, 1.f, 0.f, 0.f},
+  {0.f, 0.f, 1.f, 0.f},
+  {0.f, 0.f, 0.f, 1.f},
+}};
+
 void Vector4::sign_(const float* v, float* result)
 {
   set_vector(result, int{v[0] > 0.f} - int{v[0] < 0.f},
@@ -150,20 +158,12 @@ Matrix4::Matrix4()
       {0.f, 0.f, 0.f, 1.f}}
 {}
 
-void Matrix4::translation_(const float* t, float result[][4])
+void Matrix4::scale_(const float a[][4], float s, float result[][4])
 {
-  set_vector(result[0], 1.f, 0.f, 0.f, 0.f);
-  set_vector(result[1], 0.f, 1.f, 0.f, 0.f);
-  set_vector(result[2], 0.f, 0.f, 1.f, 0.f);
-  set_vector(result[3], t[0], t[1], t[2], t[3]);
-}
-
-void Matrix4::scaling_(float s, float result[][4])
-{
-  set_vector(result[0], s,   0.f, 0.f, 0.f);
-  set_vector(result[1], 0.f, s,   0.f, 0.f);
-  set_vector(result[2], 0.f, 0.f, s,   0.f);
-  set_vector(result[3], 0.f, 0.f, 0.f, 1.f);
+  set_vector(result[0], a[0][0] * s, a[0][1] * s, a[0][2] * s, a[0][3] * s);
+  set_vector(result[1], a[1][0] * s, a[1][1] * s, a[1][2] * s, a[1][3] * s);
+  set_vector(result[2], a[2][0] * s, a[2][1] * s, a[2][2] * s, a[2][3] * s);
+  set_vector(result[3], a[3][0],     a[3][1],     a[3][2],     a[3][3]);
 }
 
 void Matrix4::transpose()

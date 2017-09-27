@@ -427,10 +427,9 @@ void CubeScene::rotate(int axis, float angle)
 {
   g_return_if_fail(axis >= Cube::AXIS_X && axis <= Cube::AXIS_Z);
 
-  Math::Vector4 axis_vec;
-  axis_vec[axis] = 1.f;
+  const auto& basis = Math::Vector4::basis[axis];
 
-  set_rotation(Math::Quat::from_axis(axis_vec, angle * rad_per_deg) * rotation_);
+  set_rotation(Math::Quat::from_axis(basis, angle * rad_per_deg) * rotation_);
 }
 
 void CubeScene::gl_initialize()
@@ -586,9 +585,12 @@ int CubeScene::gl_render()
       glEnable(GL_DEPTH_TEST);
       glBindVertexArray(mesh_vertex_array_);
 
-      auto cube_transform = Math::Matrix4::translation({0., 0., view_z_offset, 1.});
+      Math::Matrix4 cube_transform {Math::Vector4::basis[0],
+                                    Math::Vector4::basis[1],
+                                    Math::Vector4::basis[2],
+                                    {0.f, 0.f, view_z_offset, 1.f}};
       cube_transform *= Math::Quat::to_matrix(rotation_);
-      cube_transform *= Math::Matrix4::scaling(zoom_);
+      cube_transform.scale(zoom_);
 
       if (show_cell_grid_)
       {
@@ -1351,8 +1353,6 @@ void CubeScene::gl_generate_grid_indices(volatile GL::MeshIndex* indices)
 
 void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
 {
-  using Math::Matrix4;
-
   if (grid_shader_)
   {
     grid_shader_.use();
@@ -1449,11 +1449,11 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
       const float animation_distance = 1.75 * Cube::N * cube_cell_size;
       const float d = animation_position_ * animation_distance;
 
-      const auto translation = Math::Matrix4::translation({data.direction[0] * d,
-                                                           data.direction[1] * d,
-                                                           data.direction[2] * d,
-                                                           1.f});
-      gl_draw_piece_elements(cube_transform * translation, data);
+      const auto transform = cube_transform.translated({data.direction[0] * d,
+                                                        data.direction[1] * d,
+                                                        data.direction[2] * d,
+                                                        1.f});
+      gl_draw_piece_elements(transform, data);
     }
     GL::ShaderProgram::unuse();
   }

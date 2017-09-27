@@ -19,6 +19,8 @@
 
 #if defined(SOMATO_VECTORMATH_H_INCLUDED) && SOMATO_VECTOR_USE_SSE
 
+#include <array>
+
 #if SOMATO_VECTOR_USE_SSE2
 # include <emmintrin.h>
 #endif
@@ -59,6 +61,8 @@ private:
 public:
   typedef float         value_type;
   typedef unsigned int  size_type;
+
+  static const std::array<Vector4, 4> basis;
 
   constexpr Vector4() : v_ {0.f, 0.f, 0.f, 0.f} {}
   explicit Vector4(const value_type* b) : v_ (_mm_loadu_ps(b)) {}
@@ -189,8 +193,7 @@ private:
   enum Uninitialized { uninitialized };
   explicit Matrix4(Uninitialized) {}
 
-  static void translation_(__m128 t, __m128* result);
-  static void scaling_(__m128 s, __m128* result);
+  static void scale_(const __m128* a, __m128 s, __m128* result);
   static __m128 mul_(const __m128* a, __m128 b);
   static void   mul_(const __m128* a, const __m128* b, __m128* result);
 
@@ -206,18 +209,21 @@ public:
   explicit Matrix4(const value_type b[][4]) { *this = b; }
   Matrix4& operator=(const value_type b[][4]);
 
-  static Matrix4 translation(const Vector4& t)
-    { Matrix4 r (uninitialized); translation_(t.v_, r.m_); return r; }
-  static Matrix4 scaling(float s)
-    { Matrix4 r (uninitialized); scaling_(_mm_set_ss(s), r.m_); return r; }
-
   Matrix4& operator*=(const Matrix4& b) { mul_(m_, b.m_, m_); return *this; }
 
   friend Matrix4 operator*(const Matrix4& a, const Matrix4& b)
-    { Matrix4 r (uninitialized); Matrix4::mul_(a.m_, b.m_, r.m_); return r; }
+    { Matrix4 r (uninitialized); mul_(a.m_, b.m_, r.m_); return r; }
 
   friend Vector4 operator*(const Matrix4& a, const Vector4& b)
-    { return Vector4(Matrix4::mul_(a.m_, b.v_)); }
+    { return Vector4(mul_(a.m_, b.v_)); }
+
+  void scale(float s) { scale_(m_, _mm_set_ss(s), m_); }
+  Matrix4 scaled(float s) const
+    { Matrix4 r (uninitialized); scale_(m_, _mm_set_ss(s), r.m_); return r; }
+
+  void translate(const Vector4& t) { m_[3] = mul_(m_, t.v_); }
+  Matrix4 translated(const Vector4& t) const
+    { return {Vector4(m_[0]), Vector4(m_[1]), Vector4(m_[2]), Vector4(mul_(m_, t.v_))}; }
 
   void transpose();
 

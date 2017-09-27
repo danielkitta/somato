@@ -179,6 +179,14 @@ void operator delete[](void* p, const std::nothrow_t&) throw()
 namespace Math
 {
 
+const std::array<Vector4, 4> Vector4::basis =
+{{
+  {1.f, 0.f, 0.f, 0.f},
+  {0.f, 1.f, 0.f, 0.f},
+  {0.f, 0.f, 1.f, 0.f},
+  {0.f, 0.f, 0.f, 1.f},
+}};
+
 __m128 Vector4::mag_(__m128 v)
 {
   return _mm_sqrt_ss(vector4_dot(v, v));
@@ -236,25 +244,19 @@ Matrix4& Matrix4::operator=(const value_type b[][4])
   return *this;
 }
 
-void Matrix4::translation_(__m128 t, __m128* result)
+void Matrix4::scale_(const __m128* a, __m128 s, __m128* result)
 {
-  __m128 v = _mm_set_ss(1.f);
-  result[0] = v;
-  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,2,0,1));
-  result[1] = v;
-  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,1,2,0));
-  result[2] = v;
-  result[3] = t;
-}
+  const __m128 a0 = a[0];
+  const __m128 a1 = a[1];
+  const __m128 a2 = a[2];
+  const __m128 a3 = a[3];
 
-void Matrix4::scaling_(__m128 s, __m128* result)
-{
-  result[0] = s;
-  s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(3,2,0,1));
-  result[1] = s;
-  s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(3,1,2,0));
-  result[2] = s;
-  result[3] = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
+  const __m128 ssss = _mm_shuffle_ps(s, s, _MM_SHUFFLE(0,0,0,0));
+
+  result[0] = _mm_mul_ps(a0, ssss);
+  result[1] = _mm_mul_ps(a1, ssss);
+  result[2] = _mm_mul_ps(a2, ssss);
+  result[3] = a3;
 }
 
 void Matrix4::transpose()
@@ -283,7 +285,6 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
   const __m128 a3 = a[3];
 
   for (int i = 0; i < 4; ++i)
-    
   {
     // It is assumed that b[] and result[] either refer to the same location
     // in memory or are completely distinct, i.e. not partially overlapping.
@@ -350,7 +351,7 @@ void Quat::to_matrix_(__m128 quat, __m128* result)
   const __m128 t1 = _mm_sub_ps(xy_yz_xz, wz_wx_wy);
   const __m128 t2 = _mm_add_ps(xz_xy_yz, wy_wz_wx);
 
-  const __m128 v0001 = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
+  const __m128 v0001 = Vector4::basis[3].v_;
   result[3] = v0001;
 
   const __m128 v1110 = _mm_shuffle_ps(v0001, v0001, _MM_SHUFFLE(0,3,3,3));
