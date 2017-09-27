@@ -249,7 +249,7 @@ private:
   static __m128 from_axis_(const Vector4& a, __m128 phi);
   static void   to_matrix_(__m128 quat, __m128* result);
   static float  angle_(__m128 quat);
-  static __m128 renormalize_(__m128 quat, __m128 epsilon);
+  static __m128 renorm_(__m128 quat);
 
 public:
   typedef Vector4::value_type value_type;
@@ -274,8 +274,7 @@ public:
   Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }
   friend Quat operator*(const Quat& a, const Quat& b) { return Quat(mul_(a.v_, b.v_)); }
 
-  // Renormalize if the norm is off by more than epsilon.
-  void renormalize(value_type epsilon) { v_ = renormalize_(v_, _mm_set_ss(epsilon)); }
+  Quat renormalized() const { return Quat(renorm_(v_)); }
 
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.

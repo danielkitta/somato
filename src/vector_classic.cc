@@ -283,15 +283,11 @@ void Quat::mul_(const float* a, const float* b, float* result)
   result[3] = qw;
 }
 
-void Quat::renormalize(value_type epsilon)
+void Quat::renorm_(const float* q, float* result)
 {
-  const float norm = Vector4::dot_(v_, v_);
+  const float s = 1.f / Vector4::mag(q);
 
-  if (std::abs(1.f - norm) > epsilon)
-  {
-    // Renormalize quat to fix accumulated error
-    Vector4::div_(v_, std::sqrt(norm), v_);
-  }
+  set_vector(result, q[0] * s, q[1] * s, q[2] * s, q[3] * s);
 }
 
 } // namespace Math

@@ -39,7 +39,6 @@
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
-#include <limits>
 
 namespace
 {
@@ -280,9 +279,7 @@ float CubeScene::get_zoom() const
 
 void CubeScene::set_rotation(const Math::Quat& rotation)
 {
-  rotation_ = rotation;
-  rotation_.renormalize(4.f * std::numeric_limits<float>::epsilon());
-
+  rotation_ = rotation.renormalized();
   depth_order_changed_ = true;
 
   if (!animation_data_.empty())

@@ -373,20 +373,11 @@ float Quat::angle_(__m128 quat)
   return 2.f * a;
 }
 
-__m128 Quat::renormalize_(__m128 quat, __m128 epsilon)
+__m128 Quat::renorm_(__m128 quat)
 {
-  static const union { int i; float f; } absmasku = { 0x7FFFFFFF };
-  const __m128 absmask = _mm_load_ss(&absmasku.f);
+  const __m128 mag = _mm_sqrt_ss(vector4_dot(quat, quat));
 
-  const __m128 norm  = vector4_dot(quat, quat);
-  const __m128 error = _mm_and_ps(_mm_sub_ss(_mm_set_ss(1.f), norm), absmask);
-
-  if (_mm_ucomige_ss(error, epsilon))
-  {
-    const __m128 mag = _mm_sqrt_ss(norm);
-    quat = _mm_div_ps(quat, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
-  }
-  return quat;
+  return _mm_div_ps(quat, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
 }
 
 __m128 Quat::mul_(__m128 a, __m128 b)

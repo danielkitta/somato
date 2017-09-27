@@ -267,6 +267,7 @@ private:
   static void from_axis_(const float* a, float phi, float* result);
   static void to_matrix_(const float* quat, float result[][4]);
   static void mul_(const float* a, const float* b, float* result);
+  static void renorm_(const float* q, float* result);
 
 public:
   typedef Vector4::value_type value_type;
@@ -307,8 +308,7 @@ public:
   friend Quat operator*(const value_type* a, const Quat& b)
     { Quat r (uninitialized); mul_(a, b.v_, r.v_); return r; }
 
-  // Renormalize if the norm is off by more than epsilon.
-  void renormalize(value_type epsilon);
+  Quat renormalized() const { Quat r (uninitialized); renorm_(v_, r.v_); return r; }
 
   value_type&       operator[](size_type i)       { return v_[i]; }
   const value_type& operator[](size_type i) const { return v_[i]; }
