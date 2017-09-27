@@ -27,23 +27,6 @@
 namespace
 {
 
-#if !SOMATO_HAVE_LRINTF
-/*
- * For systems without C99 rounding functions, emulate rint() as it would
- * behave if the default rounding direction is selected.  That is, round to
- * the nearest integer, with halfway cases to nearest even.
- */
-float round_nearest(float r)
-{
-  const float ri = std::floor(r + 0.5f);
-
-  if (ri == r + 0.5f)
-    return 2.f * std::floor(ri * 0.5f);
-  else
-    return ri;
-}
-#endif /* !SOMATO_HAVE_LRINTF */
-
 inline void set_vector(float* result, float x, float y, float z, float w)
 {
   result[0] = x;
@@ -80,15 +63,11 @@ void Vector4::sign_(const float* v, float* result)
 
 void Vector4::rint_(const float* v, float* result)
 {
-#if SOMATO_HAVE_LRINTF
   // Boldly assume the default rounding style.  This way, shooting yourself
   // into the foot by changing the rounding direction non-temporarily becomes
   // an even more delighting experience than usual.
-  set_vector(result, lrintf(v[0]), lrintf(v[1]), lrintf(v[2]), lrintf(v[3]));
-#else
-  set_vector(result, round_nearest(v[0]), round_nearest(v[1]),
-                     round_nearest(v[2]), round_nearest(v[3]));
-#endif
+  set_vector(result, std::lrint(v[0]), std::lrint(v[1]),
+                     std::lrint(v[2]), std::lrint(v[3]));
 }
 
 void Vector4::mask_ifzero_(const float* a, const float* b, float* result)
