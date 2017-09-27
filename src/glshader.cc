@@ -52,7 +52,7 @@ public:
   GLuint release() { const GLuint shader = shader_; shader_ = 0; return shader; }
 };
 
-void load_shader_source(GLuint shader, const std::string& filename)
+void load_shader_source(GLuint shader, const std::string& name)
 {
   const char* snippets[2];
   int lengths[G_N_ELEMENTS(snippets)];
@@ -79,7 +79,7 @@ void load_shader_source(GLuint shader, const std::string& filename)
   else
     throw GL::Error{"No current OpenGL context"};
 
-  const auto resource = Gio::Resource::lookup_data_global(filename);
+  const auto resource = Gio::Resource::lookup_data_global(name);
   gsize size = 0;
   snippets[1] = static_cast<const char*>(resource->get_data(size));
   lengths[1]  = size;
@@ -87,14 +87,14 @@ void load_shader_source(GLuint shader, const std::string& filename)
   glShaderSource(shader, G_N_ELEMENTS(snippets), snippets, lengths);
 }
 
-GLuint compile_shader(GLenum type, const std::string& filename)
+GLuint compile_shader(GLenum type, const std::string& resource)
 {
   ScopedShader shader {type};
 
   g_log(GL::log_domain, G_LOG_LEVEL_DEBUG, "Compiling shader %u: %s",
-        shader.get(), filename.c_str());
+        shader.get(), resource.c_str());
 
-  load_shader_source(shader.get(), filename);
+  load_shader_source(shader.get(), resource);
   glCompileShader(shader.get());
 
   GLint success = GL_FALSE;
@@ -118,7 +118,7 @@ GLuint compile_shader(GLenum type, const std::string& filename)
           "%s", buffer.get());
   }
   if (!success)
-    throw GL::Error{Glib::ustring::compose("Compiling %1 failed", filename)};
+    throw GL::Error{Glib::ustring::compose("Compiling %1 failed", resource)};
 
   return shader.release();
 }
@@ -128,9 +128,9 @@ GLuint compile_shader(GLenum type, const std::string& filename)
 namespace GL
 {
 
-ShaderObject::ShaderObject(unsigned int type, const std::string& filename)
+ShaderObject::ShaderObject(unsigned int type, const std::string& resource)
 :
-  shader_ {compile_shader(type, filename)}
+  shader_ {compile_shader(type, resource)}
 {}
 
 ShaderObject::~ShaderObject()

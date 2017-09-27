@@ -30,7 +30,7 @@ class ShaderObject
 {
 public:
   ShaderObject() : shader_ {0} {}
-  ShaderObject(unsigned int type, const std::string& filename);
+  ShaderObject(unsigned int type, const std::string& resource);
   ~ShaderObject();
 
   ShaderObject(const ShaderObject&) = delete;

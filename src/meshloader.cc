@@ -38,7 +38,7 @@ namespace GL
 class MeshLoader::Impl
 {
 private:
-  std::string                       filename_;
+  std::string                       resource_;
   std::unique_ptr<Assimp::Importer> importer_;
 
   // noncopyable
@@ -48,15 +48,15 @@ private:
 public:
   const aiScene* scene = nullptr;
 
-  explicit Impl(std::string filename);
+  explicit Impl(std::string resource);
   ~Impl();
 
   void execute();
 };
 
-MeshLoader::Impl::Impl(std::string filename)
+MeshLoader::Impl::Impl(std::string resource)
 :
-  filename_ {std::move(filename)}
+  resource_ {std::move(resource)}
 {}
 
 MeshLoader::Impl::~Impl()
@@ -77,7 +77,7 @@ void MeshLoader::Impl::execute()
                                 | aiPrimitiveType_LINE);
   importer_->SetPropertyInteger(AI_CONFIG_PP_ICL_PTCACHE_SIZE, 20);
 
-  scene = importer_->ReadFile(filename_,
+  scene = importer_->ReadFile(resource_,
                               aiProcess_RemoveComponent
                               | aiProcess_JoinIdenticalVertices
                               | aiProcess_Triangulate
@@ -88,9 +88,9 @@ void MeshLoader::Impl::execute()
     throw GL::Error{importer_->GetErrorString()};
 }
 
-MeshLoader::MeshLoader(std::string filename)
+MeshLoader::MeshLoader(std::string resource)
 :
-  pimpl_ {new Impl{std::move(filename)}}
+  pimpl_ {new Impl{std::move(resource)}}
 {}
 
 MeshLoader::~MeshLoader()

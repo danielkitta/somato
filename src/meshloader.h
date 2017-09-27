@@ -72,7 +72,7 @@ public:
 
   typedef std::pair<unsigned int, unsigned int> VertexTriangleCounts;
 
-  explicit MeshLoader(std::string filename);
+  explicit MeshLoader(std::string resource);
   virtual ~MeshLoader();
 
   Node lookup_node(const char* name) const;
