@@ -586,22 +586,26 @@ int CubeScene::gl_render()
       glEnable(GL_DEPTH_TEST);
       glBindVertexArray(mesh_vertex_array_);
 
+      auto cube_transform = Math::Matrix4::translation({0., 0., view_z_offset, 1.});
+      cube_transform *= Math::Quat::to_matrix(rotation_);
+      cube_transform *= Math::Matrix4::scaling(zoom_);
+
       if (show_cell_grid_)
       {
         const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE : GL_POLYGON_OFFSET_FILL;
 
-        gl_draw_cell_grid();
+        gl_draw_cell_grid(cube_transform);
 
         glPolygonOffset(1., 4.);
         glEnable(offset_mode);
 
-        triangle_count += gl_draw_cube();
+        triangle_count += gl_draw_cube(cube_transform);
 
         glDisable(offset_mode);
       }
       else
       {
-        triangle_count += gl_draw_cube();
+        triangle_count += gl_draw_cube(cube_transform);
       }
       glBindVertexArray(0);
       glDisable(GL_DEPTH_TEST);
@@ -1345,7 +1349,7 @@ void CubeScene::gl_generate_grid_indices(volatile GL::MeshIndex* indices)
       }
 }
 
-void CubeScene::gl_draw_cell_grid()
+void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
 {
   using Math::Matrix4;
 
@@ -1353,12 +1357,7 @@ void CubeScene::gl_draw_cell_grid()
   {
     grid_shader_.use();
 
-    Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
-
-    modelview *= Math::Quat::to_matrix(rotation_);
-    modelview *= Matrix4::scaling(zoom_);
-
-    glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
+    glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &cube_transform[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
                         2 * GRID_LINE_COUNT, GL::attrib_type<GL::MeshIndex>,
@@ -1368,7 +1367,7 @@ void CubeScene::gl_draw_cell_grid()
   }
 }
 
-int CubeScene::gl_draw_cube()
+int CubeScene::gl_draw_cube(const Math::Matrix4& cube_transform)
 {
   int triangle_count = 0;
 
@@ -1378,19 +1377,19 @@ int CubeScene::gl_draw_cube()
 
     if (!show_outline_)
     {
-      triangle_count += gl_draw_pieces();
+      triangle_count += gl_draw_pieces(cube_transform);
     }
     else
     {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      triangle_count += gl_draw_pieces();
+      triangle_count += gl_draw_pieces(cube_transform);
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
   }
   return triangle_count;
 }
 
-int CubeScene::gl_draw_pieces()
+int CubeScene::gl_draw_pieces(const Math::Matrix4& cube_transform)
 {
   const int count = animation_data_.size();
 
@@ -1409,12 +1408,13 @@ int CubeScene::gl_draw_pieces()
   }
 
   if (last >= first)
-    return gl_draw_pieces_range(first, last);
+    return gl_draw_pieces_range(cube_transform, first, last);
 
   return 0;
 }
 
-int CubeScene::gl_draw_pieces_range(int first, int last)
+int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
+                                    int first, int last)
 {
   int triangle_count = 0;
 
@@ -1436,7 +1436,7 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
           const auto& mesh = mesh_data_[data.cube_index];
           triangle_count += mesh.triangle_count;
 
-          gl_draw_piece_elements(data, {0.f, 0.f, 0.f, 1.f});
+          gl_draw_piece_elements(cube_transform, data);
         }
     }
     if (last != last_fixed)
@@ -1449,30 +1449,21 @@ int CubeScene::gl_draw_pieces_range(int first, int last)
       const float animation_distance = 1.75 * Cube::N * cube_cell_size;
       const float d = animation_position_ * animation_distance;
 
-      const Math::Vector4 translate {data.direction[0] * d,
-                                     data.direction[1] * d,
-                                     data.direction[2] * d,
-                                     1.};
-      gl_draw_piece_elements(data, translate);
+      const auto translation = Math::Matrix4::translation({data.direction[0] * d,
+                                                           data.direction[1] * d,
+                                                           data.direction[2] * d,
+                                                           1.f});
+      gl_draw_piece_elements(cube_transform * translation, data);
     }
     GL::ShaderProgram::unuse();
   }
   return triangle_count;
 }
 
-void CubeScene::gl_draw_piece_elements(const AnimationData& data,
-                                       Math::Vector4 animpos)
+void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
+                                       const AnimationData& data)
 {
-  using Math::Matrix4;
-
-  Matrix4 modelview = Matrix4::translation({0., 0., view_z_offset, 1.});
-
-  modelview *= Math::Quat::to_matrix(rotation_);
-  modelview *= Matrix4{{zoom_, 0., 0., 0.},
-                       {0., zoom_, 0., 0.},
-                       {0., 0., zoom_, 0.},
-                       animpos};
-  modelview *= data.transform;
+  const Math::Matrix4 modelview = transform * data.transform;
 
   glUniformMatrix4fv(uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
 

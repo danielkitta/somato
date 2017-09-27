@@ -211,12 +211,12 @@ private:
   void gl_create_grid_shader();
   void gl_generate_grid_vertices(volatile GL::MeshVertex* vertices);
   void gl_generate_grid_indices(volatile GL::MeshIndex* indices);
-  void gl_draw_cell_grid();
+  void gl_draw_cell_grid(const Math::Matrix4& cube_transform);
 
-  int  gl_draw_cube();
-  int  gl_draw_pieces();
-  int  gl_draw_pieces_range(int first, int last);
-  void gl_draw_piece_elements(const AnimationData& data, Math::Vector4 animpos);
+  int  gl_draw_cube(const Math::Matrix4& cube_transform);
+  int  gl_draw_pieces(const Math::Matrix4& cube_transform);
+  int  gl_draw_pieces_range(const Math::Matrix4& cube_transform, int first, int last);
+  void gl_draw_piece_elements(const Math::Matrix4& transform, const AnimationData& data);
 
   void gl_init_cube_texture();
 };
