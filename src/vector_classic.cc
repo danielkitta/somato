@@ -124,6 +124,12 @@ bool Vector4::equal_(const float* a, const float* b)
   return (a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3]);
 }
 
+void Vector4::norm_(const float* v, float* result)
+{
+  const float s = 1.f / mag(v);
+  set_vector(result, v[0] * s, v[1] * s, v[2] * s, v[3] * s);
+}
+
 Vector4::value_type Vector4::mag(const value_type* v)
 {
   return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
@@ -260,13 +266,6 @@ void Quat::mul_(const float* a, const float* b, float* result)
   result[1] = qy;
   result[2] = qz;
   result[3] = qw;
-}
-
-void Quat::renorm_(const float* q, float* result)
-{
-  const float s = 1.f / Vector4::mag(q);
-
-  set_vector(result, q[0] * s, q[1] * s, q[2] * s, q[3] * s);
 }
 
 } // namespace Math

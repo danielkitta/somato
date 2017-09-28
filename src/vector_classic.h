@@ -47,6 +47,7 @@ private:
   static float dot_  (const float* a, const float* b);
   static void  cross_(const float* a, const float* b, float* result);
   static bool  equal_(const float* a, const float* b);
+  static void  norm_ (const float* v, float* result);
   static void  rint_ (const float* v, float* result);
   static void  sign_ (const float* v, float* result);
   static void  mask_ifzero_   (const float* a, const float* b, float* result);
@@ -148,6 +149,10 @@ public:
 
   static value_type mag(const value_type* v);
   static value_type mag(const Vector4& v) { return mag(v.v_); }
+
+  void normalize() { norm_(v_, v_); }
+  Vector4 normalized() const
+    { Vector4 r (uninitialized); norm_(v_, r.v_); return r; }
 
   static Vector4 rint(const Vector4& v)
     { Vector4 r (uninitialized); rint_(v.v_, r.v_); return r; }
@@ -267,7 +272,6 @@ private:
   static void from_axis_(const float* a, float phi, float* result);
   static void to_matrix_(const float* quat, float result[][4]);
   static void mul_(const float* a, const float* b, float* result);
-  static void renorm_(const float* q, float* result);
 
 public:
   typedef Vector4::value_type value_type;
@@ -308,7 +312,8 @@ public:
   friend Quat operator*(const value_type* a, const Quat& b)
     { Quat r (uninitialized); mul_(a, b.v_, r.v_); return r; }
 
-  Quat renormalized() const { Quat r (uninitialized); renorm_(v_, r.v_); return r; }
+  Quat renormalized() const
+    { Quat r (uninitialized); Vector4::norm_(v_, r.v_); return r; }
 
   value_type&       operator[](size_type i)       { return v_[i]; }
   const value_type& operator[](size_type i) const { return v_[i]; }

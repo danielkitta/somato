@@ -197,6 +197,13 @@ __m128 Vector4::dot_(__m128 a, __m128 b)
   return vector4_dot(a, b);
 }
 
+__m128 Vector4::norm_(__m128 v)
+{
+  const __m128 m = _mm_sqrt_ss(vector4_dot(v, v));
+
+  return _mm_div_ps(v, _mm_shuffle_ps(m, m, _MM_SHUFFLE(0,0,0,0)));
+}
+
 #if !SOMATO_VECTOR_USE_SSE2
 
 __m128 Vector4::rint_(__m128 v)
@@ -371,13 +378,6 @@ float Quat::angle_(__m128 quat)
 
   const float a = std::atan2(_mm_cvtss_f32(sine), _mm_cvtss_f32(cosine));
   return 2.f * a;
-}
-
-__m128 Quat::renorm_(__m128 quat)
-{
-  const __m128 mag = _mm_sqrt_ss(vector4_dot(quat, quat));
-
-  return _mm_div_ps(quat, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
 }
 
 __m128 Quat::mul_(__m128 a, __m128 b)

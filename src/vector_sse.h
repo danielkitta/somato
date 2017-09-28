@@ -56,7 +56,8 @@ private:
 #if !SOMATO_VECTOR_USE_SSE2
   static __m128 rint_(__m128 v);
 #endif
-  static __m128 mag_(__m128 v); // magnitude of (x,y,z,w)
+  static __m128 mag_(__m128 v);  // magnitude of (x,y,z,w)
+  static __m128 norm_(__m128 v); // normalize
 
 public:
   typedef float         value_type;
@@ -114,6 +115,9 @@ public:
 
   static inline Vector4 mask_ifzero   (const Vector4& a, const Vector4& b);
   static inline Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b);
+
+  void normalize() { v_ = norm_(v_); }
+  Vector4 normalized() const { return Vector4(norm_(v_)); }
 
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.
@@ -249,7 +253,6 @@ private:
   static __m128 from_axis_(const Vector4& a, __m128 phi);
   static void   to_matrix_(__m128 quat, __m128* result);
   static float  angle_(__m128 quat);
-  static __m128 renorm_(__m128 quat);
 
 public:
   typedef Vector4::value_type value_type;
@@ -274,7 +277,7 @@ public:
   Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }
   friend Quat operator*(const Quat& a, const Quat& b) { return Quat(mul_(a.v_, b.v_)); }
 
-  Quat renormalized() const { return Quat(renorm_(v_)); }
+  Quat renormalized() const { return Quat(Vector4::norm_(v_)); }
 
   // Use the element accessors below instead of operator[] whereever
   // possible in order to avoid penalties due to partial reads or writes.
