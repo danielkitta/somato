@@ -1,7 +1,7 @@
 uniform sampler2D pieceTexture;
 uniform vec4 diffuseMaterial;
 
-smooth in vec3 interpPosition;
+smooth in vec3 interpHalfVec;
 smooth in vec3 interpNormal;
 smooth in vec2 interpTexcoord;
 
@@ -16,12 +16,11 @@ void main()
 {
   float texIntensity = 0.5 * texture(pieceTexture, interpTexcoord).r + 0.3;
 
-  vec3 normNormal = normalize(interpNormal);
-  vec3 viewDir = normalize(interpPosition);
-  vec3 halfVec = normalize(dirToLight - viewDir);
+  vec3 normal  = normalize(interpNormal);
+  vec3 halfVec = normalize(interpHalfVec);
 
-  float cosIncidence = clamp(dot(normNormal, dirToLight), 0., 1.);
-  float spec = pow(clamp(dot(normNormal, halfVec), 0., 1.), 32.) * specIntensity;
+  float cosIncidence = clamp(dot(normal, dirToLight), 0., 1.);
+  float spec = pow(clamp(dot(normal, halfVec), 0., 1.), 32.) * specIntensity;
   float specTerm = (cosIncidence != 0.) ? spec : 0.;
   float diffuseTerm = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
 
