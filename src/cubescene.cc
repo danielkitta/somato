@@ -191,7 +191,7 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 
   add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::BUTTON1_MOTION_MASK
              | Gdk::POINTER_MOTION_MASK | Gdk::KEY_PRESS_MASK | Gdk::KEY_RELEASE_MASK
-             | Gdk::ENTER_NOTIFY_MASK | Gdk::VISIBILITY_NOTIFY_MASK);
+             | Gdk::ENTER_NOTIFY_MASK | Gdk::LEAVE_NOTIFY_MASK | Gdk::VISIBILITY_NOTIFY_MASK);
 }
 
 CubeScene::~CubeScene()
@@ -821,9 +821,18 @@ bool CubeScene::on_visibility_notify_event(GdkEventVisibility* event)
 
 bool CubeScene::on_enter_notify_event(GdkEventCrossing* event)
 {
+  pointer_inside_ = true;
   reset_hide_cursor_timeout();
 
   return GL::Scene::on_enter_notify_event(event);
+}
+
+bool CubeScene::on_leave_notify_event(GdkEventCrossing* event)
+{
+  pointer_inside_ = false;
+  reset_hide_cursor_timeout();
+
+  return GL::Scene::on_leave_notify_event(event);
 }
 
 bool CubeScene::on_key_press_event(GdkEventKey* event)
@@ -1213,22 +1222,24 @@ void CubeScene::reset_hide_cursor_timeout()
   hide_cursor_timeout_.disconnect();
 
   if (track_last_x_ == TRACK_UNSET || track_last_y_ == TRACK_UNSET)
+  {
     set_cursor(CURSOR_DEFAULT);
 
-  if (animation_running_)
-  {
-    const int interval = static_cast<int>(1000.f * hide_cursor_delay + 0.5f);
+    if (pointer_inside_ && animation_running_)
+    {
+      const int interval = static_cast<int>(1000.f * hide_cursor_delay + 0.5f);
 
-    hide_cursor_timeout_ = Glib::signal_timeout().connect(
-        sigc::mem_fun(*this, &CubeScene::on_hide_cursor_timeout),
-        interval, Glib::PRIORITY_DEFAULT_IDLE);
+      hide_cursor_timeout_ = Glib::signal_timeout().connect(
+          sigc::mem_fun(*this, &CubeScene::on_hide_cursor_timeout),
+          interval, Glib::PRIORITY_DEFAULT_IDLE);
+    }
   }
 }
 
 bool CubeScene::on_hide_cursor_timeout()
 {
   if ((track_last_x_ == TRACK_UNSET || track_last_y_ == TRACK_UNSET)
-      && animation_running_ && get_realized())
+      && pointer_inside_ && animation_running_ && get_realized())
   {
     set_cursor(CURSOR_INVISIBLE);
   }

@@ -114,6 +114,7 @@ protected:
   void on_size_allocate(Gtk::Allocation& allocation) override;
   bool on_visibility_notify_event(GdkEventVisibility* event) override;
   bool on_enter_notify_event(GdkEventCrossing* event) override;
+  bool on_leave_notify_event(GdkEventCrossing* event) override;
   bool on_key_press_event(GdkEventKey* event) override;
   bool on_key_release_event(GdkEventKey* event) override;
   bool on_button_press_event(GdkEventButton* event) override;
@@ -180,6 +181,7 @@ private:
   float                       zoom_                 = 1.;
   float                       pieces_per_sec_       = 1.;
 
+  bool                        pointer_inside_       = false;
   bool                        depth_order_changed_  = false;
   bool                        animation_running_    = false;
   bool                        show_cell_grid_       = false;
