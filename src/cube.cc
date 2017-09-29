@@ -20,45 +20,68 @@
 #include <config.h>
 #include "cube.h"
 
+#include <array>
+#include <utility>
+
+namespace
+{
+
+using namespace Somato;
+
+template <int N> inline int shift_by_axis(int axis);
+
+template <> inline int shift_by_axis<3>(int axis) { return ((2-axis) << (2-axis)) + 1; }
+template <> inline int shift_by_axis<4>(int axis) { return 16u >> (2 * axis); }
+
+template <int A> constexpr
+unsigned char make_rotation_index(int n, int x, int y, int z);
+
+template <> constexpr
+unsigned char make_rotation_index<AXIS_X>(int n, int x, int y, int z)
+{
+  return n*n*(n-1-x) + n*z + (n-1-y);
+}
+
+template <> constexpr
+unsigned char make_rotation_index<AXIS_Y>(int n, int x, int y, int z)
+{
+  return n*n*z + n*(n-1-y) + (n-1-x);
+}
+
+template <> constexpr
+unsigned char make_rotation_index<AXIS_Z>(int n, int x, int y, int z)
+{
+  return n*n*y + n*(n-1-x) + (n-1-z);
+}
+
+template <int N, int A, int... I> constexpr
+std::array<unsigned char, N*N*N> make_rotation_indices_(std::integer_sequence<int, I...>)
+{
+  return {make_rotation_index<A>(N, I / (N*N), (I % (N*N)) / N, I % N)...};
+}
+
+template <int N, int A> constexpr
+std::array<unsigned char, N*N*N> make_rotation_indices()
+{
+  return make_rotation_indices_<N, A>(std::make_integer_sequence<int, N*N*N>{});
+}
+
+const auto test_indices = make_rotation_indices<3, Somato::AXIS_X>();
+
+} // anonymous namespace
+
 namespace Somato
 {
 
-bool Cube::get_(Bits data, int x, int y, int z)
+template <int N_>
+typename Cube<N_>::Bits Cube<N_>::rotate_(Bits data, int axis)
 {
-  const int index = N*N*x + N*y + z;
-
-  return ((data >> index) & Bits{1});
-}
-
-Cube::Bits Cube::put_(Bits data, int x, int y, int z, bool value)
-{
-  const int index = N*N*x + N*y + z;
-
-  return (data & ~(Bits{1} << index)) | (Bits{value} << index);
-}
-
-Cube::Bits Cube::rotate_(Bits data, int axis)
-{
-  // This table is specific to the N = 3 case and requires
-  // modification for other values of N.
-  static_assert (N == 3, "shuffle_order only valid for N = 3");
-
-  static const unsigned char shuffle_order[3][8 * sizeof(Bits)] =
+  static const std::array<unsigned char, N*N*N> shuffle_order[3] =
   {
-    {
-      20, 23, 26, 19, 22, 25, 18, 21, 24, 11, 14, 17, 10, 13, 16,  9,
-      12, 15,  2,  5,  8,  1,  4,  7,  0,  3,  6,  0,  0,  0,  0,  0
-    },
-    {
-       8, 17, 26,  5, 14, 23,  2, 11, 20,  7, 16, 25,  4, 13, 22,  1,
-      10, 19,  6, 15, 24,  3, 12, 21,  0,  9, 18,  0,  0,  0,  0,  0
-    },
-    {
-       8,  7,  6, 17, 16, 15, 26, 25, 24,  5,  4,  3, 14, 13, 12, 23,
-      22, 21,  2,  1,  0, 11, 10,  9, 20, 19, 18,  0,  0,  0,  0,  0
-    }
+    make_rotation_indices<N, AXIS_X>(),
+    make_rotation_indices<N, AXIS_Y>(),
+    make_rotation_indices<N, AXIS_Z>()
   };
-
   Bits result = 0;
 
   for (int i = 0; i < N*N*N; ++i)
@@ -67,32 +90,36 @@ Cube::Bits Cube::rotate_(Bits data, int axis)
   return result;
 }
 
-Cube::Bits Cube::shift_(Bits data, int axis, ClipMode clip)
+template <int N_>
+typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, int axis, ClipMode clip)
 {
-  static const struct { int dist; Bits mask; } shift_mask[3] =
+  static const Bits shift_mask[3] =
   {
-    { N*N, ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * ~(~Bits{0} << (N-1)*N*N) },
-    { N,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * ~(~Bits{0} << (N-1)*N)   },
-    { 1,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * ~(~Bits{0} << (N-1))     }
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * ~(~Bits{0} << (N-1)*N*N),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * ~(~Bits{0} << (N-1)*N),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * ~(~Bits{0} << (N-1))
   };
-  const Bits mask = shift_mask[axis].mask;
-  const Bits clip_mask = (data & ~mask) ? mask & clip : mask;
+  const Bits mask = shift_mask[axis];
+  const Bits clip_mask = (data & ~mask) ? mask & static_cast<Bits>(clip) : mask;
 
-  return (data & clip_mask) << shift_mask[axis].dist;
+  return (data & clip_mask) << shift_by_axis<N>(axis);
 }
 
-Cube::Bits Cube::shift_rev_(Bits data, int axis, ClipMode clip)
+template <int N_>
+typename Cube<N_>::Bits Cube<N_>::shift_rev_(Bits data, int axis, ClipMode clip)
 {
-  static const struct { int dist; Bits mask; } shift_mask[3] =
+  static const Bits shift_mask[3] =
   {
-    { N*N, ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * (~(~Bits{0} << (N-1)*N*N) << (N*N)) },
-    { N,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * (~(~Bits{0} << (N-1)*N)   << N)     },
-    { 1,   ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * (~(~Bits{0} << (N-1))     << 1)     }
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * (~(~Bits{0} << (N-1)*N*N) << (N*N)),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * (~(~Bits{0} << (N-1)*N)   << N),
+    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * (~(~Bits{0} << (N-1))     << 1)
   };
-  const Bits mask = shift_mask[axis].mask;
-  const Bits clip_mask = (data & ~mask) ? mask & clip : mask;
+  const Bits mask = shift_mask[axis];
+  const Bits clip_mask = (data & ~mask) ? mask & static_cast<Bits>(clip) : mask;
 
-  return (data & clip_mask) >> shift_mask[axis].dist;
+  return (data & clip_mask) >> shift_by_axis<N>(axis);
 }
+
+template class Cube<3>;
 
 } // namespace Somato

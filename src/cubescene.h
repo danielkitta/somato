@@ -139,7 +139,7 @@ private:
 
   Math::Quat                  rotation_;
 
-  std::vector<Cube>           cube_pieces_;
+  std::vector<SomaCube>       cube_pieces_;
   std::vector<MeshData>       mesh_data_;
   std::vector<AnimationData>  animation_data_;
   PieceCellVector             piece_cells_;

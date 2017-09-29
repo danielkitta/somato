@@ -43,12 +43,12 @@
 namespace
 {
 
-using Somato::Cube;
+using namespace Somato;
 
 enum
 {
-  GRID_VERTEX_COUNT = (Cube::N + 1) * (Cube::N + 1) * (Cube::N + 1),
-  GRID_LINE_COUNT   = (Cube::N + 1) * (Cube::N + 1) *  Cube::N * 3
+  GRID_VERTEX_COUNT = (SomaCube::N + 1) * (SomaCube::N + 1) * (SomaCube::N + 1),
+  GRID_LINE_COUNT   = (SomaCube::N + 1) * (SomaCube::N + 1) *  SomaCube::N * 3
 };
 
 /* Vertex shader input attribute locations.
@@ -115,8 +115,7 @@ static const std::array<GLfloat[4], 8> piece_materials
  * its desired position, without colliding with any other piece
  * already in place (think Tetris).
  */
-static
-void find_animation_axis(Cube cube, Cube piece, float* direction)
+void find_animation_axis(SomaCube cube, SomaCube piece, float* direction)
 {
   struct MovementData
   {
@@ -138,34 +137,34 @@ void find_animation_axis(Cube cube, Cube piece, float* direction)
   // Directions listed first are prefered.
   static const std::array<MovementData, 6> movement_data
   {{
-    { Cube::AXIS_Y, false,  0.,  1.,  0. }, // top->down
-    { Cube::AXIS_Z, true,   0.,  0.,  1. }, // front->back
-    { Cube::AXIS_X, true,  -1.,  0.,  0. }, // left->right
-    { Cube::AXIS_X, false,  1.,  0.,  0. }, // right->left
-    { Cube::AXIS_Z, false,  0.,  0., -1. }, // back->front
-    { Cube::AXIS_Y, true,   0., -1.,  0. }  // bottom->up
+    { AXIS_Y, false,  0.,  1.,  0. }, // top->down
+    { AXIS_Z, true,   0.,  0.,  1. }, // front->back
+    { AXIS_X, true,  -1.,  0.,  0. }, // left->right
+    { AXIS_X, false,  1.,  0.,  0. }, // right->left
+    { AXIS_Z, false,  0.,  0., -1. }, // back->front
+    { AXIS_Y, true,   0., -1.,  0. }  // bottom->up
   }};
 
   for (const auto& movement : movement_data)
   {
     // Swap fixed and moving pieces if backward shifting is indicated.
-    const Cube fixed  = (movement.backward) ? piece : cube;
-    Cube       moving = (movement.backward) ? cube : piece;
+    const SomaCube fixed  = (movement.backward) ? piece : cube;
+    SomaCube       moving = (movement.backward) ? cube : piece;
 
     // Now do the shifting until the moving piece has either
     // vanished from view or collided with the fixed piece.
     do
     {
-      if (moving == Cube{}) // if it vanished we have just found our solution
+      if (!moving) // if it vanished we have just found our solution
       {
         direction[0] = movement.x;
         direction[1] = movement.y;
         direction[2] = movement.z;
         return;
       }
-      moving.shift(movement.axis, Cube::SLICE);
+      moving.shift(movement.axis, ClipMode::SLICE);
     }
-    while ((fixed & moving) == Cube{});
+    while (!(fixed & moving));
   }
 
   // This should not happen as long as the input is correct.
@@ -180,7 +179,7 @@ namespace Somato
 CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 :
   GL::Scene    {obj},
-  piece_cells_ (Cube::N * Cube::N * Cube::N),
+  piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N),
   heading_     {create_layout_texture()},
   footing_     {create_layout_texture()}
 {
@@ -422,7 +421,7 @@ int CubeScene::get_cube_vertex_count() const
  */
 void CubeScene::rotate(int axis, float angle)
 {
-  g_return_if_fail(axis >= Cube::AXIS_X && axis <= Cube::AXIS_Z);
+  g_return_if_fail(axis >= AXIS_X && axis <= AXIS_Z);
 
   const auto& basis = Math::Vector4::basis[axis];
 
@@ -844,10 +843,10 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
     case 0:
       switch (event->keyval)
       {
-        case GDK_KEY_Left:  case GDK_KEY_KP_Left:   rotate(Cube::AXIS_Y,  rotation_step); return true;
-        case GDK_KEY_Right: case GDK_KEY_KP_Right:  rotate(Cube::AXIS_Y, -rotation_step); return true;
-        case GDK_KEY_Up:    case GDK_KEY_KP_Up:     rotate(Cube::AXIS_X,  rotation_step); return true;
-        case GDK_KEY_Down:  case GDK_KEY_KP_Down:   rotate(Cube::AXIS_X, -rotation_step); return true;
+        case GDK_KEY_Left:  case GDK_KEY_KP_Left:   rotate(AXIS_Y,  rotation_step); return true;
+        case GDK_KEY_Right: case GDK_KEY_KP_Right:  rotate(AXIS_Y, -rotation_step); return true;
+        case GDK_KEY_Up:    case GDK_KEY_KP_Up:     rotate(AXIS_X,  rotation_step); return true;
+        case GDK_KEY_Down:  case GDK_KEY_KP_Down:   rotate(AXIS_X, -rotation_step); return true;
         case GDK_KEY_Begin: case GDK_KEY_KP_Begin:
         case GDK_KEY_5:     case GDK_KEY_KP_5:      set_rotation({}); return true;
       }
@@ -1017,7 +1016,7 @@ void CubeScene::gl_reposition_layouts()
  */
 void CubeScene::update_animation_order()
 {
-  enum { N = Cube::N };
+  enum { N = SomaCube::N };
 
   static const std::array<unsigned char[3], N*N*N> cell_order
   {{
@@ -1028,13 +1027,13 @@ void CubeScene::update_animation_order()
   }};
 
   unsigned int count = 0;
-  Cube         cube;
+  SomaCube     cube;
 
   for (const auto& order : cell_order)
   {
     const unsigned int cell_index = N*N * order[0] + N * order[1] + order[2];
 
-    Cube cell;
+    SomaCube cell;
     cell.put(order[0], order[1], order[2], true);
 
     g_return_if_fail(cell_index < piece_cells_.size());
@@ -1048,7 +1047,7 @@ void CubeScene::update_animation_order()
     // 4) Write the piece's animation index to the piece cells vector.
 
     const auto pcube = std::find_if(cube_pieces_.cbegin(), cube_pieces_.cend(),
-                                    [cell](Cube c) { return ((c & cell) != Cube{}); });
+                                    [cell](SomaCube c) { return (c & cell); });
     if (pcube != cube_pieces_.cend())
     {
       const unsigned int cube_index = pcube - cube_pieces_.cbegin();
@@ -1059,7 +1058,7 @@ void CubeScene::update_animation_order()
 
       if (anim_index == count)
       {
-        g_return_if_fail((cube & *pcube) == Cube{});           // collision
+        g_return_if_fail(!(cube & *pcube));                    // collision
         g_return_if_fail(anim_index < animation_data_.size()); // invalid input
 
         auto& anim = animation_data_[anim_index];
@@ -1089,7 +1088,7 @@ void CubeScene::update_depth_order()
 {
   const Math::Matrix4 matrix = Math::Quat::to_matrix(rotation_);
 
-  enum { N = Cube::N };
+  enum { N = SomaCube::N };
 
   std::array<float, N*N*N> zcoords;
   auto pcell = begin(zcoords);
@@ -1107,7 +1106,7 @@ void CubeScene::update_depth_order()
             [&zcoords](const PieceCell& a, const PieceCell& b)
             { return (zcoords[a.cell] > zcoords[b.cell]); });
 
-  Cube cube;
+  SomaCube cube;
   auto pdepth = begin(depth_order_);
 
   g_return_if_fail(pdepth != end(depth_order_));
@@ -1120,7 +1119,7 @@ void CubeScene::update_depth_order()
 
       g_return_if_fail(index < cube_pieces_.size());
 
-      if ((cube & cube_pieces_[index]) == Cube{})
+      if (!(cube & cube_pieces_[index]))
       {
         cube |= cube_pieces_[index];
         *pdepth = pc.piece;
@@ -1291,7 +1290,7 @@ void CubeScene::process_track_motion(int x, int y)
     // would have to take the current rotation into account.  More effort than
     // it is worth, if you ask me.
 
-    const float cube_radius    = Cube::N * cube_cell_size / 2.;
+    const float cube_radius    = SomaCube::N * cube_cell_size / 2.;
     const float trackball_size = (1. + G_SQRT2) / -view_z_offset * cube_radius;
 
     const int   width  = get_viewport_width();
@@ -1315,7 +1314,7 @@ void CubeScene::process_track_motion(int x, int y)
  */
 void CubeScene::gl_generate_grid_vertices(volatile GL::MeshVertex* vertices)
 {
-  enum { N = Cube::N + 1 };
+  enum { N = SomaCube::N + 1 };
   float stride[N];
 
   for (int i = 0; i < N; ++i)
@@ -1334,7 +1333,7 @@ void CubeScene::gl_generate_grid_vertices(volatile GL::MeshVertex* vertices)
 
 void CubeScene::gl_generate_grid_indices(volatile GL::MeshIndex* indices)
 {
-  enum { N = Cube::N + 1 };
+  enum { N = SomaCube::N + 1 };
   auto* pi = indices;
 
   for (int i = 0; i < N; ++i)
@@ -1449,7 +1448,7 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
       triangle_count += mesh.triangle_count;
 
       // Distance in model units an animated cube piece has to travel.
-      const float animation_distance = 1.75 * Cube::N * cube_cell_size;
+      const float animation_distance = 1.75 * SomaCube::N * cube_cell_size;
       const float d = animation_position_ * animation_distance;
 
       const auto transform = cube_transform.translated({data.direction[0] * d,

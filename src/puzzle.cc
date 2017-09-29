@@ -30,10 +30,9 @@
 namespace
 {
 
-using Somato::Cube;
-using Somato::Solution;
+using namespace Somato;
 
-typedef std::vector<Cube> PieceStore;
+typedef std::vector<SomaCube> PieceStore;
 typedef std::array<PieceStore, Somato::CUBE_PIECE_COUNT> ColumnStore;
 
 class PuzzleSolver
@@ -50,7 +49,7 @@ private:
   std::vector<Solution> solutions_;
   Solution              state_;
 
-  void recurse(int col, Cube cube);
+  void recurse(int col, SomaCube cube);
 };
 
 /*
@@ -58,7 +57,7 @@ private:
  * faster than with the original order from the project description.
  * The cube piece at index 0 should be suitable for use as the anchor.
  */
-const std::array<Cube, Somato::CUBE_PIECE_COUNT> cube_piece_data
+const std::array<SomaCube, Somato::CUBE_PIECE_COUNT> cube_piece_data
 {{
   { // Piece #6
     1,1,0, 0,0,0, 0,0,0,
@@ -100,24 +99,24 @@ const std::array<Cube, Somato::CUBE_PIECE_COUNT> cube_piece_data
 /*
  * Rotate the cube.  This takes care of all orientations possible.
  */
-void compute_rotations(Cube cube, PieceStore& store)
+void compute_rotations(SomaCube cube, PieceStore& store)
 {
   for (unsigned int i = 0;; ++i)
   {
-    Cube temp = cube;
+    SomaCube temp = cube;
 
     // Add the 4 possible orientations of each cube side.
     store.push_back(temp);
-    store.push_back(temp.rotate(Cube::AXIS_Z));
-    store.push_back(temp.rotate(Cube::AXIS_Z));
-    store.push_back(temp.rotate(Cube::AXIS_Z));
+    store.push_back(temp.rotate(AXIS_Z));
+    store.push_back(temp.rotate(AXIS_Z));
+    store.push_back(temp.rotate(AXIS_Z));
 
     if (i == 5)
       break;
 
     // Due to the zigzagging performed here, only 5 rotations are
     // necessary to move each of the 6 cube sides in turn to the front.
-    cube.rotate(Cube::AXIS_X + i % 2);
+    cube.rotate(AXIS_X + i % 2);
   }
 }
 
@@ -126,14 +125,14 @@ void compute_rotations(Cube cube, PieceStore& store)
  * imaginable.  Note that the block is assumed to be positioned initially
  * in the (0, 0, 0) corner of the cube.
  */
-void shuffle_cube_piece(Cube cube, PieceStore& store)
+void shuffle_cube_piece(SomaCube cube, PieceStore& store)
 {
   // Make sure the piece is positioned where we expect it to be.
   g_return_if_fail(cube.get(0, 0, 0));
 
-  for (Cube z = cube; z != Cube{}; z.shift(Cube::AXIS_Z))
-    for (Cube y = z; y != Cube{}; y.shift(Cube::AXIS_Y))
-      for (Cube x = y; x != Cube{}; x.shift(Cube::AXIS_X))
+  for (SomaCube z = cube; z; z.shift(AXIS_Z))
+    for (SomaCube y = z; y; y.shift(AXIS_Y))
+      for (SomaCube x = y; x; x.shift(AXIS_X))
       {
         compute_rotations(x, store);
       }
@@ -153,25 +152,25 @@ void filter_rotations(PieceStore& store)
 
   for (auto p = store.cbegin(); p != store.cend(); p += 24)
   {
-    *pdest++ = *std::min_element(p, p + 24, Cube::SortPredicate{});
+    *pdest++ = *std::min_element(p, p + 24, SomaCube::SortPredicate{});
   }
 
   store.erase(pdest, store.end());
 }
 
-bool find_piece_translation(Cube original, Cube piece, Math::Matrix4& transform)
+bool find_piece_translation(SomaCube original, SomaCube piece, Math::Matrix4& transform)
 {
   int z = 0;
 
-  for (Cube piece_z = piece; piece_z != Cube{}; piece_z.shift_rev(Cube::AXIS_Z))
+  for (SomaCube piece_z = piece; piece_z; piece_z.shift_rev(AXIS_Z))
   {
     int y = 0;
 
-    for (Cube piece_y = piece_z; piece_y != Cube{}; piece_y.shift_rev(Cube::AXIS_Y))
+    for (SomaCube piece_y = piece_z; piece_y; piece_y.shift_rev(AXIS_Y))
     {
       int x = 0;
 
-      for (Cube piece_x = piece_y; piece_x != Cube{}; piece_x.shift_rev(Cube::AXIS_X))
+      for (SomaCube piece_x = piece_y; piece_x; piece_x.shift_rev(AXIS_X))
       {
         if (piece_x == original)
         {
@@ -201,17 +200,17 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
     if (i == 0)
       filter_rotations(store);
 
-    std::sort(store.begin(), store.end(), Cube::SortPredicate{});
+    std::sort(store.begin(), store.end(), SomaCube::SortPredicate{});
     store.erase(std::unique(store.begin(), store.end()), store.end());
   }
 
-  const Cube common = std::accumulate(columns_[0].begin(), columns_[0].end(),
-                                      ~Cube{}, std::bit_and<Cube>{});
-  if (common != Cube{})
+  const SomaCube common = std::accumulate(columns_[0].begin(), columns_[0].end(),
+                                          ~SomaCube{}, std::bit_and<SomaCube>{});
+  if (common)
     for (size_t i = 1; i < Somato::CUBE_PIECE_COUNT; ++i)
     {
       columns_[i].erase(std::remove_if(columns_[i].begin(), columns_[i].end(),
-                                       [common](Cube c) { return ((c & common) != Cube{}); }),
+                                       [common](SomaCube c) { return (c & common); }),
                         columns_[i].end());
     }
 
@@ -224,17 +223,17 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
   return std::move(solutions_);
 }
 
-void PuzzleSolver::recurse(int col, Cube cube)
+void PuzzleSolver::recurse(int col, SomaCube cube)
 {
   auto row = columns_[col].cbegin();
 
   for (;;)
   {
-    const Cube piece = *row++;
+    const SomaCube piece = *row++;
 
-    if ((piece & cube) == Cube{})
+    if (!(piece & cube))
     {
-      if (piece == Cube{})
+      if (!piece)
         break;
 
       state_[col] = piece;
@@ -279,7 +278,7 @@ void PuzzleThread::execute()
   g_info("Puzzle solve time: %0.1f ms", elapsed.count());
 }
 
-Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
+Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaCube piece)
 {
   static const Math::Matrix4 rotate90[3] =
   {
@@ -291,7 +290,7 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
 
   g_return_val_if_fail(piece_idx >= 0 && piece_idx < CUBE_PIECE_COUNT, transform);
 
-  const Cube original = cube_piece_data[piece_idx];
+  const SomaCube original = cube_piece_data[piece_idx];
 
   for (size_t i = 0; i < 6; ++i)
   {
@@ -301,8 +300,8 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece)
       if (find_piece_translation(original, piece, transform))
         return transform;
 
-      piece.rotate(Cube::AXIS_Z);
-      transform *= rotate90[Cube::AXIS_Z];
+      piece.rotate(AXIS_Z);
+      transform *= rotate90[AXIS_Z];
     }
 
     // Due to the zigzagging performed here, only 5 rotations are

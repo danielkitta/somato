@@ -31,7 +31,7 @@ namespace Somato
 {
 
 enum { CUBE_PIECE_COUNT = 7 };
-typedef std::array<Cube, CUBE_PIECE_COUNT> Solution;
+typedef std::array<SomaCube, CUBE_PIECE_COUNT> Solution;
 
 class PuzzleThread : public Async::Task
 {
@@ -47,7 +47,7 @@ private:
   std::vector<Solution> solutions_;
 };
 
-Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, Cube piece);
+Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaCube piece);
 
 } // namespace Somato
 

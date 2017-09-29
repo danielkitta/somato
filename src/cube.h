@@ -21,18 +21,26 @@
 #define SOMATO_CUBE_H_INCLUDED
 
 #include <initializer_list>
+#include <cstdint>
 
 namespace Somato
 {
 
+enum class ClipMode : int { CULL = 0, SLICE = -1 };
+enum Axis : int { AXIS_X, AXIS_Y, AXIS_Z };
+
+template <int N> struct CubeTraits {};
+template <> struct CubeTraits<3> { using BitsType = uint32_t; };
+template <> struct CubeTraits<4> { using BitsType = uint64_t; };
+
+template <int N> using CubeBits = typename CubeTraits<N>::BitsType;
+
+template <int N_>
 class Cube
 {
 public:
+  enum : int { N = N_ };
   struct SortPredicate;
-
-  enum : int { N = 3 };
-  enum : int { AXIS_X, AXIS_Y, AXIS_Z };
-  enum ClipMode : int { CULL = 0, SLICE = -1 };
 
   constexpr Cube() : data_ {0} {}
   constexpr Cube(std::initializer_list<bool> bits)
@@ -40,17 +48,23 @@ public:
 
   void clear() { data_ = 0; }
   bool empty() const { return (data_ == 0); }
+  explicit operator bool() const { return (data_ != 0); }
 
-  bool get(int x, int y, int z) const { return get_(data_, x, y, z); }
-  void put(int x, int y, int z, bool value) { data_ = put_(data_, x, y, z, value); }
+  void put(int x, int y, int z, bool value)
+  {
+    const int index = N*N*x + N*y + z;
+    data_ = (data_ & ~(Bits{1} << index)) | (Bits{value} << index);
+  }
+  bool get(int x, int y, int z) const
+    { return ((data_ >> (N*N*x + N*y + z)) & Bits{1}); }
 
   Cube& rotate(int axis) // clockwise
     { data_ = rotate_(data_, axis); return *this; }
 
-  Cube& shift(int axis, ClipMode clip = CULL) // rightward
+  Cube& shift(int axis, ClipMode clip = ClipMode::CULL) // rightward
     { data_ = shift_(data_, axis, clip); return *this; }
 
-  Cube& shift_rev(int axis, ClipMode clip = CULL) // leftward
+  Cube& shift_rev(int axis, ClipMode clip = ClipMode::CULL) // leftward
     { data_ = shift_rev_(data_, axis, clip); return *this; }
 
   Cube& operator&=(Cube other) { data_ &= other.data_; return *this; }
@@ -64,7 +78,7 @@ public:
   friend bool operator!=(Cube a, Cube b) { return (a.data_ != b.data_); }
 
 private:
-  typedef unsigned int Bits;
+  typedef CubeBits<N> Bits;
 
   explicit Cube(Bits data) : data_ {data} {}
 
@@ -74,9 +88,6 @@ private:
   {
     return (pos == start) ? data : init_bits((data << 1) | pos[-1], start, pos - 1);
   }
-  static bool get_(Bits data, int x, int y, int z);
-  static Bits put_(Bits data, int x, int y, int z, bool value);
-
   static Bits rotate_(Bits data, int axis);
   static Bits shift_(Bits data, int axis, ClipMode clip);
   static Bits shift_rev_(Bits data, int axis, ClipMode clip);
@@ -84,10 +95,15 @@ private:
   Bits data_;
 };
 
-struct Cube::SortPredicate
+template <int N_>
+struct Cube<N_>::SortPredicate
 {
-  bool operator()(Cube a, Cube b) const { return (a.data_ < b.data_); }
+  bool operator()(Cube<N_> a, Cube<N_> b) const { return (a.data_ < b.data_); }
 };
+
+extern template class Cube<3>;
+
+using SomaCube = Cube<3>;
 
 } // namespace Somato
 
