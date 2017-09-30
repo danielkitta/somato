@@ -151,7 +151,8 @@ void LayoutTexture::set_content(const Glib::ustring& content)
   }
 }
 
-void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
+void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
+                                  unsigned int clamp_mode)
 {
   // Measure ink extents to determine the dimensions of the texture image,
   // but keep the logical extents and the ink offsets around for positioning
@@ -202,8 +203,8 @@ void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout)
   {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp_mode);
   }
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, ink_height,
                0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
@@ -252,6 +253,9 @@ void Extensions::gl_query(bool use_es, int version)
 
   vertex_type_2_10_10_10_rev = (version >= ((use_es) ? 0x0300 : 0x0303))
       || epoxy_has_gl_extension("GL_ARB_vertex_type_2_10_10_10_rev");
+
+  texture_border_clamp = (!use_es || version >= 0x0302)
+      || epoxy_has_gl_extension("GL_OES_texture_border_clamp");
 
   texture_filter_anisotropic = (!use_es && version >= 0x0406)
       || epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
@@ -805,12 +809,14 @@ void Scene::gl_update_layouts()
 {
   glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
 
+  const unsigned int clamp_mode = (gl_ext()->texture_border_clamp) ? GL_CLAMP_TO_BORDER
+                                                                   : GL_CLAMP_TO_EDGE;
   for (const auto& layout : ui_layouts_)
   {
     if (!layout->content_.empty())
     {
       if (!layout->tex_name_ || layout->need_update_)
-        layout->gl_set_layout(create_texture_pango_layout(layout->content_));
+        layout->gl_set_layout(create_texture_pango_layout(layout->content_), clamp_mode);
     }
     else
     {

@@ -59,7 +59,7 @@ private:
 
   static void prepare_pango_context(const Glib::RefPtr<Pango::Context>& context);
 
-  void gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout);
+  void gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout, unsigned int clamp_mode);
   void gl_delete();
 
   // noncopyable

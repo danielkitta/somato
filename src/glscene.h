@@ -45,6 +45,7 @@ struct Extensions
 {
   bool  debug_output               = false;
   bool  vertex_type_2_10_10_10_rev = false;
+  bool  texture_border_clamp       = false;
   bool  texture_filter_anisotropic = false;
   float max_anisotropy             = 1.;
 

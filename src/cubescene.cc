@@ -457,9 +457,11 @@ void CubeScene::gl_initialize()
   glEnable(GL_CULL_FACE);
 
   // Trade viewspace clipping for depth clamping to avoid highly visible
-  // volume clipping artifacts.  The clamping could potentially produce some
+  // volume clipping artifacts. The clamping could potentially produce some
   // artifacts of its own, but so far it appears to play along nicely.
-  glEnable(GL_DEPTH_CLAMP);
+  // Unfortunately this feature is not available with OpenGL ES.
+  if (!get_context()->get_use_es())
+    glEnable(GL_DEPTH_CLAMP);
 
   glActiveTexture(GL_TEXTURE0 + SAMPLER_PIECE);
 
