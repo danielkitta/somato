@@ -153,8 +153,7 @@ private:
   void gl_build_layouts(volatile UIVertex* vertices);
 
   void gl_render_focus();
-  int  gl_render_layouts(LayoutVector::const_iterator first);
-  int  gl_render_layout_arrays(LayoutVector::const_iterator first);
+  int  gl_render_layouts();
 
   Glib::RefPtr<Pango::Layout> create_texture_pango_layout(const Glib::ustring& text);
 

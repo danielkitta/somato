@@ -30,10 +30,7 @@
 #include <gdkmm.h>
 #include <epoxy/gl.h>
 
-#include <cstddef>
-#include <cstring>
 #include <algorithm>
-#include <functional>
 
 namespace
 {
@@ -498,15 +495,17 @@ int Scene::gl_render()
 
   if (ui_vertex_array_)
   {
-    const auto first = std::find_if(ui_layouts_.cbegin(), ui_layouts_.cend(),
-                                    std::mem_fn(&LayoutTexture::drawable));
-    if (first != ui_layouts_.cend()
-        || (show_focus_ && focus_drawable_ && has_visible_focus()))
+    const bool has_layouts = std::any_of(cbegin(ui_layouts_), cend(ui_layouts_),
+                                         [](const auto& p) { return p->drawable(); });
+
+    if (has_layouts || (show_focus_ && focus_drawable_ && has_visible_focus()))
     {
       glBindVertexArray(ui_vertex_array_);
 
       gl_render_focus();
-      triangle_count = gl_render_layouts(first);
+
+      if (has_layouts)
+        triangle_count = gl_render_layouts();
 
       GL::ShaderProgram::unuse();
       glBindVertexArray(0);
@@ -908,11 +907,11 @@ void Scene::gl_render_focus()
   }
 }
 
-int Scene::gl_render_layouts(LayoutVector::const_iterator first)
+int Scene::gl_render_layouts()
 {
   int triangle_count = 0;
 
-  if (first != ui_layouts_.cend() && label_shader_)
+  if (label_shader_)
   {
     label_shader_.use();
 
@@ -921,44 +920,21 @@ int Scene::gl_render_layouts(LayoutVector::const_iterator first)
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    triangle_count = gl_render_layout_arrays(first);
+    for (const auto& layout : ui_layouts_)
+      if (layout->drawable())
+      {
+        glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
+        glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_,
+                     LayoutTexture::VERTEX_COUNT);
+
+        triangle_count += LayoutTexture::TRIANGLE_COUNT;
+      }
 
     glDisable(GL_BLEND);
   }
 
-  return triangle_count;
-}
-
-/*
- * Render text layouts and shadow in a single pass.  At least the first
- * element in the non-empty sequence [first, ui_layouts_.cend()) must be
- * enabled and ready for drawing.
- */
-int Scene::gl_render_layout_arrays(LayoutVector::const_iterator first)
-{
-  const LayoutTexture* layout = first->get();
-
-  glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
-  glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
-
-  glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
-
-  int triangle_count = LayoutTexture::TRIANGLE_COUNT;
-
-  while (++first != ui_layouts_.cend())
-  {
-    layout = first->get();
-
-    if (layout->drawable())
-    {
-      glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
-      glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
-
-      glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_, LayoutTexture::VERTEX_COUNT);
-
-      triangle_count += LayoutTexture::TRIANGLE_COUNT;
-    }
-  }
   return triangle_count;
 }
 
