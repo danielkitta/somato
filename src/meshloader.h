@@ -84,7 +84,7 @@ public:
                           volatile MeshIndex* buffer, size_t max_indices) const;
 
   static unsigned int aligned_index_count(unsigned int count)
-    { return (count + 3) & ~3u; }
+    { return (count + 7) & ~7u; }
 
 private:
   void execute() override;
