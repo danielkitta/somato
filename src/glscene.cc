@@ -35,19 +35,32 @@
 namespace
 {
 
+/* Fixed offsets into UI geometry array.
+ */
 enum
 {
-  FOCUS_ARRAY_OFFSET   = 0, // offset into geometry arrays
+  FOCUS_ARRAY_OFFSET   = 0,
   FOCUS_VERTEX_COUNT   = 4,
   LAYOUTS_ARRAY_OFFSET = FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT
 };
 
+/* UI vertex shader input attribute locations.
+ */
 enum
 {
   ATTRIB_POSITION = 0,
   ATTRIB_TEXCOORD = 1
 };
 
+/* UI text layout fragment shader texture unit.
+ */
+enum
+{
+  SAMPLER_LAYOUT = 0
+};
+
+/* Renderbuffer array indices.
+ */
 enum
 {
   COLOR = 0,
@@ -430,7 +443,7 @@ void Scene::gl_initialize()
   if (label_shader_)
   {
     label_shader_.use();
-    glUniform1i(label_uf_texture_, 0);
+    glUniform1i(label_uf_texture_, SAMPLER_LAYOUT);
     GL::ShaderProgram::unuse();
   }
 }
@@ -483,6 +496,8 @@ void Scene::gl_reset_state()
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  glActiveTexture(GL_TEXTURE0);
 }
 
 /*
@@ -788,6 +803,8 @@ void Scene::gl_delete_framebuffer()
 
 void Scene::gl_update_layouts()
 {
+  glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
+
   for (const auto& layout : ui_layouts_)
   {
     if (!layout->content_.empty())
@@ -919,6 +936,8 @@ int Scene::gl_render_layouts()
     // texture. That is, the color channels are premultiplied by alpha.
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
+
+    glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
 
     for (const auto& layout : ui_layouts_)
       if (layout->drawable())

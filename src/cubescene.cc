@@ -45,18 +45,27 @@ namespace
 
 using namespace Somato;
 
+/* Cube cell grid vertex and primitive counts.
+ */
 enum
 {
   GRID_VERTEX_COUNT = (SomaCube::N + 1) * (SomaCube::N + 1) * (SomaCube::N + 1),
   GRID_LINE_COUNT   = (SomaCube::N + 1) * (SomaCube::N + 1) *  SomaCube::N * 3
 };
 
-/* Vertex shader input attribute locations.
+/* Puzzle piece vertex shader input attribute locations.
  */
 enum
 {
   ATTRIB_POSITION = 0,
   ATTRIB_NORMAL   = 1
+};
+
+/* Puzzle piece fragment shader texture unit.
+ */
+enum
+{
+  SAMPLER_PIECE = 1
 };
 
 /* Index usage convention for arrays of buffer objects.
@@ -452,6 +461,8 @@ void CubeScene::gl_initialize()
   // artifacts of its own, but so far it appears to play along nicely.
   glEnable(GL_DEPTH_CLAMP);
 
+  glActiveTexture(GL_TEXTURE0 + SAMPLER_PIECE);
+
   try // go on without texturing if loading the image fails
   {
     gl_init_cube_texture();
@@ -463,7 +474,7 @@ void CubeScene::gl_initialize()
   }
 
   piece_shader_.use();
-  glUniform1i(uf_piece_texture_, 0);
+  glUniform1i(uf_piece_texture_, SAMPLER_PIECE);
   GL::ShaderProgram::unuse();
 }
 
@@ -1375,8 +1386,6 @@ int CubeScene::gl_draw_cube(const Math::Matrix4& cube_transform)
 
   if (animation_piece_ > 0 && animation_piece_ <= static_cast<int>(animation_data_.size()))
   {
-    glBindTexture(GL_TEXTURE_2D, cube_texture_);
-
     if (!show_outline_)
     {
       triangle_count += gl_draw_pieces(cube_transform);
