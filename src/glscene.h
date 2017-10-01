@@ -107,7 +107,7 @@ protected:
   explicit Scene(BaseObjectType* obj);
 
   const GL::Extensions* gl_ext() const { return &gl_extensions_; }
-  ContextGuard scoped_make_current();
+  ContextGuard scoped_make_current() { return ContextGuard{try_make_current()}; }
 
   void start_animation_tick();
   void stop_animation_tick();
@@ -141,6 +141,8 @@ protected:
 private:
   virtual bool on_animation_tick(gint64 animation_time);
   virtual void gl_reposition_layouts();
+
+  bool try_make_current();
 
   void gl_create_label_shader();
   void gl_create_focus_shader();

@@ -327,16 +327,6 @@ bool Scene::get_show_focus() const
   return show_focus_;
 }
 
-Scene::ContextGuard Scene::scoped_make_current()
-{
-  const auto context = get_context();
-
-  if (context)
-    context->make_current();
-
-  return ContextGuard{!!context};
-}
-
 void Scene::start_animation_tick()
 {
   g_return_if_fail(anim_tick_id_ == 0);
@@ -721,6 +711,16 @@ bool Scene::on_animation_tick(gint64)
 
 void Scene::gl_reposition_layouts()
 {}
+
+bool Scene::try_make_current()
+{
+  const auto context = get_context();
+
+  if (context)
+    context->make_current();
+
+  return !!context;
+}
 
 void Scene::gl_create_label_shader()
 {
