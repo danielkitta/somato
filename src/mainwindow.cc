@@ -278,20 +278,6 @@ void MainWindow::set_pause(const Glib::VariantBase& state)
   cube_scene_->set_animation_running(!pause);
 }
 
-/*
- * If toggle_fullscreen is active, put the main window into fullscreen mode
- * and make cube_scene the only visible child of the window.  If the toggle
- * is inactive revert these actions.
- *
- * Note that the scene does not replace the main vbox but is made the only
- * visible child within it.  This way we can avoid the intermediate state
- * where the widget is not anchored to a toplevel window, thereby causing
- * an unnecessary unrealize/realize cycle.
- *
- * Even if the window manager does not honor the fullscreen request, this
- * function should continue to work without crashing or exhibiting other
- * undesirable behavior.
- */
 void MainWindow::toggle_fullscreen()
 {
   if (is_fullscreen_)
