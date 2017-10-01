@@ -36,6 +36,7 @@ namespace Gtk
 {
   class Adjustment;
   class Builder;
+  class GestureZoom;
 }
 
 namespace Somato
@@ -77,6 +78,9 @@ private:
                                   action_speed_minus_,
                                   action_speed_reset_;
 
+  Glib::RefPtr<Gtk::GestureZoom>  zoom_gesture_;
+  double                          gesture_start_zoom_ = 0.;
+
   CubeScene*                      cube_scene_  = nullptr;
   std::vector<Solution>           solutions_;
   std::unique_ptr<PuzzleThread>   puzzle_thread_;
@@ -90,6 +94,8 @@ private:
 
   void on_speed_value_changed();
   void on_zoom_value_changed();
+  void on_zoom_gesture_begin(GdkEventSequence* sequence);
+  void on_zoom_gesture_scale_changed(double scale);
 
   void cube_goto_first();
   void cube_go_back();

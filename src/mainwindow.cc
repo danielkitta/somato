@@ -30,6 +30,7 @@
 #include <giomm/simpleaction.h>
 #include <gtkmm/adjustment.h>
 #include <gtkmm/builder.h>
+#include <gtkmm/gesturezoom.h>
 
 #include <cmath>
 #include <algorithm>
@@ -87,6 +88,8 @@ MainWindow::MainWindow(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui
   action_unfullscreen_->set_enabled(false);
 
   ui->get_widget_derived("cube_scene", cube_scene_);
+  zoom_gesture_ = Gtk::GestureZoom::create(*cube_scene_);
+
   init_cube_scene();
 
   action_pause_    ->signal_change_state().connect(sigc::mem_fun(*this, &MainWindow::set_pause));
@@ -99,6 +102,10 @@ MainWindow::MainWindow(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>& ui
       sigc::mem_fun(*this, &MainWindow::on_zoom_value_changed));
   speed_->signal_value_changed().connect(
       sigc::mem_fun(*this, &MainWindow::on_speed_value_changed));
+  zoom_gesture_->signal_begin().connect(
+      sigc::mem_fun(*this, &MainWindow::on_zoom_gesture_begin));
+  zoom_gesture_->signal_scale_changed().connect(
+      sigc::mem_fun(*this, &MainWindow::on_zoom_gesture_scale_changed));
 
   // Synchronize initial action enable states.
   switch_cube(-1);
@@ -217,6 +224,22 @@ void MainWindow::on_zoom_value_changed()
   // been scaled in order to make the step increment a whole number.
 
   cube_scene_->set_zoom(std::pow(3., value / upper));
+}
+
+void MainWindow::on_zoom_gesture_begin(GdkEventSequence*)
+{
+  gesture_start_zoom_ = zoom_->get_value();
+}
+
+void MainWindow::on_zoom_gesture_scale_changed(double scale)
+{
+  if (scale > 0.)
+  {
+    const double step  = std::log2(scale) * (1. / std::log2(3.));
+    const double upper = zoom_->get_upper();
+
+    zoom_->set_value(gesture_start_zoom_ + step * upper);
+  }
 }
 
 void MainWindow::cube_goto_first()
