@@ -1442,7 +1442,7 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
 
     if (last_fixed >= first)
     {
-      for (int i : depth_order_)
+      for (const int i : depth_order_)
         if (i >= first && i <= last_fixed)
         {
           const auto& data = animation_data_[i];
