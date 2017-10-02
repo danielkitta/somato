@@ -791,6 +791,8 @@ void CubeScene::on_meshes_loaded()
       }
     }
 
+  g_info("Mesh totals: %u vertices, %u indices", total_vertices, indices_offset);
+
   if (auto guard = scoped_make_current())
     gl_create_mesh_buffers(*loader, nodes, total_vertices, indices_offset);
 }
