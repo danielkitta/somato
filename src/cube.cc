@@ -66,8 +66,6 @@ std::array<unsigned char, N*N*N> make_rotation_indices()
   return make_rotation_indices_<N, A>(std::make_integer_sequence<int, N*N*N>{});
 }
 
-const auto test_indices = make_rotation_indices<3, Somato::AXIS_X>();
-
 } // anonymous namespace
 
 namespace Somato
