@@ -113,8 +113,11 @@ public:
   static inline Vector4 sign(const Vector4& v); // returns 1, -1 or 0 depending on sign of input
   static inline Vector4 rint(const Vector4& v); // round to nearest integer, halfway cases to even
 
-  static inline Vector4 mask_ifzero   (const Vector4& a, const Vector4& b);
-  static inline Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b);
+  static Vector4 mask_ifzero(const Vector4& a, const Vector4& b)
+    { return Vector4(_mm_and_ps(a.v_, _mm_cmpneq_ps(_mm_setzero_ps(), b.v_))); }
+
+  static Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b)
+    { return Vector4(_mm_and_ps(a.v_, _mm_cmpeq_ps(_mm_setzero_ps(), b.v_))); }
 
   void normalize() { v_ = norm_(v_); }
   Vector4 normalized() const { return Vector4(norm_(v_)); }
@@ -185,12 +188,6 @@ inline Vector4 Vector4::rint(const Vector4& v)
   return Vector4(Vector4::rint_(v.v_));
 #endif
 }
-
-inline Vector4 Vector4::mask_ifzero(const Vector4& a, const Vector4& b)
-  { return Vector4(_mm_and_ps(a.v_, _mm_cmpneq_ps(_mm_setzero_ps(), b.v_))); }
-
-inline Vector4 Vector4::mask_ifnonzero(const Vector4& a, const Vector4& b)
-  { return Vector4(_mm_and_ps(a.v_, _mm_cmpeq_ps(_mm_setzero_ps(), b.v_))); }
 
 /*
  * Math::Matrix4 represents a 4x4 square matrix of single-precision
