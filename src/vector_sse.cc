@@ -31,17 +31,6 @@
 namespace
 {
 
-inline __m128 vector4_dot(__m128 a, __m128 b)
-{
-  __m128 c = _mm_mul_ps(a, b);
-  __m128 d = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1));
-
-  c = _mm_add_ps(c, d);
-  d = _mm_movehl_ps(d, c);
-
-  return _mm_add_ss(c, d);
-}
-
 inline __m128 vector3_mag(__m128 v)
 {
   __m128 c = _mm_mul_ps(v, v);
@@ -189,17 +178,12 @@ const std::array<Vector4, 4> Vector4::basis =
 
 __m128 Vector4::mag_(__m128 v)
 {
-  return _mm_sqrt_ss(vector4_dot(v, v));
-}
-
-__m128 Vector4::dot_(__m128 a, __m128 b)
-{
-  return vector4_dot(a, b);
+  return _mm_sqrt_ss(dot_(v, v));
 }
 
 __m128 Vector4::norm_(__m128 v)
 {
-  const __m128 m = _mm_sqrt_ss(vector4_dot(v, v));
+  const __m128 m = _mm_sqrt_ss(dot_(v, v));
 
   return _mm_div_ps(v, _mm_shuffle_ps(m, m, _MM_SHUFFLE(0,0,0,0)));
 }

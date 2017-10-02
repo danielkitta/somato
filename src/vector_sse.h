@@ -51,7 +51,7 @@ private:
 
   explicit Vector4(__m128 v) : v_ {v} {}
 
-  static        __m128 dot_  (__m128 a, __m128 b); // scalar product across (x,y,z,w)
+  static inline __m128 dot_  (__m128 a, __m128 b); // scalar product across (x,y,z,w)
   static inline __m128 cross_(__m128 a, __m128 b); // 3-D vector product, returns w = 0
 #if !SOMATO_VECTOR_USE_SSE2
   static __m128 rint_(__m128 v);
@@ -131,10 +131,21 @@ public:
 };
 
 /*
- * Although the actual function call overhead would be small, inlining
- * cross_() and sign() in fact reduces code size. And more importantly,
- * it avoids register save and restore overhead in computation chains.
+ * Although the actual function call overhead would be small, inlining dot_(),
+ * cross_() and sign() in fact reduces code size. And more importantly, it
+ * avoids register save and restore overhead in computation chains.
  */
+inline __m128 Vector4::dot_(__m128 a, __m128 b)
+{
+  __m128 c = _mm_mul_ps(a, b);
+  __m128 d = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1));
+
+  c = _mm_add_ps(c, d);
+  d = _mm_movehl_ps(d, c);
+
+  return _mm_add_ss(c, d);
+}
+
 inline __m128 Vector4::cross_(__m128 a, __m128 b)
 {
   // x = ay * bz - az * by
