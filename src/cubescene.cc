@@ -77,11 +77,6 @@ enum
 };
 
 /*
- * Single-precision factor used for conversion of angles.
- */
-static const float rad_per_deg = G_PI / 180.;
-
-/*
  * The time span, in seconds, to wait for further user input
  * before hiding the mouse cursor while the animation is running.
  */
@@ -100,7 +95,7 @@ static const float view_z_offset = -9.;
 /*
  * The angle by which to rotate if a keyboard navigation key is pressed.
  */
-static const float rotation_step = 3.;
+static const float rotation_step = G_PI / 60.;
 
 /*
  * The materials applied to cube pieces.  Indices into the materials array
@@ -426,15 +421,14 @@ int CubeScene::get_cube_vertex_count() const
 }
 
 /*
- * Rotate the camera around the given axis by an angle in degrees.
+ * Rotate the camera around the given axis by an angle in radians.
  */
 void CubeScene::rotate(int axis, float angle)
 {
   g_return_if_fail(axis >= AXIS_X && axis <= AXIS_Z);
 
   const auto& basis = Math::Vector4::basis[axis];
-
-  set_rotation(Math::Quat::from_axis(basis, angle * rad_per_deg) * rotation_);
+  set_rotation(Math::Quat::from_axis(basis, angle) * rotation_);
 }
 
 void CubeScene::gl_initialize()
@@ -598,8 +592,8 @@ int CubeScene::gl_render()
 
       if (show_cell_grid_)
       {
-        const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE : GL_POLYGON_OFFSET_FILL;
-
+        const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE
+                                                   : GL_POLYGON_OFFSET_FILL;
         gl_draw_cell_grid(cube_transform);
 
         glPolygonOffset(1., 4.);
