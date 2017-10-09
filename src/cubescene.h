@@ -102,8 +102,6 @@ public:
   int get_cube_triangle_count() const;
   int get_cube_vertex_count() const;
 
-  void rotate(int axis, float angle);
-
 protected:
   void gl_initialize() override;
   void gl_cleanup() override;

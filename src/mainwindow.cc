@@ -143,8 +143,8 @@ void MainWindow::init_cube_scene()
                           | Gdk::SCROLL_MASK | Gdk::SMOOTH_SCROLL_MASK);
 
   // Rotate 18 degrees downward and 27 degrees to the right.
-  cube_scene_->set_rotation(Math::Quat::from_axis({1., 0., 0.}, 0.10 * G_PI) *
-                            Math::Quat::from_axis({0., 1., 0.}, 0.15 * G_PI));
+  cube_scene_->set_rotation(Math::Quat::from_axis(1., 0., 0., 0.10 * G_PI) *
+                            Math::Quat::from_axis(0., 1., 0., 0.15 * G_PI));
 
   cube_scene_->signal_scroll_event().connect(
       sigc::mem_fun(*this, &MainWindow::on_scene_scroll_event));

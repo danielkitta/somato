@@ -420,17 +420,6 @@ int CubeScene::get_cube_vertex_count() const
   return cube_vertex_count;
 }
 
-/*
- * Rotate the camera around the given axis by an angle in radians.
- */
-void CubeScene::rotate(int axis, float angle)
-{
-  g_return_if_fail(axis >= AXIS_X && axis <= AXIS_Z);
-
-  const auto& basis = Math::Vector4::basis[axis];
-  set_rotation(Math::Quat::from_axis(basis, angle) * rotation_);
-}
-
 void CubeScene::gl_initialize()
 {
   if (!mesh_loader_)
@@ -845,6 +834,8 @@ bool CubeScene::on_leave_notify_event(GdkEventCrossing* event)
 
 bool CubeScene::on_key_press_event(GdkEventKey* event)
 {
+  using Math::Quat;
+
   reset_hide_cursor_timeout();
 
   switch (event->state & Gtk::AccelGroup::get_default_mod_mask())
@@ -852,12 +843,28 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
     case 0:
       switch (event->keyval)
       {
-        case GDK_KEY_Left:  case GDK_KEY_KP_Left:   rotate(AXIS_Y,  rotation_step); return true;
-        case GDK_KEY_Right: case GDK_KEY_KP_Right:  rotate(AXIS_Y, -rotation_step); return true;
-        case GDK_KEY_Up:    case GDK_KEY_KP_Up:     rotate(AXIS_X,  rotation_step); return true;
-        case GDK_KEY_Down:  case GDK_KEY_KP_Down:   rotate(AXIS_X, -rotation_step); return true;
-        case GDK_KEY_Begin: case GDK_KEY_KP_Begin:
-        case GDK_KEY_5:     case GDK_KEY_KP_5:      set_rotation({}); return true;
+        case GDK_KEY_Left:
+        case GDK_KEY_KP_Left:
+          set_rotation(Quat::from_axis(0., 1., 0., rotation_step) * rotation_);
+          return true;
+        case GDK_KEY_Right:
+        case GDK_KEY_KP_Right:
+          set_rotation(Quat::from_axis(0., 1., 0., -rotation_step) * rotation_);
+          return true;
+        case GDK_KEY_Up:
+        case GDK_KEY_KP_Up:
+          set_rotation(Quat::from_axis(1., 0., 0., rotation_step) * rotation_);
+          return true;
+        case GDK_KEY_Down:
+        case GDK_KEY_KP_Down:
+          set_rotation(Quat::from_axis(1., 0., 0., -rotation_step) * rotation_);
+          return true;
+        case GDK_KEY_Begin:
+        case GDK_KEY_KP_Begin:
+        case GDK_KEY_5:
+        case GDK_KEY_KP_5:
+          set_rotation({});
+          return true;
       }
       break;
 
@@ -865,8 +872,14 @@ bool CubeScene::on_key_press_event(GdkEventKey* event)
     case GDK_CONTROL_MASK | GDK_SHIFT_MASK:
       switch (event->keyval)
       {
-        case GDK_KEY_Tab:          case GDK_KEY_KP_Tab:       cycle_exclusive( 1); return true;
-        case GDK_KEY_ISO_Left_Tab: case GDK_KEY_3270_BackTab: cycle_exclusive(-1); return true;
+        case GDK_KEY_Tab:
+        case GDK_KEY_KP_Tab:
+          cycle_exclusive(1);
+          return true;
+        case GDK_KEY_ISO_Left_Tab:
+        case GDK_KEY_3270_BackTab:
+          cycle_exclusive(-1);
+          return true;
       }
       break;
 
