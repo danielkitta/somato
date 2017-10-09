@@ -15,7 +15,7 @@
 ## You should have received a copy of the GNU General Public License along
 ## with danielk's Autostuff.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20171009
+#serial 20171010
 
 ## _DK_SH_VAR_PUSH_DEPTH(depth, variable, [value])
 ##
@@ -121,31 +121,6 @@ done
 CPPFLAGS=$dk_ccf_save_CPPFLAGS
 AS_IF([test "x$dk_ccf_result" != xno], [$1=[$]$1[$]{$1:+' '}$dk_ccf_result])
 AC_MSG_RESULT([$dk_ccf_result])
-AC_SUBST([$1])
-])
-
-## DK_CHECK_LINK_FLAGS(flags-var, description, flags)
-##
-## Find a linker flag for <description>. For each flag in <flags>, check
-## if the linker for the current language accepts it. On success, stop the
-## search and append the last tested flag to <flags-var>. Calls AC_SUBST
-## on <flags-var>.
-##
-AC_DEFUN([DK_CHECK_LINK_FLAGS],
-[dnl
-m4_assert([$# >= 3])[]dnl
-AC_MSG_CHECKING([linker flag for $2])
-dk_clf_result=no
-dk_clf_save_LDFLAGS=$LDFLAGS
-for dk_flag in $3
-do
-  LDFLAGS="$dk_clf_save_LDFLAGS $dk_flag"
-  AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [dk_clf_result=$dk_flag])
-  test "x$dk_clf_result" = xno || break
-done
-LDFLAGS=$dk_clf_save_LDFLAGS
-AS_IF([test "x$dk_clf_result" != xno], [$1=[$]$1[$]{$1:+' '}$dk_clf_result])
-AC_MSG_RESULT([$dk_clf_result])
 AC_SUBST([$1])
 ])
 
