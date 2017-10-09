@@ -42,12 +42,16 @@ AC_DEFINE([RESOURCE_PREFIX], ["/org/gtk/somato/"],
 
 AC_LANG([C++])
 DK_PROG_CXX_STD([14])
+DK_CHECK_VISIBILITY_SUPPORT([SOMATO_EXTRA_CXXFLAGS], [SOMATO_EXPORT])
+
 DK_CHECK_COMPILE_FLAGS([SOMATO_EXTRA_CXXFLAGS], [math without errno],
                        [-fno-math-errno])
 DK_CHECK_COMPILE_FLAGS([SOMATO_EXTRA_CXXFLAGS], [function sections],
                        [-ffunction-sections])
 DK_CHECK_LINK_FLAGS([SOMATO_EXTRA_LDFLAGS], [garbage collection],
                     [-Wl,--gc-sections])
+DK_CHECK_LINK_FLAGS([SOMATO_EXTRA_LDFLAGS], [keep exported],
+                    [-Wl,--gc-keep-exported])
 
 DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 
