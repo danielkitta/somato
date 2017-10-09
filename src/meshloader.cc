@@ -162,6 +162,7 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     const aiMesh *const mesh = scene_meshes[node->mMeshes[mesh_idx]];
 
     g_return_val_if_fail(mesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE, n_written);
+    g_return_val_if_fail(mesh->mNumFaces < (~MeshIndex{0} - base) / 3, n_written);
 
     const aiFace *const faces = mesh->mFaces;
     const size_t n_faces = std::min<size_t>(mesh->mNumFaces,
