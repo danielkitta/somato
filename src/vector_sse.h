@@ -20,6 +20,7 @@
 #if defined(SOMATO_VECTORMATH_H_INCLUDED) && SOMATO_VECTOR_USE_SSE
 
 #include <array>
+#include <cmath>
 
 #if SOMATO_VECTOR_USE_SSE2
 # include <emmintrin.h>
@@ -262,6 +263,9 @@ private:
   static void   to_matrix_(__m128 quat, __m128* result);
   static float  angle_(__m128 quat);
 
+  static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
+    { return {x * s, y * s, z * s, c}; }
+
 public:
   typedef Vector4::value_type value_type;
   typedef Vector4::size_type  size_type;
@@ -272,6 +276,9 @@ public:
 
   explicit Quat(const value_type* b) : v_ {_mm_loadu_ps(b)} {}
   Quat& operator=(const value_type* b) { v_ = _mm_loadu_ps(b); return *this; }
+
+  static constexpr Quat from_axis(value_type x, value_type y, value_type z, value_type phi)
+    { return from_axis_(x, y, z, std::sin(0.5f * phi), std::cos(0.5f * phi)); }
 
   static Quat from_axis(const Vector4& a, value_type phi)
     { return Quat(from_axis_(a, _mm_set_ss(phi))); }

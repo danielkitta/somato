@@ -20,6 +20,7 @@
 #if defined(SOMATO_VECTORMATH_H_INCLUDED) && !SOMATO_VECTOR_USE_SSE
 
 #include <array>
+#include <cmath>
 
 namespace Math
 {
@@ -273,6 +274,9 @@ private:
   static void to_matrix_(const float* quat, float result[][4]);
   static void mul_(const float* a, const float* b, float* result);
 
+  static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
+    { return {x * s, y * s, z * s, c}; }
+
 public:
   typedef Vector4::value_type value_type;
   typedef Vector4::size_type  size_type;
@@ -284,6 +288,9 @@ public:
   explicit Quat(const value_type* b) : v_ {b[0], b[1], b[2], b[3]} {}
   Quat& operator=(const value_type* b)
     { v_[0] = b[0]; v_[1] = b[1]; v_[2] = b[2]; v_[3] = b[3]; return *this; }
+
+  static constexpr Quat from_axis(value_type x, value_type y, value_type z, value_type phi)
+    { return from_axis_(x, y, z, std::sin(0.5f * phi), std::cos(0.5f * phi)); }
 
   static Quat from_axis(const Vector4& a, value_type phi)
     { Quat r (uninitialized); from_axis_(a.v_, phi, r.v_); return r; }
