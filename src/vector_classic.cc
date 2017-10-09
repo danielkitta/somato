@@ -216,10 +216,10 @@ void Matrix4::mul_(const float a[][4], const float b[][4], float result[][4])
 
 void Quat::from_axis_(const float* a, float phi, float* result)
 {
-  Vector4::div_(a, vector3_mag(a), result);
-  Vector4::mul_(result, std::sin(phi * 0.5f), result);
+  const float s = std::sin(phi * 0.5f);
+  const float c = std::cos(phi * 0.5f);
 
-  result[3] = std::cos(phi * 0.5f);
+  set_vector(result, a[0] * s, a[1] * s, a[2] * s, c);
 }
 
 Quat::value_type Quat::angle() const

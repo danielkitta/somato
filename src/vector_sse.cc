@@ -307,19 +307,13 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
   sine   = std::sin(phi_2);
   cosine = std::cos(phi_2);
 #endif
-
-  // Normalize the axis vector first.
-  __m128 u = a.v_;
-  const __m128 mag = vector3_mag(u);
-  u = _mm_div_ps(u, _mm_shuffle_ps(mag, mag, _MM_SHUFFLE(0,0,0,0)));
-
   __m128 s = _mm_set_ss(sine);
   __m128 c = _mm_set_ss(cosine);
 
   s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(1,0,0,0));
   c = _mm_shuffle_ps(c, c, _MM_SHUFFLE(0,1,1,1));
 
-  return _mm_or_ps(_mm_and_ps(_mm_mul_ps(u, s), mask_xyz_.v), c);
+  return _mm_or_ps(_mm_mul_ps(s, a.v_), c);
 }
 
 void Quat::to_matrix_(__m128 quat, __m128* result)
