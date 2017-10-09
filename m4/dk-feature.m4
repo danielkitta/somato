@@ -148,3 +148,37 @@ AS_IF([test "x$dk_clf_result" != xno], [$1=[$]$1[$]{$1:+' '}$dk_clf_result])
 AC_MSG_RESULT([$dk_clf_result])
 AC_SUBST([$1])
 ])
+
+## DK_CHECK_VISIBILITY_SUPPORT(flags-var, export-define)
+##
+## Check whether the compiler supports the GNU compiler symbol visibility
+## attributes and command-line options. If explicit symbol visibility is
+## supported, the compiler command-line options for hiding all symbols by
+## default are appended to <flags-var>. Also, the macro <export-define> is
+## defined to the compiler attribute for making a specific symbol public.
+##
+AC_DEFUN([DK_CHECK_VISIBILITY_SUPPORT],
+[dnl
+m4_assert([$# >= 2])[]dnl
+AC_CACHE_CHECK([for compiler symbol visibility options],
+               [dk_cv_visibility_flags],
+[dnl
+dk_cvs_save_CPPFLAGS=$CPPFLAGS
+CPPFLAGS="$CPPFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+dnl
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+namespace Dk { void __attribute__((__visibility__("default"))) dkfunc(); }
+void Dk::dkfunc() {}
+]], [[Dk::dkfunc();]])],
+[dk_cv_visibility_flags='-fvisibility=hidden -fvisibility-inlines-hidden'],
+[dk_cv_visibility_flags=none])
+dnl
+CPPFLAGS=$dk_cvs_save_CPPFLAGS])
+AS_IF([test "x$dk_cv_visibility_flags" != xnone],
+      [$1=[$]$1[$]{$1:+' '}$dk_cv_visibility_flags]
+      [dk_cvs_define_public='__attribute__ ((__visibility__ ("default")))'],
+      [dk_cvs_define_public=])
+AC_SUBST([$1])
+AC_DEFINE_UNQUOTED([$2], [$dk_cvs_define_public],
+                   [Symbol attribute for public visibility.])
+])
