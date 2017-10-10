@@ -148,14 +148,12 @@ void filter_rotations(PieceStore& store)
 {
   g_return_if_fail(store.size() % 24 == 0);
 
-  auto pdest = store.begin();
+  auto pdest = begin(store);
 
-  for (auto p = store.cbegin(); p != store.cend(); p += 24)
-  {
+  for (auto p = cbegin(store); p != cend(store); p += 24)
     *pdest++ = *std::min_element(p, p + 24, SomaCube::SortPredicate{});
-  }
 
-  store.erase(pdest, store.end());
+  store.erase(pdest, end(store));
 }
 
 bool find_piece_translation(SomaCube original, SomaCube piece, Math::Matrix4& transform)
@@ -200,18 +198,18 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
     if (i == 0)
       filter_rotations(store);
 
-    std::sort(store.begin(), store.end(), SomaCube::SortPredicate{});
-    store.erase(std::unique(store.begin(), store.end()), store.end());
+    std::sort(begin(store), end(store), SomaCube::SortPredicate{});
+    store.erase(std::unique(begin(store), end(store)), end(store));
   }
 
-  const SomaCube common = std::accumulate(columns_[0].begin(), columns_[0].end(),
+  const SomaCube common = std::accumulate(cbegin(columns_[0]), cend(columns_[0]),
                                           ~SomaCube{}, std::bit_and<SomaCube>{});
   if (common)
-    for (size_t i = 1; i < Somato::CUBE_PIECE_COUNT; ++i)
+    for (auto pcol = begin(columns_) + 1; pcol != end(columns_); ++pcol)
     {
-      columns_[i].erase(std::remove_if(columns_[i].begin(), columns_[i].end(),
-                                       [common](SomaCube c) { return (c & common); }),
-                        columns_[i].end());
+      const auto pend = std::remove_if(begin(*pcol), end(*pcol),
+                                       [common](SomaCube c) { return (c & common); });
+      pcol->erase(pend, end(*pcol));
     }
 
   // Add zero-termination.
@@ -225,7 +223,7 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
 
 void PuzzleSolver::recurse(int col, SomaCube cube)
 {
-  auto row = columns_[col].cbegin();
+  auto row = cbegin(columns_[col]);
 
   for (;;)
   {
