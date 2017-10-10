@@ -62,7 +62,7 @@ Application::~Application()
 
 Application::Application()
 :
-  Gtk::Application{"org.gtk.somato"}
+  Gtk::Application("org.gtk.somato")
 {}
 
 void Application::on_startup()
