@@ -298,15 +298,10 @@ const Quat::CastVec4 Quat::mask_xyz_ = {{ -1, -1, -1, 0 }};
 
 __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 {
-  const float phi_2 = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
-  float sine, cosine;
+  const float phi_2  = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
+  const float sine   = std::sin(phi_2);
+  const float cosine = std::cos(phi_2);
 
-#if SOMATO_HAVE_SINCOSF
-  sincosf(phi_2, &sine, &cosine);
-#else
-  sine   = std::sin(phi_2);
-  cosine = std::cos(phi_2);
-#endif
   __m128 s = _mm_set_ss(sine);
   __m128 c = _mm_set_ss(cosine);
 

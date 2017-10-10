@@ -55,12 +55,6 @@ DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 # to explicitely link -lm on this platform.
 AC_SEARCH_LIBS([atan2], [m])
 
-DK_CHECK_FEATURE([sincosf],
-[
-  AC_LANG_PROGRAM([[#include <cmath>]],
-                  [[float s, c; sincosf(0.0f, &s, &c);]])
-])
-
 SOMATO_ARG_ENABLE_VECTOR_SIMD
 
 DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS],
