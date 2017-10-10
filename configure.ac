@@ -56,10 +56,7 @@ DK_SH_VAR_PUSH([CPPFLAGS], ["$SOMATO_MODULES_CFLAGS $CPPFLAGS"])
 AC_SEARCH_LIBS([atan2], [m])
 
 SOMATO_ARG_ENABLE_VECTOR_SIMD
-
-DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS],
-                       [-Wall -w1],
-                       [-Wall -Wextra -w1])
+DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS], [-Wall], [-Wall -Wextra])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
