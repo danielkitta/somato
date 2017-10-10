@@ -22,4 +22,5 @@ stamp-h?
 /missing
 /somato-*.tar.*
 /src/*.o
+/src/resources.cc
 /src/somato
