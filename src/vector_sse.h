@@ -253,9 +253,6 @@ class Quat
 private:
   __m128 v_;
 
-  union CastVec4 { int i[4]; __m128 v; };
-  static const CastVec4 mask_xyz_;
-
   explicit Quat(__m128 v) : v_ {v} {}
 
   static __m128 mul_(__m128 a, __m128 b);
@@ -265,6 +262,8 @@ private:
 
   static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
     { return {x * s, y * s, z * s, c}; }
+  static __m128 mask_xyz_()
+    { const float m = -std::nanf("0x3FFFFF"); return _mm_setr_ps(m, m, m, 0.f); }
 
 public:
   typedef Vector4::value_type value_type;
@@ -286,7 +285,7 @@ public:
   static Matrix4 to_matrix(const Quat& quat)
     { Matrix4 r (Matrix4::uninitialized); to_matrix_(quat.v_, r.m_); return r; }
 
-  Vector4 axis() const { return Vector4(_mm_and_ps(v_, mask_xyz_.v)); }
+  Vector4 axis() const { return Vector4(_mm_and_ps(v_, mask_xyz_())); }
   value_type angle() const { return angle_(v_); }
 
   Quat& operator*=(const Quat& b) { v_ = mul_(v_, b.v_); return *this; }

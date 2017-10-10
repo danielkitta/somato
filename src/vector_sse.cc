@@ -294,8 +294,6 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
   }
 }
 
-const Quat::CastVec4 Quat::mask_xyz_ = {{ -1, -1, -1, 0 }};
-
 __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 {
   const float phi_2  = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
@@ -313,7 +311,7 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
 
 void Quat::to_matrix_(__m128 quat, __m128* result)
 {
-  const __m128 mask = mask_xyz_.v;
+  const __m128 mask = mask_xyz_();
 
   const __m128 xyz = _mm_and_ps(quat, mask);
   const __m128 www = _mm_and_ps(_mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3)), mask);
