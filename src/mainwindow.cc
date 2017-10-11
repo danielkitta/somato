@@ -131,8 +131,8 @@ bool MainWindow::on_window_state_event(GdkEventWindowState* event)
 {
   is_fullscreen_ = ((event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0);
 
-  cube_scene_->set_show_focus(!is_fullscreen_);
   action_unfullscreen_->set_enabled(is_fullscreen_);
+  cube_scene_->grab_focus();
 
   return Gtk::ApplicationWindow::on_window_state_event(event);
 }

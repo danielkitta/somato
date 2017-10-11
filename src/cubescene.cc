@@ -188,11 +188,11 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 :
   GL::Scene    {obj},
   piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N),
-  heading_     {create_layout_texture()},
-  footing_     {create_layout_texture()}
+  heading_     {create_layout_view()},
+  footing_     {create_layout_view()}
 {
-  heading_->color() = {0.85, 0.85, 0.85, 1.};
-  footing_->color() = {0.65, 0.65, 0.65, 1.};
+  heading_->set_color(0.85, 0.85, 0.85);
+  footing_->set_color(0.65, 0.65, 0.65);
 
   set_can_focus(true);
 

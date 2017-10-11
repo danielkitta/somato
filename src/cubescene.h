@@ -136,8 +136,8 @@ private:
   sigc::connection            delay_timeout_;
   sigc::connection            hide_cursor_timeout_;
 
-  GL::LayoutTexture*          heading_;
-  GL::LayoutTexture*          footing_;
+  GL::LayoutTexView*          heading_;
+  GL::LayoutTexView*          footing_;
 
   GL::ShaderProgram           piece_shader_;
   int                         uf_modelview_         = -1;

@@ -35,13 +35,19 @@
 namespace
 {
 
-/* Fixed offsets into UI geometry array.
- */
-enum
+struct UIVertex
 {
-  FOCUS_ARRAY_OFFSET   = 0,
-  FOCUS_VERTEX_COUNT   = 4,
-  LAYOUTS_ARRAY_OFFSET = FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT
+  float          position[2];
+  GL::Packed2i16 texcoord;
+  GL::Packed4u8  color;
+
+  void set(float x, float y, GL::Packed2i16 t, GL::Packed4u8 c) volatile
+  {
+    position[0] = x;
+    position[1] = y;
+    texcoord    = t;
+    color       = c;
+  }
 };
 
 /* UI vertex shader input attribute locations.
@@ -58,6 +64,14 @@ enum
 enum
 {
   SAMPLER_LAYOUT = 0
+};
+
+/* Index usage convention for arrays of buffer objects.
+ */
+enum
+{
+  VERTICES = 0,
+  INDICES  = 1
 };
 
 /* Renderbuffer array indices.
@@ -78,29 +92,7 @@ void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
 }
 } // extern "C"
 
-/*
- * Generate vertices for drawing the focus indicator of the GL widget.
- */
-void generate_focus_rect(int width, int height, int padding,
-                         volatile GL::UIVertex* geometry)
-{
-  g_return_if_fail(width > 0 && height > 0);
-
-  const float x0 = static_cast<float>(2 * padding + 1 - width)  / width;
-  const float y0 = static_cast<float>(2 * padding + 1 - height) / height;
-  const float x1 = static_cast<float>(width  - 2 * padding - 1) / width;
-  const float y1 = static_cast<float>(height - 2 * padding - 1) / height;
-
-  const auto color = GL::pack_4u8_norm(0.6, 0.6, 0.6, 1.);
-
-  geometry[0].set(x0, y0, GL::pack_2i16_norm(0., 0.), color);
-  geometry[1].set(x1, y0, GL::pack_2i16_norm(1., 0.), color);
-  geometry[2].set(x1, y1, GL::pack_2i16_norm(1., 1.), color);
-  geometry[3].set(x0, y1, GL::pack_2i16_norm(0., 1.), color);
-}
-
-/*
- * Make the texture image stride at least a multiple of 8 to meet SGI's
+/* Make the texture image stride at least a multiple of 8 to meet SGI's
  * alignment recommendation.  This also avoids the padding bytes that would
  * otherwise be necessary in order to ensure row alignment.
  *
@@ -110,7 +102,7 @@ void generate_focus_rect(int width, int height, int padding,
  */
 inline int aligned_stride(int width)
 {
-  return Cairo::ImageSurface::format_stride_for_width(Cairo::FORMAT_A8, (width + 7) & ~7);
+  return Cairo::ImageSurface::format_stride_for_width(Cairo::FORMAT_A8, (width + 7) & ~7u);
 }
 
 } // anonymous namespace
@@ -118,127 +110,371 @@ inline int aligned_stride(int width)
 namespace GL
 {
 
-LayoutTexture::LayoutTexture()
+LayoutTexView::LayoutTexView()
 :
-  color_        {1., 1., 1., 1.},
-  need_update_  {false},
-  array_offset_ {G_MAXINT},
-
-  tex_name_     {0},
-  tex_width_    {0},
-  tex_height_   {0},
-
+  color_        {},
+  text_changed_ {false},
+  attr_changed_ {false},
+  x_offset_     {0},
   ink_x_        {0},
   ink_y_        {0},
   ink_width_    {0},
   ink_height_   {0},
-
   log_width_    {0},
   log_height_   {0},
-
   window_x_     {0},
   window_y_     {0}
 {}
 
-LayoutTexture::~LayoutTexture()
+LayoutTexView::~LayoutTexView()
+{}
+
+LayoutAtlas::LayoutAtlas()
+{}
+
+LayoutAtlas::~LayoutAtlas()
 {
-  g_return_if_fail(tex_name_ == 0);
+  g_warn_if_fail(!tex_name && !vao && !buffers[VERTICES] && !buffers[INDICES]);
 }
 
-void LayoutTexture::set_content(const Glib::ustring& content)
+void LayoutTexView::set_content(Glib::ustring content)
 {
   if (content.raw() != content_.raw())
   {
-    content_ = content;
-    need_update_ = true;
+    content_ = std::move(content);
+    text_changed_ = true;
   }
 }
 
-void LayoutTexture::gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout,
-                                  unsigned int clamp_mode)
+void LayoutTexView::set_window_pos(int x, int y)
 {
-  // Measure ink extents to determine the dimensions of the texture image,
-  // but keep the logical extents and the ink offsets around for positioning
-  // purposes.  This is to avoid ugly "jumping" of top-aligned text labels
-  // when changing the string results in a different ink height.
-  Pango::Rectangle ink;
-  Pango::Rectangle logical;
-
-  // Note that at this point, the Pango context has already been updated to
-  // the target surface and transformation in create_texture_pango_layout().
-  layout->get_pixel_extents(ink, logical);
-
-  // Make sure the extents are within reasonable boundaries.
-  g_return_if_fail(ink.get_width() < 4095 && ink.get_height() < 4095);
-
-  // Pad up the margins to account for measurement inaccuracies.
-  enum { PADDING = 1 };
-
-  const int ink_width  = std::max(0, ink.get_width())  + 2 * PADDING;
-  const int ink_height = std::max(0, ink.get_height()) + 2 * PADDING;
-  const int img_width  = aligned_stride(ink_width);
-
-  std::vector<GLubyte> tex_image (ink_height * img_width);
-
-  // Create a Cairo surface to draw the layout directly into the texture image.
-  // Note that the image will be upside-down from the point of view of OpenGL,
-  // thus the texture coordinates need to be adjusted accordingly.
+  if (x != window_x_ || y != window_y_)
   {
+    window_x_ = x;
+    window_y_ = y;
+
+    if (ink_width_ > 0)
+      attr_changed_ = true;
+  }
+}
+
+bool LayoutAtlas::needs_texture_update() const
+{
+  return std::any_of(cbegin(views), cend(views),
+                     [](const auto& v) { return v->text_changed_; });
+}
+
+bool LayoutAtlas::needs_vertex_update() const
+{
+  return std::any_of(cbegin(views), cend(views),
+                     [](const auto& v) { return v->attr_changed_; });
+}
+
+std::pair<int, int> LayoutAtlas::get_drawable_range() const
+{
+  const auto is_drawable = [](const std::unique_ptr<LayoutTexView>& view)
+    { return view->drawable(); };
+
+  const auto start = std::find_if(cbegin(views), cend(views), is_drawable);
+
+  if (start == cend(views) || !tex_name || !vao)
+    return {0, 0};
+
+  const auto stop = std::find_if(crbegin(views), crend(views), is_drawable);
+
+  return {start - cbegin(views), crend(views) - stop};
+}
+
+void LayoutAtlas::gl_update_texture(unsigned int clamp_mode)
+{
+  std::vector<Glib::RefPtr<Pango::Layout>> layouts;
+  layouts.reserve(views.size());
+
+  int img_width  = 0;
+  int img_height = 0;
+
+  for (const auto& view : views)
+  {
+    layouts.push_back(update_layout_extents(*view));
+
+    if (view->ink_width_ > 0)
+    {
+      if (view->x_offset_ != img_width)
+      {
+        view->x_offset_ = img_width;
+        view->attr_changed_ = true;
+      }
+      img_width += view->ink_width_ + PADDING;
+      img_height = std::max(img_height, view->ink_height_);
+    }
+  }
+  if (img_width <= PADDING)
+    return;
+
+  // Remove the padding overshoot at the end.
+  img_width = aligned_stride(img_width - PADDING);
+
+  std::vector<GLubyte> tex_image (img_height * img_width);
+  {
+    // Create a Cairo surface to draw the layout directly into the texture image.
+    // Note that the image will be upside-down from the point of view of OpenGL,
+    // thus the texture coordinates need to be adjusted accordingly.
     const auto surface = Cairo::ImageSurface::create(&tex_image[0],
-        Cairo::FORMAT_A8, img_width, ink_height, img_width * sizeof(GLubyte));
+        Cairo::FORMAT_A8, img_width, img_height, img_width * sizeof(GLubyte));
     const auto context = Cairo::Context::create(surface);
 
-    context->move_to(PADDING - ink.get_x(), PADDING - ink.get_y());
-    layout->show_in_cairo_context(context);
-  }
+    for (std::size_t i = 0; i < layouts.size(); ++i)
+      if (const auto& layout = layouts[i])
+      {
+        const Pango::Rectangle ink = layout->get_pixel_ink_extents();
 
-  if (!tex_name_)
+        context->move_to(views[i]->x_offset_ + MARGIN - ink.get_x(),
+                         MARGIN - ink.get_y());
+        layout->show_in_cairo_context(context);
+      }
+  }
+  glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
+
+  if (!tex_name)
   {
-    tex_width_  = 0;
-    tex_height_ = 0;
+    tex_width  = 0;
+    tex_height = 0;
 
-    glGenTextures(1, &tex_name_);
-    GL::Error::throw_if_fail(tex_name_ != 0);
+    glGenTextures(1, &tex_name);
+    GL::Error::throw_if_fail(tex_name != 0);
   }
-  glBindTexture(GL_TEXTURE_2D, tex_name_);
+  glBindTexture(GL_TEXTURE_2D, tex_name);
 
-  if (tex_width_ == 0)
+  if (tex_width == 0)
   {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp_mode);
   }
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, ink_height,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, img_height,
                0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
 
-  tex_width_  = img_width;
-  tex_height_ = ink_height;
+  tex_width  = img_width;
+  tex_height = img_height;
 
-  ink_width_  = ink_width;
-  ink_height_ = ink_height;
-
-  ink_x_ = ink.get_x() - logical.get_x() - PADDING;
-  ink_y_ = logical.get_y() + logical.get_height() - ink.get_y() - ink.get_height() - PADDING;
-
-  // Expand the logical rectangle to account for the shadow offset.
-  log_width_  = logical.get_width()  + 1;
-  log_height_ = logical.get_height() + 1;
+  for (const auto& view : views)
+    view->text_changed_ = false;
 }
 
-void LayoutTexture::gl_delete()
+void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
 {
-  if (tex_name_)
+  if (tex_width <= 0 || tex_height <= 0)
+    return;
+
+  const float tex_scale_x  = 1.f / tex_width;
+  const float tex_scale_y  = 1.f / tex_height;
+  const float view_scale_x = 1.f / view_width;
+  const float view_scale_y = 1.f / view_height;
+
+  g_return_if_fail(buffers[VERTICES]);
+  glBindBuffer(GL_ARRAY_BUFFER, buffers[VERTICES]);
+
+  const std::size_t vertex_data_size =
+      views.size() * LayoutTexView::VERTEX_COUNT * sizeof(UIVertex);
+
+  if (instance_count != views.size())
+    glBufferData(GL_ARRAY_BUFFER, vertex_data_size, nullptr, GL_DYNAMIC_DRAW);
+
+  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER, 0, vertex_data_size,
+                                  GL_MAP_WRITE_BIT
+                                  | GL_MAP_INVALIDATE_RANGE_BIT
+                                  | GL_MAP_INVALIDATE_BUFFER_BIT})
   {
-    glDeleteTextures(1, &tex_name_);
-    tex_name_ = 0;
+    auto* pv = buffer.get<UIVertex>();
+
+    for (const auto& view : views)
+    {
+      const int width  = view->ink_width_  + 1;
+      const int height = view->ink_height_ + 1;
+
+      const float s0 = (view->x_offset_ - 1)         * tex_scale_x;
+      const float s1 = (view->x_offset_ - 1 + width) * tex_scale_x;
+      const float t0 = (height - 1) * tex_scale_y;
+      const float t1 =               -tex_scale_y;
+
+      const int view_x = view->window_x_ + view->ink_x_;
+      const int view_y = view->window_y_ + view->ink_y_;
+
+      const float x0 = (2 * view_x - view_width)  * view_scale_x;
+      const float y0 = (2 * view_y - view_height) * view_scale_y;
+      const float x1 = (2 * (view_x + width)  - view_width)  * view_scale_x;
+      const float y1 = (2 * (view_y + height) - view_height) * view_scale_y;
+
+      const auto color = view->color_;
+      view->attr_changed_ = false;
+
+      pv[0].set(x0, y0, pack_2i16_norm(s0, t0), color);
+      pv[1].set(x1, y0, pack_2i16_norm(s1, t0), color);
+      pv[2].set(x0, y1, pack_2i16_norm(s0, t1), color);
+      pv[3].set(x1, y1, pack_2i16_norm(s1, t1), color);
+
+      pv += LayoutTexView::VERTEX_COUNT;
+    }
   }
-  tex_width_  = 0;
-  tex_height_ = 0;
-  ink_x_      = 0;
-  ink_y_      = 0;
-  ink_width_  = 0;
-  ink_height_ = 0;
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  if (instance_count != views.size())
+  {
+    glBindVertexArray(vao);
+    gl_generate_indices();
+    glBindVertexArray(0);
+
+    instance_count = views.size();
+  }
+}
+
+void LayoutAtlas::gl_generate_indices()
+{
+  constexpr std::size_t index_stride  = LayoutTexView::INDEX_COUNT;
+  constexpr std::size_t vertex_stride = LayoutTexView::VERTEX_COUNT;
+
+  const auto indices = std::make_unique<GLushort[]>(views.size() * index_stride);
+
+  // For each instance, generate 6 indices to draw 2 triangles from 4 vertices.
+  for (std::size_t i = 0; i < views.size(); ++i)
+  {
+    indices[index_stride*i + 0] = vertex_stride*i + 0;
+    indices[index_stride*i + 1] = vertex_stride*i + 1;
+    indices[index_stride*i + 2] = vertex_stride*i + 2;
+    indices[index_stride*i + 3] = vertex_stride*i + 3;
+    indices[index_stride*i + 4] = vertex_stride*i + 2;
+    indices[index_stride*i + 5] = vertex_stride*i + 1;
+  }
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               views.size() * index_stride * sizeof(GLushort),
+               indices.get(), GL_STATIC_DRAW);
+}
+
+void LayoutAtlas::gl_create_vao()
+{
+  g_return_if_fail(!buffers[VERTICES] && !buffers[INDICES]);
+
+  instance_count = 0;
+
+  glGenVertexArrays(1, &vao);
+  GL::Error::throw_if_fail(vao != 0);
+
+  glGenBuffers(G_N_ELEMENTS(buffers), buffers);
+  GL::Error::throw_if_fail(buffers[VERTICES] && buffers[INDICES]);
+
+  glBindVertexArray(vao);
+
+  glBindBuffer(GL_ARRAY_BUFFER, buffers[VERTICES]);
+  glBufferData(GL_ARRAY_BUFFER,
+               views.size() * LayoutTexView::VERTEX_COUNT * sizeof(UIVertex),
+               nullptr, GL_DYNAMIC_DRAW);
+
+  glVertexAttribPointer(ATTRIB_POSITION,
+                        GL::attrib_size<decltype(UIVertex::position)>,
+                        GL::attrib_type<decltype(UIVertex::position)>,
+                        GL_FALSE, sizeof(UIVertex),
+                        GL::buffer_offset(offsetof(UIVertex, position)));
+  glVertexAttribPointer(ATTRIB_TEXCOORD,
+                        GL::attrib_size<decltype(UIVertex::texcoord)>,
+                        GL::attrib_type<decltype(UIVertex::texcoord)>,
+                        GL_TRUE, sizeof(UIVertex),
+                        GL::buffer_offset(offsetof(UIVertex, texcoord)));
+  glVertexAttribPointer(ATTRIB_COLOR,
+                        GL::attrib_size<decltype(UIVertex::color)>,
+                        GL::attrib_type<decltype(UIVertex::color)>,
+                        GL_TRUE, sizeof(UIVertex),
+                        GL::buffer_offset(offsetof(UIVertex, color)));
+
+  glEnableVertexAttribArray(ATTRIB_POSITION);
+  glEnableVertexAttribArray(ATTRIB_TEXCOORD);
+  glEnableVertexAttribArray(ATTRIB_COLOR);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[INDICES]);
+  gl_generate_indices();
+
+  glBindVertexArray(0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  instance_count = views.size();
+}
+
+void LayoutAtlas::gl_delete()
+{
+  instance_count = 0;
+
+  if (tex_name)
+  {
+    glDeleteTextures(1, &tex_name);
+    tex_name = 0;
+  }
+  tex_width  = 0;
+  tex_height = 0;
+
+  glDeleteVertexArrays(1, &vao);
+  vao = 0;
+
+  if (buffers[VERTICES] || buffers[INDICES])
+  {
+    glDeleteBuffers(G_N_ELEMENTS(buffers), buffers);
+    buffers[VERTICES] = 0;
+    buffers[INDICES]  = 0;
+  }
+}
+
+Glib::RefPtr<Pango::Layout> LayoutAtlas::update_layout_extents(LayoutTexView& view)
+{
+  if (view.content_.empty())
+  {
+    if (view.ink_width_ > 0)
+      view.attr_changed_ = true;
+
+    view.ink_x_      = 0;
+    view.ink_y_      = 0;
+    view.ink_width_  = 0;
+    view.ink_height_ = 0;
+    view.log_width_  = 0;
+    view.log_height_ = 0;
+
+    return {};
+  }
+  auto layout = Pango::Layout::create(layout_context);
+  layout->set_text(view.content_);
+
+  Pango::Rectangle ink, logical;
+  // Measure ink extents to determine the dimensions of the image, but
+  // keep the logical extents and the ink offsets around for positioning.
+  layout->get_pixel_extents(ink, logical);
+
+  // Make sure the extents are within reasonable boundaries.
+  g_return_val_if_fail(ink.get_width() < 4095 && ink.get_height() < 4095,
+                       Glib::RefPtr<Pango::Layout>{});
+
+  const int ink_x = ink.get_x() - logical.get_x() - MARGIN;
+  const int ink_y = logical.get_y() + logical.get_height()
+                  - ink.get_y() - ink.get_height() - MARGIN;
+
+  const int ink_width  = std::max(0, ink.get_width())  + 2 * MARGIN;
+  const int ink_height = std::max(0, ink.get_height()) + 2 * MARGIN;
+
+  // Expand the logical rectangle to account for the shadow offset.
+  const int log_width  = logical.get_width()  + 1;
+  const int log_height = logical.get_height() + 1;
+
+  if (ink_x != view.ink_x_ || ink_y != view.ink_y_
+      || ink_width != view.ink_width_ || ink_height != view.ink_height_
+      || log_width != view.log_width_ || log_height != view.log_height_)
+  {
+    view.ink_x_        = ink_x;
+    view.ink_y_        = ink_y;
+    view.ink_width_    = ink_width;
+    view.ink_height_   = ink_height;
+    view.log_width_    = log_width;
+    view.log_height_   = log_height;
+    view.attr_changed_ = true;
+  }
+  return std::move(layout);
 }
 
 void Extensions::gl_query(bool use_es, int version)
@@ -314,22 +550,6 @@ int Scene::get_multisample() const
   return aa_samples_;
 }
 
-void Scene::set_show_focus(bool show_focus)
-{
-  if (show_focus != show_focus_)
-  {
-    show_focus_ = show_focus;
-
-    if (has_visible_focus())
-      queue_static_draw();
-  }
-}
-
-bool Scene::get_show_focus() const
-{
-  return show_focus_;
-}
-
 void Scene::start_animation_tick()
 {
   g_return_if_fail(anim_tick_id_ == 0);
@@ -366,83 +586,31 @@ int Scene::get_viewport_height() const
   return std::max(1, get_allocated_height() * get_scale_factor());
 }
 
-LayoutTexture* Scene::create_layout_texture()
+LayoutTexView* Scene::create_layout_view()
 {
   // For now, layout textures may only be created at initialization time.
-  g_return_val_if_fail(ui_buffer_ == 0, nullptr);
+  g_return_val_if_fail(!layouts_.vao, nullptr);
 
-  auto layout = std::make_unique<LayoutTexture>();
+  layouts_.views.push_back(std::make_unique<LayoutTexView>());
 
-  layout->array_offset_ =
-    LAYOUTS_ARRAY_OFFSET + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
-
-  ui_layouts_.push_back(std::move(layout));
-
-  return ui_layouts_.back().get();
+  return layouts_.views.back().get();
 }
 
 void Scene::gl_update_ui()
 {
-  focus_drawable_ = false;
-
-  gl_update_layouts();
   gl_reposition_layouts();
-
-  if (!ui_vertex_array_ || !ui_buffer_)
-  {
-    ui_vertex_count_ = 0;
-
-    if (!ui_vertex_array_)
-    {
-      glGenVertexArrays(1, &ui_vertex_array_);
-      GL::Error::throw_if_fail(ui_vertex_array_ != 0);
-    }
-    if (!ui_buffer_)
-    {
-      glGenBuffers(1, &ui_buffer_);
-      GL::Error::throw_if_fail(ui_buffer_ != 0);
-    }
-    glBindVertexArray(ui_vertex_array_);
-
-    gl_update_ui_buffer();
-
-    glVertexAttribPointer(ATTRIB_POSITION,
-                          GL::attrib_size<decltype(UIVertex::position)>,
-                          GL::attrib_type<decltype(UIVertex::position)>,
-                          GL_FALSE, sizeof(UIVertex),
-                          GL::buffer_offset(offsetof(UIVertex, position)));
-    glVertexAttribPointer(ATTRIB_TEXCOORD,
-                          GL::attrib_size<decltype(UIVertex::texcoord)>,
-                          GL::attrib_type<decltype(UIVertex::texcoord)>,
-                          GL_TRUE, sizeof(UIVertex),
-                          GL::buffer_offset(offsetof(UIVertex, texcoord)));
-    glVertexAttribPointer(ATTRIB_COLOR,
-                          GL::attrib_size<decltype(UIVertex::color)>,
-                          GL::attrib_type<decltype(UIVertex::color)>,
-                          GL_TRUE, sizeof(UIVertex),
-                          GL::buffer_offset(offsetof(UIVertex, color)));
-
-    glEnableVertexAttribArray(ATTRIB_POSITION);
-    glEnableVertexAttribArray(ATTRIB_TEXCOORD);
-    glEnableVertexAttribArray(ATTRIB_COLOR);
-
-    glBindVertexArray(0);
-  }
-  else
-    gl_update_ui_buffer();
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  gl_update_layouts();
 }
 
 void Scene::gl_initialize()
 {
   gl_create_label_shader();
-  gl_create_focus_shader();
-
   gl_update_framebuffer();
+
   glViewport(0, 0, get_viewport_width(), get_viewport_height());
+
   gl_update_projection();
-  gl_update_color();
+  layouts_.gl_create_vao();
 
   if (label_shader_)
   {
@@ -457,31 +625,12 @@ void Scene::gl_initialize()
 
 void Scene::gl_cleanup()
 {
-  ui_vertex_count_ = 0;
-  focus_drawable_  = false;
-
-  if (ui_vertex_array_)
-  {
-    glDeleteVertexArrays(1, &ui_vertex_array_);
-    ui_vertex_array_ = 0;
-  }
-  if (ui_buffer_)
-  {
-    glDeleteBuffers(1, &ui_buffer_);
-    ui_buffer_ = 0;
-  }
-
-  for (const auto& layout : ui_layouts_)
-    layout->gl_delete();
-
+  layouts_.gl_delete();
   gl_delete_framebuffer();
 
   label_uf_intensity_ = -1;
   label_uf_texture_   = -1;
-  focus_uf_color_     = -1;
-
   label_shader_.reset();
-  focus_shader_.reset();
 }
 
 /*
@@ -511,24 +660,31 @@ void Scene::gl_reset_state()
 int Scene::gl_render()
 {
   int triangle_count = 0;
+  const auto range = layouts_.get_drawable_range();
 
-  if (ui_vertex_array_)
+  if (range.first < range.second && label_shader_)
   {
-    const bool has_layouts = std::any_of(cbegin(ui_layouts_), cend(ui_layouts_),
-                                         [](const auto& p) { return p->drawable(); });
+    // The source function is identity because we blend in an intensity
+    // texture. That is, the color channels are premultiplied by alpha.
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
-    if (has_layouts || (show_focus_ && focus_drawable_ && has_visible_focus()))
-    {
-      glBindVertexArray(ui_vertex_array_);
+    glBindVertexArray(layouts_.vao);
+    label_shader_.use();
 
-      gl_render_focus();
+    glDrawRangeElements(GL_TRIANGLES,
+                        LayoutTexView::VERTEX_COUNT * range.first,
+                        LayoutTexView::VERTEX_COUNT * range.second - 1,
+                        LayoutTexView::INDEX_COUNT * (range.second - range.first),
+                        GL::attrib_type<GLushort>,
+                        GL::buffer_offset<GLushort>(LayoutTexView::INDEX_COUNT * range.first));
 
-      if (has_layouts)
-        triangle_count = gl_render_layouts();
+    GL::ShaderProgram::unuse();
+    glBindVertexArray(0);
 
-      GL::ShaderProgram::unuse();
-      glBindVertexArray(0);
-    }
+    glDisable(GL_BLEND);
+
+    triangle_count += LayoutTexView::TRIANGLE_COUNT * (range.second - range.first);
   }
   return triangle_count;
 }
@@ -536,28 +692,12 @@ int Scene::gl_render()
 void Scene::gl_update_projection()
 {}
 
-void Scene::gl_update_color()
-{
-#if 0
-  const auto style = get_style_context();
-  const auto state = style->get_state();
-
-  const Gdk::RGBA color = style->get_color(state);
-
-  focus_color_ = {static_cast<float>(color.get_red()),
-                  static_cast<float>(color.get_green()),
-                  static_cast<float>(color.get_blue()),
-                  1.f};
-#endif
-  glClearColor(0., 0., 0., 0.);
-}
-
 void Scene::on_realize()
 {
-  texture_context_.reset();
+  layouts_.layout_context.reset();
 
-  for (const auto& layout : ui_layouts_)
-    layout->invalidate();
+  for (const auto& view : layouts_.views)
+    view->invalidate();
 
   Gtk::GLArea::on_realize();
 
@@ -599,7 +739,7 @@ void Scene::on_unrealize()
   }
   Gtk::GLArea::on_unrealize();
 
-  texture_context_.reset();
+  layouts_.layout_context.reset();
 }
 
 void Scene::on_size_allocate(Gtk::Allocation& allocation)
@@ -651,16 +791,15 @@ bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
 
 void Scene::on_style_updated()
 {
-  texture_context_.reset();
+  layouts_.layout_context.reset();
 
-  for (const auto& layout : ui_layouts_)
-    layout->invalidate();
+  for (const auto& view : layouts_.views)
+    view->invalidate();
 
   Gtk::GLArea::on_style_updated();
 
   if (auto guard = scoped_make_current())
   {
-    gl_update_color();
     gl_update_ui();
   }
 }
@@ -677,17 +816,16 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
       gl_update_focus_state();
       GL::ShaderProgram::unuse();
     }
-    gl_update_color();
     gl_update_ui();
   }
 }
 
 void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
 {
-  texture_context_.reset();
+  layouts_.layout_context.reset();
 
-  for (const auto& layout : ui_layouts_)
-    layout->invalidate();
+  for (const auto& view : layouts_.views)
+    view->invalidate();
 
   Gtk::GLArea::on_direction_changed(previous_direction);
 
@@ -756,21 +894,6 @@ void Scene::gl_create_label_shader()
   label_shader_ = std::move(program);
 }
 
-void Scene::gl_create_focus_shader()
-{
-  GL::ShaderProgram program;
-
-  program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/focusrect.vert"});
-  program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/focusrect.frag"});
-
-  program.bind_attrib_location(ATTRIB_POSITION, "position");
-  program.link();
-
-  focus_uf_color_ = program.get_uniform_location("focusColor");
-
-  focus_shader_ = std::move(program);
-}
-
 void Scene::gl_update_framebuffer()
 {
   gl_delete_framebuffer();
@@ -830,184 +953,30 @@ void Scene::gl_update_focus_state()
 
 void Scene::gl_update_layouts()
 {
-  glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
+  if (!layouts_.vao)
+    return;
 
-  const unsigned int clamp_mode = (gl_ext()->texture_border_clamp) ? GL_CLAMP_TO_BORDER
-                                                                   : GL_CLAMP_TO_EDGE;
-  for (const auto& layout : ui_layouts_)
+  if (layouts_.needs_texture_update())
   {
-    if (!layout->content_.empty())
+    if (!layouts_.layout_context)
     {
-      if (!layout->tex_name_ || layout->need_update_)
-        layout->gl_set_layout(create_texture_pango_layout(layout->content_), clamp_mode);
+      // Create a dummy cairo context with surface type and transformation
+      // matching what we are going to use at draw time.
+      const auto surface = Cairo::ImageSurface::create(Cairo::FORMAT_A8, 1, 1);
+      const auto cairo = Cairo::Context::create(surface);
+
+      auto context = create_pango_context();
+      context->update_from_cairo_context(cairo);
+
+      layouts_.layout_context = std::move(context);
     }
-    else
-    {
-      layout->gl_delete();
-
-      layout->log_width_  = 0;
-      layout->log_height_ = 0;
-    }
-    layout->need_update_ = false;
-  }
-}
-
-void Scene::gl_update_ui_buffer()
-{
-  g_return_if_fail(ui_buffer_ != 0);
-
-  glBindBuffer(GL_ARRAY_BUFFER, ui_buffer_);
-
-  const unsigned int vertex_count =
-    FOCUS_VERTEX_COUNT + LayoutTexture::VERTEX_COUNT * ui_layouts_.size();
-
-  if (vertex_count != ui_vertex_count_)
-  {
-    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(UIVertex),
-                 nullptr, GL_DYNAMIC_DRAW);
-    ui_vertex_count_ = vertex_count;
+    const unsigned int clamp_mode = (gl_ext()->texture_border_clamp)
+                                  ? GL_CLAMP_TO_BORDER : GL_CLAMP_TO_EDGE;
+    layouts_.gl_update_texture(clamp_mode);
   }
 
-  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
-                                  0, vertex_count * sizeof(UIVertex),
-                                  GL_MAP_WRITE_BIT
-                                  | GL_MAP_INVALIDATE_RANGE_BIT
-                                  | GL_MAP_INVALIDATE_BUFFER_BIT})
-  {
-    auto *const vertices = buffer.get<UIVertex>();
-
-    gl_build_focus(vertices);
-    gl_build_layouts(vertices);
-  }
-}
-
-void Scene::gl_build_focus(volatile UIVertex* vertices)
-{
-  g_return_if_fail(FOCUS_ARRAY_OFFSET + FOCUS_VERTEX_COUNT <= ui_vertex_count_);
-
-  bool interior_focus = false;
-  int  focus_padding  = 0;
-
-  get_style_property("interior_focus", interior_focus);
-  get_style_property("focus_padding",  focus_padding);
-
-  const int view_width  = get_viewport_width();
-  const int view_height = get_viewport_height();
-
-  focus_drawable_ = (interior_focus
-                     && view_width  > 2 * focus_padding
-                     && view_height > 2 * focus_padding);
-
-  generate_focus_rect(view_width, view_height, focus_padding,
-                      vertices + FOCUS_ARRAY_OFFSET);
-}
-
-/*
- * Generate vertices and texture coordinates for the text layouts.
- */
-void Scene::gl_build_layouts(volatile UIVertex* vertices)
-{
-  const int view_width  = get_viewport_width();
-  const int view_height = get_viewport_height();
-
-  for (const auto& layout : ui_layouts_)
-  {
-    const int width  = layout->ink_width_  + 1;
-    const int height = layout->ink_height_ + 1;
-
-    const float tex_width  = layout->tex_width_;
-    const float tex_height = layout->tex_height_;
-
-    const float s0 = -1.f / tex_width;
-    const float t0 = (height - 1) / tex_height;
-    const float s1 = (width  - 1) / tex_width;
-    const float t1 = -1.f / tex_height;
-
-    const int view_x = layout->window_x_ + layout->ink_x_;
-    const int view_y = layout->window_y_ + layout->ink_y_;
-
-    const float x0 = static_cast<float>(2 * view_x - view_width)  / view_width;
-    const float y0 = static_cast<float>(2 * view_y - view_height) / view_height;
-    const float x1 = static_cast<float>(2 * (view_x + width)  - view_width)  / view_width;
-    const float y1 = static_cast<float>(2 * (view_y + height) - view_height) / view_height;
-
-    const auto color = pack_4u8_norm(layout->color().x(),
-                                     layout->color().y(),
-                                     layout->color().z(),
-                                     layout->color().w());
-
-    g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_vertex_count_);
-
-    volatile UIVertex *const geometry = vertices + layout->array_offset_;
-
-    geometry[0].set(x0, y0, pack_2i16_norm(s0, t0), color);
-    geometry[1].set(x1, y0, pack_2i16_norm(s1, t0), color);
-    geometry[2].set(x0, y1, pack_2i16_norm(s0, t1), color);
-    geometry[3].set(x1, y1, pack_2i16_norm(s1, t1), color);
-  }
-}
-
-void Scene::gl_render_focus()
-{
-  if (show_focus_ && focus_drawable_ && focus_shader_ && has_visible_focus())
-  {
-    focus_shader_.use();
-    glUniform4fv(focus_uf_color_, 1, &focus_color_[0]);
-
-    glDrawArrays(GL_LINE_LOOP, FOCUS_ARRAY_OFFSET, FOCUS_VERTEX_COUNT);
-  }
-}
-
-int Scene::gl_render_layouts()
-{
-  int triangle_count = 0;
-
-  if (label_shader_)
-  {
-    label_shader_.use();
-
-    // The source function is identity because we blend in an intensity
-    // texture. That is, the color channels are premultiplied by alpha.
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
-    glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
-
-    for (const auto& layout : ui_layouts_)
-      if (layout->drawable())
-      {
-        glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
-
-        glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_,
-                     LayoutTexture::VERTEX_COUNT);
-
-        triangle_count += LayoutTexture::TRIANGLE_COUNT;
-      }
-
-    glDisable(GL_BLEND);
-  }
-
-  return triangle_count;
-}
-
-Glib::RefPtr<Pango::Layout> Scene::create_texture_pango_layout(const Glib::ustring& text)
-{
-  if (!texture_context_)
-  {
-    // Create a dummy cairo context with surface type and transformation
-    // matching what we are going to use at draw time.
-    const auto surface = Cairo::ImageSurface::create(Cairo::FORMAT_A8, 1, 1);
-    const auto cairo = Cairo::Context::create(surface);
-
-    auto context = create_pango_context();
-    context->update_from_cairo_context(cairo);
-
-    texture_context_ = std::move(context);
-  }
-  const auto layout = Pango::Layout::create(texture_context_);
-  layout->set_text(text);
-
-  return layout;
+  if (layouts_.needs_vertex_update())
+    layouts_.gl_generate_vertices(get_viewport_width(), get_viewport_height());
 }
 
 gboolean Scene::tick_callback(GtkWidget*, GdkFrameClock* frame_clock, gpointer user_data)

@@ -21,8 +21,6 @@
 #define SOMATO_GLSCENE_H_INCLUDED
 
 #include "glshader.h"
-#include "glutils.h"
-#include "vectormath.h"
 
 #include <glibmm/ustring.h>
 #include <gdkmm/glcontext.h>
@@ -41,7 +39,8 @@ namespace Pango
 namespace GL
 {
 
-class LayoutTexture;
+class LayoutTexView;
+using LayoutTexViewVector = std::vector<std::unique_ptr<LayoutTexView>>;
 
 struct Extensions
 {
@@ -54,22 +53,39 @@ struct Extensions
   void gl_query(bool use_es, int version);
 };
 
-struct UIVertex
+struct LayoutAtlas
 {
-  float      position[2];
-  Packed2i16 texcoord;
-  Packed4u8  color;
+  // Ink spill margins and padding between adjacent sub-images.
+  enum : int { MARGIN = 1, PADDING = 1 };
 
-  void set(float x, float y, Packed2i16 t, Packed4u8 c) volatile
-  {
-    position[0] = x;
-    position[1] = y;
-    texcoord    = t;
-    color       = c;
-  }
+  Glib::RefPtr<Pango::Context> layout_context;
+  LayoutTexViewVector          views;
+
+  unsigned int instance_count = 0;
+  unsigned int tex_name       = 0;
+  int          tex_width      = 0;
+  int          tex_height     = 0;
+  unsigned int buffers[2]     = {0, 0};
+  unsigned int vao            = 0;
+
+  LayoutAtlas();
+  ~LayoutAtlas();
+  LayoutAtlas(const LayoutAtlas&) = delete;
+  LayoutAtlas& operator=(const LayoutAtlas&) = delete;
+
+  bool needs_texture_update() const;
+  bool needs_vertex_update() const;
+  std::pair<int, int> get_drawable_range() const;
+
+  void gl_update_texture(unsigned int clamp_mode);
+  void gl_generate_vertices(int view_width, int view_height);
+  void gl_generate_indices();
+  void gl_create_vao();
+  void gl_delete();
+
+private:
+  Glib::RefPtr<Pango::Layout> update_layout_extents(LayoutTexView& view);
 };
-
-typedef std::vector<std::unique_ptr<LayoutTexture>> LayoutVector;
 
 /*
  * Base GL widget class that implements all the generic stuff not specific
@@ -89,9 +105,6 @@ public:
 
   void set_multisample(int n_samples);
   int  get_multisample() const;
-
-  void set_show_focus(bool show_focus);
-  bool get_show_focus() const;
 
 protected:
   class ContextGuard
@@ -125,7 +138,7 @@ protected:
   int get_viewport_width() const;
   int get_viewport_height() const;
 
-  LayoutTexture* create_layout_texture();
+  LayoutTexView* create_layout_view();
   void gl_update_ui();
 
   virtual void gl_initialize();
@@ -133,7 +146,6 @@ protected:
   virtual void gl_reset_state();
   virtual int  gl_render() = 0;
   virtual void gl_update_projection();
-  virtual void gl_update_color();
 
   void on_realize() override;
   void on_unrealize() override;
@@ -152,57 +164,36 @@ private:
   bool try_make_current();
 
   void gl_create_label_shader();
-  void gl_create_focus_shader();
-
   void gl_update_framebuffer();
   void gl_delete_framebuffer();
 
   void gl_update_focus_state();
   void gl_update_layouts();
-  void gl_update_ui_buffer();
-  void gl_build_focus(volatile UIVertex* vertices);
-  void gl_build_layouts(volatile UIVertex* vertices);
-
-  void gl_render_focus();
-  int  gl_render_layouts();
-
-  Glib::RefPtr<Pango::Layout> create_texture_pango_layout(const Glib::ustring& text);
 
   static gboolean tick_callback(GtkWidget* widget, GdkFrameClock* frame_clock,
                                 gpointer user_data);
   static void tick_callback_destroy(gpointer user_data);
 
-  Math::Vector4     focus_color_ = {0.6, 0.6, 0.6, 1.};
-  gint64            anim_start_time_ = 0;
+  gint64            anim_start_time_    = 0;
 
-  Glib::RefPtr<Pango::Context> texture_context_;
-  LayoutVector                 ui_layouts_;
-
-  GL::Extensions    gl_extensions_;
+  LayoutAtlas       layouts_;
   GL::ShaderProgram label_shader_;
   int               label_uf_intensity_ = -1;
   int               label_uf_texture_   = -1;
-  GL::ShaderProgram focus_shader_;
-  int               focus_uf_color_     = -1;
 
-  int          aa_samples_      = 0;
-  int          max_aa_samples_  = 0;
+  GL::Extensions    gl_extensions_;
+  int               aa_samples_         = 0;
+  int               max_aa_samples_     = 0;
 
-  unsigned int render_buffers_[2] = {0, 0};
-  unsigned int frame_buffer_      = 0;
+  unsigned int      render_buffers_[2]  = {0, 0};
+  unsigned int      frame_buffer_       = 0;
 
-  unsigned int ui_vertex_count_  = 0;
-  unsigned int ui_vertex_array_  = 0;
-  unsigned int ui_buffer_        = 0;
-  unsigned int frame_counter_    = 0;
-  unsigned int triangle_counter_ = 0;
-  unsigned int anim_tick_id_     = 0;
-
-  bool first_tick_     = false;
-  bool show_focus_     = true;
-  bool focus_drawable_ = false;
+  unsigned int      frame_counter_      = 0;
+  unsigned int      triangle_counter_   = 0;
+  unsigned int      anim_tick_id_       = 0;
+  bool              first_tick_         = false;
 };
 
 } // namespace GL
 
-#endif /* SOMATO_GLSCENE_H_INCLUDED */
+#endif // !SOMATO_GLSCENE_H_INCLUDED

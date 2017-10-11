@@ -23,28 +23,25 @@
 #include "glscene.h"
 #include "glutils.h"
 
+#include <glibmm/ustring.h>
 #include <pangomm/context.h>
 #include <pangomm/layout.h>
 
 namespace GL
 {
 
-class LayoutTexture
+class LayoutTexView
 {
 private:
-  friend class GL::Scene;
+  friend class GL::LayoutAtlas;
 
-  enum { TRIANGLE_COUNT = 2, VERTEX_COUNT = 4 };
-
-  Math::Vector4 color_;         // text foreground color
   Glib::ustring content_;       // text content of layout
-  bool          need_update_;   // flag to indicate change of content
+  Packed4u8     color_;         // text foreground color
 
-  unsigned int  array_offset_;  // offset into geometry arrays
+  bool          text_changed_;  // flag to indicate change of content
+  bool          attr_changed_;  // flag to indicate change of attributes
 
-  unsigned int  tex_name_;      // GL name of texture object
-  int           tex_width_;     // actual width of the GL texture
-  int           tex_height_;    // actual height of the GL texture
+  int           x_offset_;      // horizontal offset in atlas texture
 
   int           ink_x_;         // horizontal offset from logical origin to texture origin
   int           ink_y_;         // vertical offset from logical origin to texture origin
@@ -57,33 +54,32 @@ private:
   int           window_x_;      // window x coordinate of the layout's logical origin
   int           window_y_;      // window y coordinate of the layout's logical origin
 
-  static void prepare_pango_context(const Glib::RefPtr<Pango::Context>& context);
-
-  void gl_set_layout(const Glib::RefPtr<Pango::Layout>& layout, unsigned int clamp_mode);
-  void gl_delete();
-
   // noncopyable
-  LayoutTexture(const LayoutTexture&) = delete;
-  LayoutTexture& operator=(const LayoutTexture&) = delete;
+  LayoutTexView(const LayoutTexView&) = delete;
+  LayoutTexView& operator=(const LayoutTexView&) = delete;
 
 public:
-  LayoutTexture();
-  ~LayoutTexture();
+  enum { TRIANGLE_COUNT = 2, VERTEX_COUNT = 4, INDEX_COUNT = 6 };
 
-  void set_content(const Glib::ustring& content);
+  LayoutTexView();
+  ~LayoutTexView();
+
+  void set_content(Glib::ustring content);
   Glib::ustring get_content() const { return content_; }
 
-  Math::Vector4&       color()       { return color_; }
-  const Math::Vector4& color() const { return color_; }
+  Packed4u8 get_color() const { return color_; }
+  void set_color(Packed4u8 color) { color_ = color; attr_changed_ = true; }
+  void set_color(float r, float g, float b, float a = 1.)
+    { set_color(pack_4u8_norm(r, g, b, a)); }
 
-  void invalidate() { need_update_ = true; }
-  bool need_update() const { return need_update_; }
-  bool drawable() const { return (tex_name_ != 0); }
+  void invalidate() { text_changed_ = true; }
+  bool need_update() const { return (text_changed_ || attr_changed_); }
+  bool drawable() const { return (ink_width_ > 0 && !need_update()); }
 
   int get_width()  const { return log_width_;  }
   int get_height() const { return log_height_; }
 
-  void set_window_pos(int x, int y) { window_x_ = x; window_y_ = y; }
+  void set_window_pos(int x, int y);
 
   int get_window_x() const { return window_x_; }
   int get_window_y() const { return window_y_; }
