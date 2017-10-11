@@ -20,7 +20,7 @@
 #ifndef SOMATO_GLUTILS_H_INCLUDED
 #define SOMATO_GLUTILS_H_INCLUDED
 
-#include "meshloader.h"
+#include "meshtypes.h"
 
 #include <glib.h>
 #include <glibmm/ustring.h>

@@ -18,6 +18,7 @@
  */
 
 #include "meshloader.h"
+#include "meshtypes.h"
 
 #include <glib.h>
 #include <iostream>
@@ -83,7 +84,7 @@ bool fill_mesh_data(const MeshLoader& loader, const MeshNodes& nodes,
   mesh_desc.reserve(nodes.size());
 
   unsigned int total_vertices = GRID_VERTEX_COUNT;
-  unsigned int indices_offset = MeshLoader::aligned_index_count(GRID_LINE_COUNT * 2);
+  unsigned int indices_offset = aligned_index_count(GRID_LINE_COUNT * 2);
 
   for (const auto node : nodes)
   {
@@ -95,7 +96,7 @@ bool fill_mesh_data(const MeshLoader& loader, const MeshNodes& nodes,
     mesh_desc.push_back({counts.second, indices_offset,
                          total_vertices, total_vertices + counts.first - 1});
     total_vertices += counts.first;
-    indices_offset += MeshLoader::aligned_index_count(3 * counts.second);
+    indices_offset += aligned_index_count(3 * counts.second);
   }
   mesh_vertices.resize(total_vertices);
   mesh_indices.resize(indices_offset);
@@ -111,7 +112,7 @@ bool fill_mesh_data(const MeshLoader& loader, const MeshNodes& nodes,
     loader.get_node_vertices(node, &mesh_vertices[mesh.element_first],
                              mesh.element_count());
     loader.get_node_indices(node, mesh.element_first, &mesh_indices[mesh.indices_offset],
-                            MeshLoader::aligned_index_count(3 * mesh.triangle_count));
+                            aligned_index_count(3 * mesh.triangle_count));
   }
   return true;
 }

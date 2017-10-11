@@ -23,7 +23,7 @@
 #include "glsceneprivate.h"
 #include "glutils.h"
 #include "mathutils.h"
-#include "meshloader.h"
+#include "meshtypes.h"
 
 #include <glib.h>
 #include <gdk/gdk.h>

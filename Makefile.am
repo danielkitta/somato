@@ -48,6 +48,7 @@ src_somato_SOURCES =		\
 	src/mainwindow.h	\
 	src/mathutils.cc	\
 	src/mathutils.h		\
+	src/meshtypes.h		\
 	src/puzzle.cc		\
 	src/puzzle.h		\
 	src/vectormath.cc	\
