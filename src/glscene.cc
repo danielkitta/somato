@@ -49,7 +49,8 @@ enum
 enum
 {
   ATTRIB_POSITION = 0,
-  ATTRIB_TEXCOORD = 1
+  ATTRIB_TEXCOORD = 1,
+  ATTRIB_COLOR    = 2
 };
 
 /* UI text layout fragment shader texture unit.
@@ -90,10 +91,12 @@ void generate_focus_rect(int width, int height, int padding,
   const float x1 = static_cast<float>(width  - 2 * padding - 1) / width;
   const float y1 = static_cast<float>(height - 2 * padding - 1) / height;
 
-  geometry[0].set(x0, y0, 0., 0.);
-  geometry[1].set(x1, y0, 1., 0.);
-  geometry[2].set(x1, y1, 1., 1.);
-  geometry[3].set(x0, y1, 0., 1.);
+  const auto color = GL::pack_4u8_norm(0.6, 0.6, 0.6, 1.);
+
+  geometry[0].set(x0, y0, GL::pack_2i16_norm(0., 0.), color);
+  geometry[1].set(x1, y0, GL::pack_2i16_norm(1., 0.), color);
+  geometry[2].set(x1, y1, GL::pack_2i16_norm(1., 1.), color);
+  geometry[3].set(x0, y1, GL::pack_2i16_norm(0., 1.), color);
 }
 
 /*
@@ -411,10 +414,17 @@ void Scene::gl_update_ui()
     glVertexAttribPointer(ATTRIB_TEXCOORD,
                           GL::attrib_size<decltype(UIVertex::texcoord)>,
                           GL::attrib_type<decltype(UIVertex::texcoord)>,
-                          GL_FALSE, sizeof(UIVertex),
+                          GL_TRUE, sizeof(UIVertex),
                           GL::buffer_offset(offsetof(UIVertex, texcoord)));
+    glVertexAttribPointer(ATTRIB_COLOR,
+                          GL::attrib_size<decltype(UIVertex::color)>,
+                          GL::attrib_type<decltype(UIVertex::color)>,
+                          GL_TRUE, sizeof(UIVertex),
+                          GL::buffer_offset(offsetof(UIVertex, color)));
+
     glEnableVertexAttribArray(ATTRIB_POSITION);
     glEnableVertexAttribArray(ATTRIB_TEXCOORD);
+    glEnableVertexAttribArray(ATTRIB_COLOR);
 
     glBindVertexArray(0);
   }
@@ -437,7 +447,10 @@ void Scene::gl_initialize()
   if (label_shader_)
   {
     label_shader_.use();
+
     glUniform1i(label_uf_texture_, SAMPLER_LAYOUT);
+    gl_update_focus_state();
+
     GL::ShaderProgram::unuse();
   }
 }
@@ -463,9 +476,9 @@ void Scene::gl_cleanup()
 
   gl_delete_framebuffer();
 
-  label_uf_color_   = -1;
-  label_uf_texture_ = -1;
-  focus_uf_color_   = -1;
+  label_uf_intensity_ = -1;
+  label_uf_texture_   = -1;
+  focus_uf_color_     = -1;
 
   label_shader_.reset();
   focus_shader_.reset();
@@ -478,11 +491,8 @@ void Scene::gl_cleanup()
 void Scene::gl_reset_state()
 {
   glBindVertexArray(0);
-
-  glDisableVertexAttribArray(ATTRIB_TEXCOORD);
-  glDisableVertexAttribArray(ATTRIB_POSITION);
-
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   glDisable(GL_BLEND);
 
@@ -661,6 +671,12 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
 
   if (auto guard = scoped_make_current())
   {
+    if (label_shader_)
+    {
+      label_shader_.use();
+      gl_update_focus_state();
+      GL::ShaderProgram::unuse();
+    }
     gl_update_color();
     gl_update_ui();
   }
@@ -731,10 +747,11 @@ void Scene::gl_create_label_shader()
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
+  program.bind_attrib_location(ATTRIB_COLOR,    "color");
   program.link();
 
-  label_uf_color_   = program.get_uniform_location("textColor");
-  label_uf_texture_ = program.get_uniform_location("labelTexture");
+  label_uf_intensity_ = program.get_uniform_location("textIntensity");
+  label_uf_texture_   = program.get_uniform_location("labelTexture");
 
   label_shader_ = std::move(program);
 }
@@ -803,6 +820,12 @@ void Scene::gl_delete_framebuffer()
     render_buffers_[COLOR] = 0;
     render_buffers_[DEPTH] = 0;
   }
+}
+
+void Scene::gl_update_focus_state()
+{
+  const float intensity = (has_focus()) ? 1.f : 0.75f;
+  glUniform1f(label_uf_intensity_, intensity);
 }
 
 void Scene::gl_update_layouts()
@@ -895,10 +918,10 @@ void Scene::gl_build_layouts(volatile UIVertex* vertices)
     const float tex_width  = layout->tex_width_;
     const float tex_height = layout->tex_height_;
 
-    const float s0 = -1. / tex_width;
-    const float t0 = height / tex_height;
-    const float s1 = (width - 1) / tex_width;
-    const float t1 = 0.;
+    const float s0 = -1.f / tex_width;
+    const float t0 = (height - 1) / tex_height;
+    const float s1 = (width  - 1) / tex_width;
+    const float t1 = -1.f / tex_height;
 
     const int view_x = layout->window_x_ + layout->ink_x_;
     const int view_y = layout->window_y_ + layout->ink_y_;
@@ -908,14 +931,19 @@ void Scene::gl_build_layouts(volatile UIVertex* vertices)
     const float x1 = static_cast<float>(2 * (view_x + width)  - view_width)  / view_width;
     const float y1 = static_cast<float>(2 * (view_y + height) - view_height) / view_height;
 
+    const auto color = pack_4u8_norm(layout->color().x(),
+                                     layout->color().y(),
+                                     layout->color().z(),
+                                     layout->color().w());
+
     g_return_if_fail(layout->array_offset_ + LayoutTexture::VERTEX_COUNT <= ui_vertex_count_);
 
     volatile UIVertex *const geometry = vertices + layout->array_offset_;
 
-    geometry[0].set(x0, y0, s0, t0);
-    geometry[1].set(x1, y0, s1, t0);
-    geometry[2].set(x0, y1, s0, t1);
-    geometry[3].set(x1, y1, s1, t1);
+    geometry[0].set(x0, y0, pack_2i16_norm(s0, t0), color);
+    geometry[1].set(x1, y0, pack_2i16_norm(s1, t0), color);
+    geometry[2].set(x0, y1, pack_2i16_norm(s0, t1), color);
+    geometry[3].set(x1, y1, pack_2i16_norm(s1, t1), color);
   }
 }
 
@@ -949,7 +977,6 @@ int Scene::gl_render_layouts()
       if (layout->drawable())
       {
         glBindTexture(GL_TEXTURE_2D, layout->tex_name_);
-        glUniform4fv(label_uf_color_, 1, &layout->color()[0]);
 
         glDrawArrays(GL_TRIANGLE_STRIP, layout->array_offset_,
                      LayoutTexture::VERTEX_COUNT);

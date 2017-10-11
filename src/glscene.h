@@ -21,6 +21,7 @@
 #define SOMATO_GLSCENE_H_INCLUDED
 
 #include "glshader.h"
+#include "glutils.h"
 #include "vectormath.h"
 
 #include <glibmm/ustring.h>
@@ -29,6 +30,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <cstddef>
 
 namespace Pango
 {
@@ -54,15 +56,20 @@ struct Extensions
 
 struct UIVertex
 {
-  float position[2];
-  float texcoord[2];
+  float      position[2];
+  Packed2i16 texcoord;
+  Packed4u8  color;
 
-  void set(float x, float y, float s, float t) volatile
-    { position[0] = x; position[1] = y; texcoord[0] = s; texcoord[1] = t; }
+  void set(float x, float y, Packed2i16 t, Packed4u8 c) volatile
+  {
+    position[0] = x;
+    position[1] = y;
+    texcoord    = t;
+    color       = c;
+  }
 };
 
 typedef std::vector<std::unique_ptr<LayoutTexture>> LayoutVector;
-typedef std::vector<UIVertex> GeometryVector;
 
 /*
  * Base GL widget class that implements all the generic stuff not specific
@@ -150,6 +157,7 @@ private:
   void gl_update_framebuffer();
   void gl_delete_framebuffer();
 
+  void gl_update_focus_state();
   void gl_update_layouts();
   void gl_update_ui_buffer();
   void gl_build_focus(volatile UIVertex* vertices);
@@ -172,10 +180,10 @@ private:
 
   GL::Extensions    gl_extensions_;
   GL::ShaderProgram label_shader_;
-  int               label_uf_color_   = -1;
-  int               label_uf_texture_ = -1;
+  int               label_uf_intensity_ = -1;
+  int               label_uf_texture_   = -1;
   GL::ShaderProgram focus_shader_;
-  int               focus_uf_color_   = -1;
+  int               focus_uf_color_     = -1;
 
   int          aa_samples_      = 0;
   int          max_aa_samples_  = 0;
