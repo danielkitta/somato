@@ -23,11 +23,11 @@
 #include "glscene.h"
 #include "cube.h"
 #include "glshader.h"
-#include "meshloader.h"
 #include "puzzle.h"
 #include "vectormath.h"
 
 #include <sigc++/sigc++.h>
+#include <glibmm/bytes.h>
 #include <glibmm/ustring.h>
 #include <memory>
 #include <vector>
@@ -36,16 +36,6 @@ namespace Gtk { class Builder; }
 
 namespace Somato
 {
-
-struct MeshData
-{
-  unsigned int triangle_count = 0; // number of triangles
-  unsigned int indices_offset = 0; // offset into element indices array
-  unsigned int element_first  = 0; // minimum referenced element index
-  unsigned int element_last   = 0; // maximum referenced element index
-
-  unsigned int element_count() const { return element_last - element_first + 1; }
-};
 
 struct AnimationData
 {
@@ -123,8 +113,6 @@ private:
   bool on_animation_tick(gint64 animation_time) override;
   void gl_reposition_layouts() override;
 
-  typedef std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> MeshNodeArray;
-
   enum CursorState
   {
     CURSOR_DEFAULT,
@@ -137,8 +125,9 @@ private:
 
   Math::Quat                  rotation_;
 
+  Glib::RefPtr<const Glib::Bytes> mesh_desc_;
+
   std::vector<SomaCube>       cube_pieces_;
-  std::vector<MeshData>       mesh_data_;
   std::vector<AnimationData>  animation_data_;
   PieceCellVector             piece_cells_;
   std::vector<int>            depth_order_;
@@ -146,8 +135,6 @@ private:
   sigc::signal<void>          signal_cycle_finished_;
   sigc::connection            delay_timeout_;
   sigc::connection            hide_cursor_timeout_;
-
-  std::unique_ptr<GL::MeshLoader> mesh_loader_;
 
   GL::LayoutTexture*          heading_;
   GL::LayoutTexture*          footing_;
@@ -204,13 +191,9 @@ private:
   void select_piece(int piece);
   void process_track_motion(int x, int y);
 
-  void on_meshes_loaded();
-  void gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArray& nodes,
-                              unsigned int total_vertices, unsigned int indices_size);
+  void gl_create_mesh_buffers();
   void gl_create_piece_shader();
   void gl_create_grid_shader();
-  void gl_generate_grid_vertices(volatile GL::MeshVertex* vertices);
-  void gl_generate_grid_indices(volatile GL::MeshIndex* indices);
   void gl_draw_cell_grid(const Math::Matrix4& cube_transform);
 
   int  gl_draw_cube(const Math::Matrix4& cube_transform);

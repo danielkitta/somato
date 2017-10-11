@@ -20,12 +20,16 @@ ACLOCAL_AMFLAGS  = -I m4
 DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 
 bin_PROGRAMS = src/somato
+noinst_PROGRAMS = src/compile-meshdata
+
+src_compile_meshdata_SOURCES =	\
+	src/compile-meshdata.cc	\
+	src/meshloader.cc	\
+	src/meshloader.h
 
 src_somato_SOURCES =		\
 	src/application.cc	\
 	src/application.h	\
-	src/assetresourceio.cc	\
-	src/assetresourceio.h	\
 	src/asynctask.cc	\
 	src/asynctask.h		\
 	src/cube.cc		\
@@ -44,8 +48,6 @@ src_somato_SOURCES =		\
 	src/mainwindow.h	\
 	src/mathutils.cc	\
 	src/mathutils.h		\
-	src/meshloader.cc	\
-	src/meshloader.h	\
 	src/puzzle.cc		\
 	src/puzzle.h		\
 	src/vectormath.cc	\
@@ -61,6 +63,7 @@ nodist_src_somato_SOURCES =	\
 	src/resources.cc
 
 resource_desc = ui/somato.gresource.xml
+
 resource_files =			\
 	ui/gtk/help-overlay.ui		\
 	ui/gtk/menus.ui			\
@@ -74,7 +77,6 @@ resource_files =			\
 	ui/shaders/textlabel.vert	\
 	ui/cubescene.css		\
 	ui/mainwindow.glade		\
-	ui/puzzlepieces.dae		\
 	ui/woodtexture.png
 
 dist_noinst_SCRIPTS =		\
@@ -84,6 +86,7 @@ dist_noinst_SCRIPTS =		\
 dist_noinst_DATA =		\
 	$(resource_desc)	\
 	$(resource_files)	\
+	ui/puzzlepieces.dae	\
 	debian/changelog	\
 	debian/control		\
 	debian/copyright	\
@@ -91,7 +94,7 @@ dist_noinst_DATA =		\
 	README.md		\
 	screenshot.png
 
-DISTCLEANFILES	  = src/resources.cc
+DISTCLEANFILES	  = src/resources.cc ui/*.bin ui/.dirstamp
 
 iconthemedir	  = $(datadir)/icons/hicolor
 appicondir	  = $(iconthemedir)/48x48/apps
@@ -100,14 +103,26 @@ dist_appicon_DATA = ui/somato.png
 desktopdir	  = $(datadir)/applications
 dist_desktop_DATA = ui/somato.desktop
 
-AM_CPPFLAGS	  = -I$(top_builddir) $(SOMATO_MODULES_CFLAGS) $(SOMATO_WARNING_FLAGS)
-AM_CXXFLAGS	  = $(SOMATO_EXTRA_CXXFLAGS)
+AM_CPPFLAGS	  = -I$(top_builddir) $(SOMATO_MODULES_CFLAGS)
+AM_CXXFLAGS	  = $(SOMATO_EXTRA_CXXFLAGS) $(SOMATO_WARNING_FLAGS)
 src_somato_LDADD  = $(SOMATO_MODULES_LIBS)
 
+src_compile_meshdata_CPPFLAGS = $(MESHDATA_MODULES_CFLAGS)
+src_compile_meshdata_LDADD    = $(MESHDATA_MODULES_LIBS)
+
+compile_meshdata  = $(noinst_PROGRAMS)
 update_icon_cache = $(GTK_UPDATE_ICON_CACHE) --ignore-theme-index --force
 
-src/resources.cc: $(resource_desc) $(resource_files)
-	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --sourcedir="$(srcdir)/ui" \
+ui/.dirstamp:
+	@$(MKDIR_P) ui
+	@: > ui/.dirstamp
+
+ui/mesh-desc.bin: ui/.dirstamp $(compile_meshdata) ui/puzzlepieces.dae
+	$(AM_V_GEN)$(compile_meshdata) "$(srcdir)/ui/puzzlepieces.dae" \
+	 PieceOrange PieceGreen PieceRed PieceYellow PieceBlue PieceLavender PieceCyan
+
+src/resources.cc: $(resource_desc) $(resource_files) ui/mesh-desc.bin
+	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --sourcedir=ui --sourcedir="$(srcdir)/ui" \
 	 --generate-source --internal --target="$@" "$(srcdir)/$(resource_desc)"
 
 install-data-hook: install-update-icon-cache

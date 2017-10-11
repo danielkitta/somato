@@ -13,7 +13,9 @@
     <file compressed="true">shaders/textlabel.vert</file>
     <file compressed="true">cubescene.css</file>
     <file compressed="true" preprocess="xml-stripblanks">mainwindow.glade</file>
-    <file compressed="true" preprocess="xml-stripblanks">puzzlepieces.dae</file>
+    <file>mesh-desc.bin</file>
+    <file>mesh-vertices.bin</file>
+    <file>mesh-indices.bin</file>
     <file>woodtexture.png</file>
   </gresource>
 </gresources>

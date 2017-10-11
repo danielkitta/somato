@@ -28,8 +28,8 @@ AM_SILENT_RULES([yes])
 
 AC_PROG_CXX
 
-PKG_CHECK_MODULES([SOMATO_MODULES],
-                  [gthread-2.0 assimp >= 3.0 epoxy >= 1.3 gtkmm-3.0 >= 3.22])
+PKG_CHECK_MODULES([MESHDATA_MODULES], [glib-2.0 assimp >= 3.0])
+PKG_CHECK_MODULES([SOMATO_MODULES], [gthread-2.0 epoxy >= 1.3 gtkmm-3.0 >= 3.22])
 
 DK_PKG_CONFIG_SUBST([GLIB_COMPILE_RESOURCES],
                     [--variable=glib_compile_resources gio-2.0],,

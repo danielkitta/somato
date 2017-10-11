@@ -20,7 +20,6 @@
 #include <config.h>
 
 #include "cubescene.h"
-#include "asynctask.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
 #include "mathutils.h"
@@ -30,6 +29,7 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glibmm.h>
+#include <giomm/resource.h>
 #include <gdkmm.h>
 #include <gtkmm/accelgroup.h>
 #include <epoxy/gl.h>
@@ -45,12 +45,21 @@ namespace
 
 using namespace Somato;
 
-/* Cube cell grid vertex and primitive counts.
- */
-enum
+template <typename T>
+class BytesView
 {
-  GRID_VERTEX_COUNT = (SomaCube::N + 1) * (SomaCube::N + 1) * (SomaCube::N + 1),
-  GRID_LINE_COUNT   = (SomaCube::N + 1) * (SomaCube::N + 1) *  SomaCube::N * 3
+public:
+  BytesView(const Glib::RefPtr<const Glib::Bytes>& bytes)
+    : size_ {0}, data_ {static_cast<const T*>(bytes->get_data(size_))} {}
+
+  std::size_t size() const { return size_ / sizeof(T); }
+  const T* begin() const { return data_; }
+  const T* end() const { return data_ + size(); }
+  const T& operator[](std::size_t i) const { return data_[i]; }
+
+private:
+  gsize    size_;
+  const T* data_;
 };
 
 /* Puzzle piece vertex shader input attribute locations.
@@ -81,11 +90,6 @@ enum
  * before hiding the mouse cursor while the animation is running.
  */
 static const float hide_cursor_delay = 5.;
-
-/*
- * Side length of a cube cell in unzoomed model units.
- */
-static const float cube_cell_size = 1.;
 
 /*
  * View offset in the direction of the z-axis.
@@ -404,7 +408,7 @@ int CubeScene::get_cube_triangle_count() const
 {
   int cube_triangle_count = 0;
 
-  for (const auto& mesh : mesh_data_)
+  for (const auto& mesh : BytesView<MeshDesc>{mesh_desc_})
     cube_triangle_count += mesh.triangle_count;
 
   return cube_triangle_count;
@@ -414,7 +418,7 @@ int CubeScene::get_cube_vertex_count() const
 {
   int cube_vertex_count = 0;
 
-  for (const auto& mesh : mesh_data_)
+  for (const auto& mesh : BytesView<MeshDesc>{mesh_desc_})
     cube_vertex_count += mesh.element_count();
 
   return cube_vertex_count;
@@ -422,16 +426,6 @@ int CubeScene::get_cube_vertex_count() const
 
 void CubeScene::gl_initialize()
 {
-  if (!mesh_loader_)
-  {
-    auto loader = std::make_unique<GL::MeshLoader>(RESOURCE_PREFIX "puzzlepieces.dae");
-
-    loader->signal_done().connect(sigc::mem_fun(*this, &CubeScene::on_meshes_loaded));
-    loader->run();
-
-    mesh_loader_ = std::move(loader);
-  }
-
   gl_create_piece_shader();
   gl_create_grid_shader();
 
@@ -461,6 +455,8 @@ void CubeScene::gl_initialize()
   piece_shader_.use();
   glUniform1i(uf_piece_texture_, SAMPLER_PIECE);
   GL::ShaderProgram::unuse();
+
+  gl_create_mesh_buffers();
 }
 
 void CubeScene::gl_create_piece_shader()
@@ -638,8 +634,7 @@ void CubeScene::gl_update_projection()
   GL::ShaderProgram::unuse();
 }
 
-void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArray& nodes,
-                                       unsigned int total_vertices, unsigned int indices_size)
+void CubeScene::gl_create_mesh_buffers()
 {
   g_return_if_fail(mesh_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
@@ -650,6 +645,10 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
           "Packed integer vector format 2:10:10:10 not supported");
     return;
   }
+  mesh_desc_ = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "mesh-desc.bin");
+  const auto vertices = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "mesh-vertices.bin");
+  const auto indices  = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "mesh-indices.bin");
+
   glGenVertexArrays(1, &mesh_vertex_array_);
   GL::Error::throw_if_fail(mesh_vertex_array_ != 0);
 
@@ -659,131 +658,39 @@ void CubeScene::gl_create_mesh_buffers(GL::MeshLoader& loader, const MeshNodeArr
   glBindVertexArray(mesh_vertex_array_);
 
   glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[VERTICES]);
-  glBufferData(GL_ARRAY_BUFFER,
-               total_vertices * sizeof(GL::MeshVertex),
-               nullptr, GL_STATIC_DRAW);
 
-  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER,
-                                  0, total_vertices * sizeof(GL::MeshVertex),
-                                  GL_MAP_WRITE_BIT
-                                  | GL_MAP_INVALIDATE_RANGE_BIT
-                                  | GL_MAP_INVALIDATE_BUFFER_BIT
-                                  | GL_MAP_UNSYNCHRONIZED_BIT})
-  {
-    auto *const vertex_data = buffer.get<GL::MeshVertex>();
+  gsize vertices_size = 0;
+  const auto *const vertices_data = vertices->get_data(vertices_size);
 
-    gl_generate_grid_vertices(vertex_data);
+  glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices_data, GL_STATIC_DRAW);
 
-    for (size_t i = 0; i < nodes.size(); ++i)
-      if (const auto node = nodes[i])
-      {
-        const auto& mesh = mesh_data_[i];
-        const auto start = vertex_data + mesh.element_first;
-
-        loader.get_node_vertices(node, start, mesh.element_count());
-      }
-  }
   glVertexAttribPointer(ATTRIB_POSITION,
-                        GL::attrib_size<decltype(GL::MeshVertex::position)>,
-                        GL::attrib_type<decltype(GL::MeshVertex::position)>,
-                        GL_FALSE, sizeof(GL::MeshVertex),
-                        GL::buffer_offset(offsetof(GL::MeshVertex, position)));
+                        GL::attrib_size<decltype(MeshVertex::position)>,
+                        GL::attrib_type<decltype(MeshVertex::position)>,
+                        GL_FALSE, sizeof(MeshVertex),
+                        GL::buffer_offset(offsetof(MeshVertex, position)));
   glVertexAttribPointer(ATTRIB_NORMAL,
-                        GL::attrib_size<decltype(GL::MeshVertex::normal)>,
-                        GL::attrib_type<decltype(GL::MeshVertex::normal)>,
-                        GL_TRUE, sizeof(GL::MeshVertex),
-                        GL::buffer_offset(offsetof(GL::MeshVertex, normal)));
+                        GL::attrib_size<decltype(MeshVertex::normal)>,
+                        GL::attrib_type<decltype(MeshVertex::normal)>,
+                        GL_TRUE, sizeof(MeshVertex),
+                        GL::buffer_offset(offsetof(MeshVertex, normal)));
   glEnableVertexAttribArray(ATTRIB_POSITION);
   glEnableVertexAttribArray(ATTRIB_NORMAL);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[INDICES]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               indices_size * sizeof(GL::MeshIndex),
-               nullptr, GL_STATIC_DRAW);
 
-  if (GL::ScopedMapBuffer buffer {GL_ELEMENT_ARRAY_BUFFER,
-                                  0, indices_size * sizeof(GL::MeshIndex),
-                                  GL_MAP_WRITE_BIT
-                                  | GL_MAP_INVALIDATE_RANGE_BIT
-                                  | GL_MAP_INVALIDATE_BUFFER_BIT
-                                  | GL_MAP_UNSYNCHRONIZED_BIT})
-  {
-    auto *const index_data = buffer.get<GL::MeshIndex>();
+  gsize indices_size = 0;
+  const auto *const indices_data = indices->get_data(indices_size);
 
-    gl_generate_grid_indices(index_data);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices_data, GL_STATIC_DRAW);
 
-    for (size_t i = 0; i < nodes.size(); ++i)
-      if (const auto node = nodes[i])
-      {
-        const auto& mesh = mesh_data_[i];
-        const auto start = index_data + mesh.indices_offset;
-
-        loader.get_node_indices(node, mesh.element_first, start,
-                                GL::MeshLoader::aligned_index_count(3 * mesh.triangle_count));
-      }
-  }
   glBindVertexArray(0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
 
-void CubeScene::on_meshes_loaded()
-{
-  static const std::array<char[16], CUBE_PIECE_COUNT> object_names
-  {{
-    "PieceOrange",
-    "PieceGreen",
-    "PieceRed",
-    "PieceYellow",
-    "PieceBlue",
-    "PieceLavender",
-    "PieceCyan"
-  }};
-
-  const auto loader = Async::deferred_delete(mesh_loader_);
-  g_return_if_fail(loader);
-
-  if (!get_realized())
-    return;
-
-  std::array<GL::MeshLoader::Node, CUBE_PIECE_COUNT> nodes;
-
-  for (size_t i = 0; i < nodes.size(); ++i)
-  {
-    nodes[i] = loader->lookup_node(object_names[i]);
-
-    if (!nodes[i])
-      g_warning("Failed to load mesh of %s", object_names[i]);
-  }
-
-  mesh_data_.assign(nodes.size(), MeshData{});
-
-  unsigned int total_vertices = GRID_VERTEX_COUNT;
-  unsigned int indices_offset = GL::MeshLoader::aligned_index_count(GRID_LINE_COUNT * 2);
-
-  for (size_t i = 0; i < nodes.size(); ++i)
-    if (const auto node = nodes[i])
-    {
-      const auto counts = loader->count_node_vertices_triangles(node);
-
-      if (counts.first > 0 && counts.second > 0)
-      {
-        auto& mesh = mesh_data_[i];
-
-        mesh.triangle_count = counts.second;
-        mesh.indices_offset = indices_offset;
-        mesh.element_first  = total_vertices;
-        mesh.element_last   = total_vertices + counts.first - 1;
-
-        total_vertices += counts.first;
-        indices_offset += GL::MeshLoader::aligned_index_count(3 * counts.second);
-      }
-    }
-
-  g_info("Mesh totals: %u vertices, %u indices", total_vertices, indices_offset);
-
-  if (auto guard = scoped_make_current())
-    gl_create_mesh_buffers(*loader, nodes, total_vertices, indices_offset);
+  g_info("Mesh totals: %u vertices, %u indices",
+         static_cast<unsigned int>(vertices_size / sizeof(MeshVertex)),
+         static_cast<unsigned int>(indices_size  / sizeof(MeshIndex)));
 }
 
 void CubeScene::on_size_allocate(Gtk::Allocation& allocation)
@@ -1312,7 +1219,7 @@ void CubeScene::process_track_motion(int x, int y)
     // would have to take the current rotation into account.  More effort than
     // it is worth, if you ask me.
 
-    const float cube_radius    = SomaCube::N * cube_cell_size / 2.;
+    const float cube_radius    = SomaCube::N * 0.5f * grid_cell_size;
     const float trackball_size = (1. + G_SQRT2) / -view_z_offset * cube_radius;
 
     const int   width  = get_viewport_width();
@@ -1328,53 +1235,6 @@ void CubeScene::process_track_motion(int x, int y)
   }
 }
 
-/*
- * Generate a grid of solid lines along the cell boundaries.
- *
- * Note that the lines are split at the crossing points in order to avoid
- * gaps, and also to more closely match the tesselation of the cube parts.
- */
-void CubeScene::gl_generate_grid_vertices(volatile GL::MeshVertex* vertices)
-{
-  enum { N = SomaCube::N + 1 };
-  float stride[N];
-
-  for (int i = 0; i < N; ++i)
-    stride[i] = (2 * i - (N - 1)) * (cube_cell_size / 2.f);
-
-  auto* pv = vertices;
-
-  for (int z = 0; z < N; ++z)
-    for (int y = 0; y < N; ++y)
-      for (int x = 0; x < N; ++x)
-      {
-        pv->set(stride[x], stride[y], stride[z]);
-        ++pv;
-      }
-}
-
-void CubeScene::gl_generate_grid_indices(volatile GL::MeshIndex* indices)
-{
-  enum { N = SomaCube::N + 1 };
-  auto* pi = indices;
-
-  for (int i = 0; i < N; ++i)
-    for (int k = 0; k < N; ++k)
-      for (int m = 0; m < N - 1; ++m)
-      {
-        pi[0] = N*N*i + N*k + m;
-        pi[1] = N*N*i + N*k + m + 1;
-
-        pi[2] = N*N*i + N*m + k;
-        pi[3] = N*N*i + N*m + k + N;
-
-        pi[4] = N*N*m + N*i + k;
-        pi[5] = N*N*m + N*i + k + N*N;
-
-        pi += 6;
-      }
-}
-
 void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
 {
   if (grid_shader_)
@@ -1384,8 +1244,8 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &cube_transform[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
-                        2 * GRID_LINE_COUNT, GL::attrib_type<GL::MeshIndex>,
-                        GL::buffer_offset<GL::MeshIndex>(0));
+                        2 * GRID_LINE_COUNT, GL::attrib_type<MeshIndex>,
+                        GL::buffer_offset<MeshIndex>(0));
 
     GL::ShaderProgram::unuse();
   }
@@ -1442,6 +1302,8 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
 
   if (piece_shader_)
   {
+    const BytesView<MeshDesc> desc_view {mesh_desc_};
+
     piece_shader_.use();
 
     int last_fixed = last;
@@ -1455,7 +1317,7 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
         if (i >= first && i <= last_fixed)
         {
           const auto& data = animation_data_[i];
-          const auto& mesh = mesh_data_[data.cube_index];
+          const auto& mesh = desc_view[data.cube_index];
           triangle_count += mesh.triangle_count;
 
           gl_draw_piece_elements(cube_transform, data);
@@ -1464,11 +1326,11 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
     if (last != last_fixed)
     {
       const auto& data = animation_data_[last];
-      const auto& mesh = mesh_data_[data.cube_index];
+      const auto& mesh = desc_view[data.cube_index];
       triangle_count += mesh.triangle_count;
 
       // Distance in model units an animated cube piece has to travel.
-      const float animation_distance = 1.75 * SomaCube::N * cube_cell_size;
+      const float animation_distance = 1.75 * SomaCube::N * grid_cell_size;
       const float d = animation_position_ * animation_distance;
 
       const auto transform = cube_transform.translated({data.direction[0] * d,
@@ -1492,11 +1354,11 @@ void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
   glUniform4fv(uf_diffuse_material_, 1,
                piece_materials[data.cube_index % piece_materials.size()]);
 
-  const auto& mesh = mesh_data_[data.cube_index];
+  const auto& mesh = BytesView<MeshDesc>{mesh_desc_}[data.cube_index];
 
   glDrawRangeElements(GL_TRIANGLES, mesh.element_first, mesh.element_last,
-                      3 * mesh.triangle_count, GL::attrib_type<GL::MeshIndex>,
-                      GL::buffer_offset<GL::MeshIndex>(mesh.indices_offset));
+                      3 * mesh.triangle_count, GL::attrib_type<MeshIndex>,
+                      GL::buffer_offset<MeshIndex>(mesh.indices_offset));
 }
 
 void CubeScene::gl_init_cube_texture()

@@ -17,46 +17,22 @@
  * along with Somato.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
-
 #include "meshloader.h"
-#include "assetresourceio.h"
-#include "glutils.h"
 
 #include <glib.h>
-#include <glibmm/ustring.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 #include <algorithm>
-#include <chrono>
 
-namespace GL
+namespace Somato
 {
 
-class MeshLoader::Impl
+MeshLoader::MeshLoader()
+:
+  importer_ {new Assimp::Importer{}}
 {
-private:
-  std::string                       resource_;
-  std::unique_ptr<Assimp::Importer> importer_;
-
-  // noncopyable
-  Impl(const MeshLoader::Impl&) = delete;
-  MeshLoader::Impl& operator=(const MeshLoader::Impl&) = delete;
-
-public:
-  const aiScene* scene = nullptr;
-
-  explicit Impl(std::string resource) : resource_ {std::move(resource)} {}
-  void execute();
-};
-
-void MeshLoader::Impl::execute()
-{
-  importer_ = std::make_unique<Assimp::Importer>();
-  importer_->SetIOHandler(new Util::AssetResourceIoSystem{});
-
   importer_->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
                                 aiComponent_TANGENTS_AND_BITANGENTS
                                 | aiComponent_COLORS
@@ -66,35 +42,33 @@ void MeshLoader::Impl::execute()
                                 aiPrimitiveType_POINT
                                 | aiPrimitiveType_LINE);
   importer_->SetPropertyInteger(AI_CONFIG_PP_ICL_PTCACHE_SIZE, 20);
+}
 
-  scene = importer_->ReadFile(resource_,
+MeshLoader::~MeshLoader()
+{}
+
+bool MeshLoader::read_file(const char* filename)
+{
+  return (importer_->ReadFile(filename,
                               aiProcess_RemoveComponent
                               | aiProcess_JoinIdenticalVertices
                               | aiProcess_Triangulate
                               | aiProcess_SortByPType
                               | aiProcess_GenSmoothNormals
-                              | aiProcess_ImproveCacheLocality);
-  if (!scene)
-    throw GL::Error{importer_->GetErrorString()};
+                              | aiProcess_ImproveCacheLocality) != nullptr);
 }
 
-MeshLoader::MeshLoader(std::string resource)
-:
-  pimpl_ {new Impl{std::move(resource)}}
-{}
-
-MeshLoader::~MeshLoader()
+const char* MeshLoader::get_error_string() const
 {
-  wait_finish();
+  return importer_->GetErrorString();
 }
 
 MeshLoader::Node MeshLoader::lookup_node(const char* name) const
 {
-  g_return_val_if_fail(!running(), Node{});
-  rethrow_any_error();
-  g_return_val_if_fail(pimpl_->scene, Node{});
+  const aiScene *const scene = importer_->GetScene();
+  g_return_val_if_fail(scene, Node{});
 
-  return Node{pimpl_->scene->mRootNode->FindNode(name)};
+  return Node{scene->mRootNode->FindNode(name)};
 }
 
 MeshLoader::VertexTriangleCounts
@@ -103,9 +77,9 @@ MeshLoader::count_node_vertices_triangles(Node node) const
   VertexTriangleCounts counts {0, 0};
 
   g_return_val_if_fail(node, counts);
-  g_return_val_if_fail(pimpl_->scene, counts);
 
-  const aiMesh *const *const scene_meshes = pimpl_->scene->mMeshes;
+  const aiScene *const scene = importer_->GetScene();
+  const aiMesh *const *const scene_meshes = scene->mMeshes;
 
   for (unsigned int i = 0; i < node->mNumMeshes; ++i)
   {
@@ -117,15 +91,16 @@ MeshLoader::count_node_vertices_triangles(Node node) const
   return counts;
 }
 
-size_t MeshLoader::get_node_vertices(Node node, volatile MeshVertex* buffer,
-                                     size_t max_vertices) const
+std::size_t MeshLoader::get_node_vertices(Node node, MeshVertex* buffer,
+                                          std::size_t max_vertices) const
 {
-  size_t n_written = 0;
+  std::size_t n_written = 0;
 
   g_return_val_if_fail(node, n_written);
   g_return_val_if_fail(buffer, n_written);
 
-  const aiMesh *const *const scene_meshes = pimpl_->scene->mMeshes;
+  const aiScene *const scene = importer_->GetScene();
+  const aiMesh *const *const scene_meshes = scene->mMeshes;
 
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
@@ -135,9 +110,10 @@ size_t MeshLoader::get_node_vertices(Node node, volatile MeshVertex* buffer,
 
     const auto *const vertices = mesh->mVertices;
     const auto *const normals  = mesh->mNormals;
-    const size_t n_vertices = std::min<size_t>(mesh->mNumVertices,
-                                               max_vertices - n_written);
-    for (size_t i = 0; i < n_vertices; ++i)
+    const std::size_t n_vertices =
+        std::min<std::size_t>(mesh->mNumVertices, max_vertices - n_written);
+
+    for (std::size_t i = 0; i < n_vertices; ++i)
     {
       buffer[n_written + i].set(vertices[i].x, vertices[i].y, vertices[i].z,
                                 normals [i].x, normals [i].y, normals [i].z);
@@ -147,15 +123,16 @@ size_t MeshLoader::get_node_vertices(Node node, volatile MeshVertex* buffer,
   return n_written;
 }
 
-size_t MeshLoader::get_node_indices(Node node, unsigned int base,
-                                    volatile MeshIndex* buffer, size_t max_indices) const
+std::size_t MeshLoader::get_node_indices(Node node, unsigned int base,
+                                         MeshIndex* buffer, std::size_t max_indices) const
 {
-  size_t n_written = 0;
+  std::size_t n_written = 0;
 
   g_return_val_if_fail(node, n_written);
   g_return_val_if_fail(buffer, n_written);
 
-  const aiMesh *const *const scene_meshes = pimpl_->scene->mMeshes;
+  const aiScene *const scene = importer_->GetScene();
+  const aiMesh *const *const scene_meshes = scene->mMeshes;
 
   for (unsigned int mesh_idx = 0; mesh_idx < node->mNumMeshes; ++mesh_idx)
   {
@@ -165,9 +142,10 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     g_return_val_if_fail(mesh->mNumFaces < (~MeshIndex{0} - base) / 3, n_written);
 
     const aiFace *const faces = mesh->mFaces;
-    const size_t n_faces = std::min<size_t>(mesh->mNumFaces,
-                                            (max_indices - n_written) / 3);
-    for (size_t i = 0; i < n_faces; ++i)
+    const std::size_t n_faces =
+        std::min<std::size_t>(mesh->mNumFaces, (max_indices - n_written) / 3);
+
+    for (std::size_t i = 0; i < n_faces; ++i)
     {
       const unsigned int *const indices = faces[i].mIndices;
 
@@ -181,22 +159,10 @@ size_t MeshLoader::get_node_indices(Node node, unsigned int base,
     }
     n_written += 3 * n_faces;
   }
-  for (size_t n = n_written; n < max_indices; ++n)
+  for (std::size_t n = n_written; n < max_indices; ++n)
     buffer[n] = ~MeshIndex{0};
 
   return n_written;
 }
 
-void MeshLoader::execute()
-{
-  const auto start = std::chrono::steady_clock::now();
-
-  pimpl_->execute();
-
-  const auto stop = std::chrono::steady_clock::now();
-  const std::chrono::duration<double, std::milli> elapsed = stop - start;
-
-  g_info("Mesh load time: %0.1f ms", elapsed.count());
-}
-
-} // namespace GL
+} // namespace Somato
