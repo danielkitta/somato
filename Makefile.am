@@ -70,8 +70,6 @@ resource_files =			\
 	ui/gtk/menus.ui			\
 	ui/shaders/cellgrid.frag	\
 	ui/shaders/cellgrid.vert	\
-	ui/shaders/focusrect.frag	\
-	ui/shaders/focusrect.vert	\
 	ui/shaders/puzzlepieces.frag	\
 	ui/shaders/puzzlepieces.vert	\
 	ui/shaders/textlabel.frag	\

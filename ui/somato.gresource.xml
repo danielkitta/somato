@@ -5,8 +5,6 @@
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
     <file compressed="true">shaders/cellgrid.frag</file>
     <file compressed="true">shaders/cellgrid.vert</file>
-    <file compressed="true">shaders/focusrect.frag</file>
-    <file compressed="true">shaders/focusrect.vert</file>
     <file compressed="true">shaders/puzzlepieces.frag</file>
     <file compressed="true">shaders/puzzlepieces.vert</file>
     <file compressed="true">shaders/textlabel.frag</file>
