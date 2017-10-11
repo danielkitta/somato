@@ -898,14 +898,14 @@ void Scene::gl_update_framebuffer()
 {
   gl_delete_framebuffer();
 
-  glGenRenderbuffers(2, render_buffers_);
-  GL::Error::throw_if_fail(render_buffers_[COLOR] != 0 && render_buffers_[DEPTH] != 0);
+  glGenRenderbuffers(G_N_ELEMENTS(render_buffers_), render_buffers_);
+  GL::Error::throw_if_fail(render_buffers_[COLOR] && render_buffers_[DEPTH]);
 
   glGenFramebuffers(1, &frame_buffer_);
   GL::Error::throw_if_fail(frame_buffer_ != 0);
 
   const int view_width  = get_viewport_width();
-  const int view_height = get_viewport_width();
+  const int view_height = get_viewport_height();
   const int samples = std::min(aa_samples_, max_aa_samples_);
 
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
