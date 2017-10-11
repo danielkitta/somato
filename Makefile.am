@@ -39,7 +39,7 @@ src_somato_SOURCES =		\
 	src/glshader.h		\
 	src/glutils.cc		\
 	src/glutils.h		\
-	src/main.cc		\
+	src/somato.cc		\
 	src/mainwindow.cc	\
 	src/mainwindow.h	\
 	src/mathutils.cc	\
