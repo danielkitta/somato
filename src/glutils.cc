@@ -129,23 +129,24 @@ GL::FramebufferError::FramebufferError(unsigned int error_code)
 GL::FramebufferError::~FramebufferError() noexcept
 {}
 
-GL::ScopedMapBuffer::ScopedMapBuffer(unsigned int target, std::size_t offset,
-                                     std::size_t length, unsigned int access)
-:
-  data_   {glMapBufferRange(target, offset, length, access)},
-  target_ {target}
+void* GL::ScopedMapBuffer::map_checked(unsigned int target, std::size_t offset,
+                                       std::size_t length, unsigned int access)
 {
-  if (!data_)
+  void *const data = glMapBufferRange(target, offset, length, access);
+
+  if (!data)
     g_log(GL::log_domain, G_LOG_LEVEL_WARNING, "glMapBufferRange() failed");
+
+  return data;
 }
 
-GL::ScopedMapBuffer::~ScopedMapBuffer()
+bool GL::ScopedMapBuffer::unmap_checked(unsigned int target)
 {
-  if (data_)
-  {
-    if (!glUnmapBuffer(target_))
-      g_log(GL::log_domain, G_LOG_LEVEL_WARNING, "glUnmapBuffer() failed");
-  }
+  if (glUnmapBuffer(target))
+    return true;
+
+  g_log(GL::log_domain, G_LOG_LEVEL_WARNING, "glUnmapBuffer() failed");
+  return false;
 }
 
 bool GL::debug_mode_requested()

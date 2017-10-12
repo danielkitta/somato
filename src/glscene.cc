@@ -268,11 +268,6 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
   if (tex_width <= 0 || tex_height <= 0)
     return;
 
-  const float tex_scale_x  = 1.f / tex_width;
-  const float tex_scale_y  = 1.f / tex_height;
-  const float view_scale_x = 1.f / view_width;
-  const float view_scale_y = 1.f / view_height;
-
   g_return_if_fail(buffers[VERTICES]);
   glBindBuffer(GL_ARRAY_BUFFER, buffers[VERTICES]);
 
@@ -282,10 +277,16 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
   if (instance_count != views.size())
     glBufferData(GL_ARRAY_BUFFER, vertex_data_size, nullptr, GL_DYNAMIC_DRAW);
 
-  if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER, 0, vertex_data_size,
-                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT})
+  const bool ok = access_mapped_buffer(GL_ARRAY_BUFFER, 0, vertex_data_size,
+                                       GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT,
+                                       [=](volatile void* data)
   {
-    auto* pv = buffer.get<UIVertex>();
+    const float tex_scale_x  = 1.f / tex_width;
+    const float tex_scale_y  = 1.f / tex_height;
+    const float view_scale_x = 1.f / view_width;
+    const float view_scale_y = 1.f / view_height;
+
+    auto* pv = static_cast<volatile UIVertex*>(data);
 
     for (const auto& view : views)
     {
@@ -306,7 +307,6 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
       const float y1 = (2 * (view_y + height) - view_height) * view_scale_y;
 
       const auto color = view->color_;
-      view->attr_changed_ = false;
 
       pv[0].set(x0, y0, pack_2i16_norm(s0, t0), color);
       pv[1].set(x1, y0, pack_2i16_norm(s1, t0), color);
@@ -315,7 +315,14 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
 
       pv += LayoutTexView::VERTEX_COUNT;
     }
+  });
+
+  if (ok)
+  {
+    for (const auto& view : views)
+      view->attr_changed_ = false;
   }
+
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   if (instance_count != views.size())

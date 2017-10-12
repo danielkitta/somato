@@ -27,6 +27,7 @@
 #include <gdkmm/glcontext.h>
 
 #include <type_traits>
+#include <utility>
 #include <cmath>
 #include <cstddef>
 
@@ -74,19 +75,42 @@ class ScopedMapBuffer
 {
 public:
   ScopedMapBuffer(unsigned int target, std::size_t offset,
-                  std::size_t length, unsigned int access);
-  ~ScopedMapBuffer();
-
-  operator volatile void*() const { return data_; }
-  template <class T> volatile T* get() const { return static_cast<volatile T*>(data_); }
+                  std::size_t length, unsigned int access)
+    : data_ {map_checked(target, offset, length, access)}, target_ {target}
+  {}
+  ~ScopedMapBuffer() { if (data_) unmap_checked(target_); }
 
   ScopedMapBuffer(const ScopedMapBuffer& other) = delete;
   ScopedMapBuffer& operator=(const ScopedMapBuffer& other) = delete;
 
+  void* data() const { return data_; }
+  bool unmap() { data_ = nullptr; return unmap_checked(target_); }
+
 private:
-  volatile void* data_;
-  unsigned int   target_;
+  static void* map_checked(unsigned int target, std::size_t offset,
+                           std::size_t length, unsigned int access);
+  static bool unmap_checked(unsigned int target);
+
+  void*        data_;
+  unsigned int target_;
 };
+
+/* Encapsulate access to a temporarily mapped buffer object.
+ */
+template <typename Op>
+inline bool access_mapped_buffer(unsigned int target, std::size_t offset,
+                                 std::size_t length, unsigned int access,
+                                 Op operation)
+{
+  ScopedMapBuffer buffer {target, offset, length, access};
+
+  if (void *const data = buffer.data())
+  {
+    operation(data);
+    return buffer.unmap();
+  }
+  return false;
+}
 
 enum Packed2i16 : unsigned int {};
 enum Packed4u8  : unsigned int {};
