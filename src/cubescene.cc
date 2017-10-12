@@ -440,8 +440,6 @@ void CubeScene::gl_initialize()
   if (!get_context()->get_use_es())
     glEnable(GL_DEPTH_CLAMP);
 
-  glActiveTexture(GL_TEXTURE0 + SAMPLER_PIECE);
-
   try // go on without texturing if loading the image fails
   {
     gl_init_cube_texture();
@@ -1405,6 +1403,8 @@ void CubeScene::gl_init_cube_texture()
 
     n_channels = 1;
   }
+  glActiveTexture(GL_TEXTURE0 + SAMPLER_PIECE);
+
   glGenTextures(1, &cube_texture_);
   GL::Error::throw_if_fail(cube_texture_ != 0);
 
