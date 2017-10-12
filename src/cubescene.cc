@@ -1392,9 +1392,10 @@ void CubeScene::gl_init_cube_texture()
   g_return_if_fail(n_channels >= 1 && n_channels <= static_cast<int>(formats.size()));
   g_return_if_fail(pixbuf->get_rowstride() == n_channels * WIDTH);
 
+  const bool using_oes = get_context()->get_use_es();
   guint8 *const pixels = pixbuf->get_pixels();
 
-  if (n_channels > 1 && get_context()->get_use_es())
+  if (n_channels > 1 && using_oes)
   {
     // Convert the pixels in place back to grayscale. On desktop OpenGL
     // we can instruct glTexImage2D() to perform the conversion, but
@@ -1418,7 +1419,22 @@ void CubeScene::gl_init_cube_texture()
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
                     std::min(8.f, gl_ext()->max_anisotropy));
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, WIDTH, HEIGHT, 0,
+  // On desktop OpenGL, we can compress the texture at load time to the
+  // core-supported RGTC1 format. This cuts the texture storage size in
+  // half without any visible difference whatsoever.
+  // On OpenGL ES we would have to provide pre-compressed image data.
+  // Worse yet, OpenGL ES 3 does not include RGTC compression, and the
+  // corresponding extension is not widely supported either.
+  // Only with the recent addition of EAC in OpenGL 4.3 is there finally
+  // a standardized compression format common to both desktop and mobile
+  // platforms. Unfortunately, even if OpenGL 4.3 is available, EAC does
+  // not necessarily have actual hardware support.
+  // Thus, for the time being, stick with uncompressed image input data
+  // and take advantage of on-the-fly compression on desktop only.
+  //
+  const int internal_format = (using_oes) ? GL_R8 : GL_COMPRESSED_RED_RGTC1;
+
+  glTexImage2D(GL_TEXTURE_2D, 0, internal_format, WIDTH, HEIGHT, 0,
                formats[n_channels - 1], GL_UNSIGNED_BYTE, pixels);
 
   glGenerateMipmap(GL_TEXTURE_2D);
