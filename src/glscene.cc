@@ -283,9 +283,7 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
     glBufferData(GL_ARRAY_BUFFER, vertex_data_size, nullptr, GL_DYNAMIC_DRAW);
 
   if (GL::ScopedMapBuffer buffer {GL_ARRAY_BUFFER, 0, vertex_data_size,
-                                  GL_MAP_WRITE_BIT
-                                  | GL_MAP_INVALIDATE_RANGE_BIT
-                                  | GL_MAP_INVALIDATE_BUFFER_BIT})
+                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT})
   {
     auto* pv = buffer.get<UIVertex>();
 
