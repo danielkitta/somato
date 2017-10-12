@@ -211,8 +211,9 @@ void LayoutAtlas::gl_update_texture(unsigned int clamp_mode)
   if (img_width <= PADDING)
     return;
 
-  // Remove the padding overshoot at the end.
-  img_width = aligned_stride(img_width - PADDING);
+  // Remove the padding overshoot before adding alignment.
+  img_width  = aligned_stride(img_width - PADDING);
+  img_height = (img_height + 3) & ~3u;
 
   std::vector<GLubyte> tex_image (img_height * img_width);
   {
