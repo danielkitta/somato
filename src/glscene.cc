@@ -764,8 +764,6 @@ bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
 {
   if (auto guard = scoped_make_current())
   {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
-
     unsigned int triangle_count = 0;
     try
     {
@@ -776,8 +774,6 @@ bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
       gl_reset_state();
       throw;
     }
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, frame_buffer_);
-
     gdk_cairo_draw_from_gl(cr->cobj(), gtk_widget_get_window(Gtk::Widget::gobj()),
                            render_buffers_[COLOR], GL_RENDERBUFFER,
                            get_scale_factor(), 0, 0,
