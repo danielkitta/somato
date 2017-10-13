@@ -83,7 +83,7 @@ private:
  * This is mainly useful in signal handlers for safely destroying the
  * signal's sender object.
  */
-template <typename T>
+template <typename T, typename D = std::default_delete<T>>
 class DeferredDelete
 {
 public:
@@ -92,19 +92,17 @@ public:
   DeferredDelete(DeferredDelete&&) noexcept = default;
   DeferredDelete& operator=(DeferredDelete&&) noexcept = default;
 
-  DeferredDelete(std::default_delete<T>&& del) noexcept
-    : del_ {std::move(del)} {}
-  DeferredDelete& operator=(std::default_delete<T>&& del) noexcept
-    { del_ = std::move(del); return *this; }
+  DeferredDelete(D&& del) noexcept : del_ {std::move(del)} {}
+  DeferredDelete& operator=(D&& del) noexcept { del_ = std::move(del); return *this; }
 
   void operator()(T* ptr) const;
 
 private:
-  std::default_delete<T> del_;
+  D del_;
 };
 
-template <typename T>
-void DeferredDelete<T>::operator()(T* ptr) const
+template <typename T, typename D>
+void DeferredDelete<T, D>::operator()(T* ptr) const
 {
   if (ptr)
     Glib::signal_idle().connect_once(std::bind(del_, ptr), Glib::PRIORITY_HIGH);
@@ -113,8 +111,8 @@ void DeferredDelete<T>::operator()(T* ptr) const
 /* Move ownership from a standard unique_ptr<> into a unique_ptr<>
  * with deferred delete.
  */
-template <typename T> inline
-std::unique_ptr<T, DeferredDelete<T>> deferred_delete(std::unique_ptr<T>& ptr)
+template <typename T, typename D> inline
+std::unique_ptr<T, DeferredDelete<T, D>> deferred_delete(std::unique_ptr<T, D>& ptr)
 {
   return std::move(ptr);
 }
