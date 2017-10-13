@@ -92,8 +92,8 @@ public:
   DeferredDelete(DeferredDelete&&) noexcept = default;
   DeferredDelete& operator=(DeferredDelete&&) noexcept = default;
 
-  DeferredDelete(D&& del) noexcept : del_ {std::move(del)} {}
-  DeferredDelete& operator=(D&& del) noexcept { del_ = std::move(del); return *this; }
+  DeferredDelete(D&& del) noexcept : del_ {del} {}
+  DeferredDelete& operator=(D&& del) noexcept { del_ = del; return *this; }
 
   void operator()(T* ptr) const;
 
