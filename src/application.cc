@@ -74,7 +74,6 @@ void Application::on_startup()
   add_action("about", sigc::mem_fun(*this, &Application::show_about));
   add_action("quit",  sigc::mem_fun(*this, &Application::close_all));
 
-  set_accel_for_action ("app.quit",         "<Primary>q");
   set_accel_for_action ("win.first",        "Home");
   set_accel_for_action ("win.prev",         "Prior");
   set_accel_for_action ("win.next",         "Next");
