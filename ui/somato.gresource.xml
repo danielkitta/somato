@@ -12,8 +12,8 @@
     <file compressed="true">cubescene.css</file>
     <file compressed="true" preprocess="xml-stripblanks">mainwindow.glade</file>
     <file>mesh-desc.bin</file>
-    <file>mesh-vertices.bin</file>
     <file>mesh-indices.bin</file>
-    <file>woodtexture.png</file>
+    <file>mesh-vertices.bin</file>
+    <file>woodtexture.dds</file>
   </gresource>
 </gresources>

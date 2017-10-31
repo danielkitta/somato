@@ -1361,48 +1361,19 @@ void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
 
 void CubeScene::gl_init_cube_texture()
 {
-  // Map from the number of color components minus one to the corresponding
-  // OpenGL texture image data format.  We'll let OpenGL do the conversion
-  // to the internal format on the fly, and flip the image through inverted
-  // texture coordinates in the vertex shader.
-  static const std::array<GLenum, 4> formats {{ GL_RED, GL_RG, GL_RGB, GL_RGBA }};
+  const unsigned int magic_dds  = GUINT32_TO_BE(0x44445320);
+  const unsigned int magic_ati1 = GUINT32_TO_BE(0x41544931);
 
-  // No matter what the real dimensions of the input image are, scale the
-  // texture during load to the fixed size defined here.  Forcing a fixed
-  // width and height actually enhances flexibility, as the user may drop
-  // in whatever image file without wreaking havoc.  In essence, the size
-  // of a texture is simply a quality setting unrelated to the input data.
-  enum { WIDTH = 512, HEIGHT = 512 };
+  const auto tex_resource =
+      Gio::Resource::lookup_data_global(RESOURCE_PREFIX "woodtexture.dds");
+  g_return_if_fail(tex_resource);
 
-  g_return_if_fail(cube_texture_ == 0);
+  const BytesView<guint32> dds {tex_resource};
 
-  const auto pixbuf = Gdk::Pixbuf::create_from_resource(RESOURCE_PREFIX "woodtexture.png",
-                                                        WIDTH, HEIGHT, false);
+  g_return_if_fail(dds.size() > 32);
+  g_return_if_fail(dds[0] == magic_dds);
+  g_return_if_fail(dds[21] == magic_ati1);
 
-  g_return_if_fail(pixbuf->get_width() == WIDTH && pixbuf->get_height() == HEIGHT);
-  g_return_if_fail(pixbuf->get_bits_per_sample() == 8);
-
-  int n_channels = pixbuf->get_n_channels();
-
-  // Unfortunately GdkPixbuf always expands to RGB color space on load,
-  // even if the input is 8-bit grayscale. So basically n_channels is
-  // always 3 or 4 in practice.
-  g_return_if_fail(n_channels >= 1 && n_channels <= static_cast<int>(formats.size()));
-  g_return_if_fail(pixbuf->get_rowstride() == n_channels * WIDTH);
-
-  const bool using_oes = get_context()->get_use_es();
-  guint8 *const pixels = pixbuf->get_pixels();
-
-  if (n_channels > 1 && using_oes)
-  {
-    // Convert the pixels in place back to grayscale. On desktop OpenGL
-    // we can instruct glTexImage2D() to perform the conversion, but
-    // unfortunately this isn't supported on OpenGL ES.
-    for (size_t i = 0; i < WIDTH * HEIGHT; ++i)
-      pixels[i] = pixels[n_channels * i];
-
-    n_channels = 1;
-  }
   glActiveTexture(GL_TEXTURE0 + SAMPLER_PIECE);
 
   glGenTextures(1, &cube_texture_);
@@ -1419,25 +1390,23 @@ void CubeScene::gl_init_cube_texture()
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
                     std::min(8.f, gl_ext()->max_anisotropy));
 
-  // On desktop OpenGL, we can compress the texture at load time to the
-  // core-supported RGTC1 format. This cuts the texture storage size in
-  // half without any visible difference whatsoever.
-  // On OpenGL ES we would have to provide pre-compressed image data.
-  // Worse yet, OpenGL ES 3 does not include RGTC compression, and the
-  // corresponding extension is not widely supported either.
-  // Only with the recent addition of EAC in OpenGL 4.3 is there finally
-  // a standardized compression format common to both desktop and mobile
-  // platforms. Unfortunately, even if OpenGL 4.3 is available, EAC does
-  // not necessarily have actual hardware support.
-  // Thus, for the time being, stick with uncompressed image input data
-  // and take advantage of on-the-fly compression on desktop only.
-  //
-  const int internal_format = (using_oes) ? GL_R8 : GL_COMPRESSED_RED_RGTC1;
+  const unsigned int base_height = GUINT32_FROM_LE(dds[3]);
+  const unsigned int base_width  = GUINT32_FROM_LE(dds[4]);
+  const unsigned int num_mipmaps = GUINT32_FROM_LE(dds[7]);
+  unsigned int offset = 32;
 
-  glTexImage2D(GL_TEXTURE_2D, 0, internal_format, WIDTH, HEIGHT, 0,
-               formats[n_channels - 1], GL_UNSIGNED_BYTE, pixels);
+  for (unsigned int level = 0; level < num_mipmaps; ++level)
+  {
+    const unsigned int width  = std::max(1u, base_width  >> level);
+    const unsigned int height = std::max(1u, base_height >> level);
+    const unsigned int size   = ((width + 3) / 4) * ((height + 3) / 4) * 2;
 
-  glGenerateMipmap(GL_TEXTURE_2D);
+    g_return_if_fail(offset + size <= dds.size());
+
+    glCompressedTexImage2D(GL_TEXTURE_2D, level, GL_COMPRESSED_RED_RGTC1,
+                           width, height, 0, size * 4, &dds[offset]);
+    offset += size;
+  }
 }
 
 void CubeScene::update_footing()

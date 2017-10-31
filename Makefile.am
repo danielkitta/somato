@@ -76,7 +76,7 @@ resource_files =			\
 	ui/shaders/textlabel.vert	\
 	ui/cubescene.css		\
 	ui/mainwindow.glade		\
-	ui/woodtexture.png
+	ui/woodtexture.dds
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\
@@ -86,6 +86,7 @@ dist_noinst_DATA =		\
 	$(resource_desc)	\
 	$(resource_files)	\
 	ui/puzzlepieces.dae	\
+	ui/woodtexture.png	\
 	debian/changelog	\
 	debian/control		\
 	debian/copyright	\
