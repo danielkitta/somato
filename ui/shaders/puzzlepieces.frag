@@ -16,11 +16,15 @@ void main()
 {
   float texIntensity = 0.5 * texture(pieceTexture, interpTexcoord).r + 0.3;
 
-  vec3 normal  = normalize(interpNormal);
-  vec3 halfVec = normalize(interpHalfVec);
+  float normalSquare  = dot(interpNormal, interpNormal);
+  float halfVecSquare = dot(interpHalfVec, interpHalfVec);
+  float rsqrtNormal   = inversesqrt(normalSquare);
+  float rsqrtNormHalf = inversesqrt(normalSquare * halfVecSquare);
+  float dotNormLight  = dot(interpNormal, dirToLight);
+  float dotNormHalf   = dot(interpNormal, interpHalfVec);
 
-  float cosIncidence = clamp(dot(normal, dirToLight), 0., 1.);
-  float spec = pow(clamp(dot(normal, halfVec), 0., 1.), 32.) * specIntensity;
+  float cosIncidence = clamp(dotNormLight * rsqrtNormal, 0., 1.);
+  float spec = pow(clamp(dotNormHalf * rsqrtNormHalf, 0., 1.), 32.) * specIntensity;
   float specTerm = (cosIncidence != 0.) ? spec : 0.;
   float diffuseTerm = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
 
