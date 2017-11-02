@@ -50,6 +50,8 @@ struct UIVertex
   }
 };
 
+using UIIndex = GLushort;
+
 /* UI vertex shader input attribute locations.
  */
 enum
@@ -340,7 +342,7 @@ void LayoutAtlas::gl_generate_indices()
   constexpr std::size_t index_stride  = LayoutTexView::INDEX_COUNT;
   constexpr std::size_t vertex_stride = LayoutTexView::VERTEX_COUNT;
 
-  const auto indices = std::make_unique<GLushort[]>(views.size() * index_stride);
+  const auto indices = std::make_unique<UIIndex[]>(views.size() * index_stride);
 
   // For each instance, generate 6 indices to draw 2 triangles from 4 vertices.
   for (std::size_t i = 0; i < views.size(); ++i)
@@ -353,7 +355,7 @@ void LayoutAtlas::gl_generate_indices()
     indices[index_stride*i + 5] = vertex_stride*i + 1;
   }
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               views.size() * index_stride * sizeof(GLushort),
+               views.size() * index_stride * sizeof(UIIndex),
                indices.get(), GL_STATIC_DRAW);
 }
 
@@ -682,8 +684,8 @@ int Scene::gl_render()
                         LayoutTexView::VERTEX_COUNT * range.first,
                         LayoutTexView::VERTEX_COUNT * range.second - 1,
                         LayoutTexView::INDEX_COUNT * (range.second - range.first),
-                        GL::attrib_type<GLushort>,
-                        GL::buffer_offset<GLushort>(LayoutTexView::INDEX_COUNT * range.first));
+                        GL::attrib_type<UIIndex>,
+                        GL::buffer_offset<UIIndex>(LayoutTexView::INDEX_COUNT * range.first));
 
     GL::ShaderProgram::unuse();
     glBindVertexArray(0);
