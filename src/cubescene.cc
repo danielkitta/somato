@@ -512,7 +512,7 @@ void CubeScene::gl_cleanup()
 
   if (mesh_buffers_[VERTICES] || mesh_buffers_[INDICES])
   {
-    glDeleteBuffers(2, mesh_buffers_);
+    glDeleteBuffers(G_N_ELEMENTS(mesh_buffers_), mesh_buffers_);
     mesh_buffers_[VERTICES] = 0;
     mesh_buffers_[INDICES]  = 0;
   }
@@ -650,7 +650,7 @@ void CubeScene::gl_create_mesh_buffers()
   glGenVertexArrays(1, &mesh_vertex_array_);
   GL::Error::throw_if_fail(mesh_vertex_array_ != 0);
 
-  glGenBuffers(2, mesh_buffers_);
+  glGenBuffers(G_N_ELEMENTS(mesh_buffers_), mesh_buffers_);
   GL::Error::throw_if_fail(mesh_buffers_[VERTICES] != 0 && mesh_buffers_[INDICES] != 0);
 
   glBindVertexArray(mesh_vertex_array_);
