@@ -184,6 +184,12 @@ bool GL::ScopedMapBuffer::unmap_checked(unsigned int target)
   return false;
 }
 
+void GL::set_object_label(GLenum identifier, GLuint name, const char* label)
+{
+  if (extensions().debug)
+    glObjectLabel(identifier, name, -1, label);
+}
+
 bool GL::debug_mode_requested()
 {
   const char *const messages_debug = g_getenv("G_MESSAGES_DEBUG");

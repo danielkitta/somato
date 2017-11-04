@@ -206,6 +206,10 @@ constexpr int attrib_size = attrib_size_<std::remove_reference_t<T>>;
  */
 bool debug_mode_requested();
 
+/* Set the label of a GL object if the debug extension is available.
+ */
+void set_object_label(GLenum identifier, GLuint name, const char* label);
+
 /* Convert a VBO offset to a pointer.
  */
 template <typename T = char>

@@ -71,6 +71,8 @@ public:
 
   explicit operator bool() const { return (program_ != 0); }
 
+  void set_label(const char* label);
+
   void attach(const ShaderObject& shader);
   void bind_attrib_location(unsigned int idx, const char* name);
   void link();
