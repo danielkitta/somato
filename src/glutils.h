@@ -38,6 +38,34 @@ namespace GL
 
 constexpr const char* log_domain = "OpenGL";
 
+/* Record of available GL extensions and implementation limits.
+ */
+struct Extensions
+{
+  bool  is_gles                    = false;
+  bool  debug                      = false;
+  bool  debug_output               = false;
+  bool  vertex_type_2_10_10_10_rev = false;
+  bool  texture_border_clamp       = false;
+  bool  texture_filter_anisotropic = false;
+  float max_anisotropy             = 0.;
+
+  // Query GL extensions after initial context setup.
+  static void query(bool use_es, int major, int minor)
+    { instance_.query_(use_es, (major << 8) | minor); }
+
+  friend inline const Extensions& extensions();
+
+private:
+  void query_(bool use_es, int version);
+
+  static Extensions instance_;
+};
+
+/* Access GL extensions record.
+ */
+inline const Extensions& extensions() { return Extensions::instance_; }
+
 /* Exception class for errors reported by glGetError() and other OpenGL
  * failure conditions.
  */

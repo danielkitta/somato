@@ -92,6 +92,41 @@ Glib::ustring framebuffer_message_from_code(unsigned int status_code)
 
 } // anonymous namespace
 
+GL::Extensions GL::Extensions::instance_;
+
+void GL::Extensions::query_(bool use_es, int version)
+{
+  g_log(GL::log_domain, G_LOG_LEVEL_INFO, "OpenGL version: %s, GLSL version: %s",
+        glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+  if (version < ((use_es) ? 0x0300 : 0x0302))
+  {
+    g_log(GL::log_domain, G_LOG_LEVEL_WARNING,
+          "At least OpenGL 3.2 or OpenGL ES 3.0 is required");
+  }
+  is_gles = use_es;
+
+  debug = (!use_es && version >= 0x0403)
+      || epoxy_has_gl_extension("GL_KHR_debug");
+
+  debug_output = debug
+      || epoxy_has_gl_extension("GL_ARB_debug_output");
+
+  vertex_type_2_10_10_10_rev = (version >= ((use_es) ? 0x0300 : 0x0303))
+      || epoxy_has_gl_extension("GL_ARB_vertex_type_2_10_10_10_rev");
+
+  texture_border_clamp = (!use_es || version >= 0x0302)
+      || epoxy_has_gl_extension("GL_OES_texture_border_clamp");
+
+  texture_filter_anisotropic = (!use_es && version >= 0x0406)
+      || epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
+
+  max_anisotropy = 1.;
+
+  if (texture_filter_anisotropic)
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+}
+
 GL::Error::Error(unsigned int error_code)
 :
   Gdk::GLError{NOT_AVAILABLE, error_message_from_code(error_code)},

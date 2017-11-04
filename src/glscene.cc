@@ -485,34 +485,6 @@ Glib::RefPtr<Pango::Layout> LayoutAtlas::update_layout_extents(LayoutTexView& vi
   return std::move(layout);
 }
 
-void Extensions::gl_query(bool use_es, int version)
-{
-  g_log(GL::log_domain, G_LOG_LEVEL_INFO, "OpenGL version: %s, GLSL version: %s",
-        glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
-
-  if (version < ((use_es) ? 0x0300 : 0x0302))
-  {
-    g_log(GL::log_domain, G_LOG_LEVEL_WARNING,
-          "At least OpenGL 3.2 or OpenGL ES 3.0 is required");
-  }
-  debug_output = (!use_es && version >= 0x0403)
-      || epoxy_has_gl_extension("GL_ARB_debug_output");
-
-  vertex_type_2_10_10_10_rev = (version >= ((use_es) ? 0x0300 : 0x0303))
-      || epoxy_has_gl_extension("GL_ARB_vertex_type_2_10_10_10_rev");
-
-  texture_border_clamp = (!use_es || version >= 0x0302)
-      || epoxy_has_gl_extension("GL_OES_texture_border_clamp");
-
-  texture_filter_anisotropic = (!use_es && version >= 0x0406)
-      || epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
-
-  if (texture_filter_anisotropic)
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-  else
-    max_anisotropy = 1.;
-}
-
 Scene::Scene(BaseObjectType* obj)
 :
   Gtk::GLArea{obj}
@@ -717,9 +689,9 @@ void Scene::on_realize()
     int major = 0, minor = 0;
     context->get_version(major, minor);
 
-    gl_extensions_.gl_query(use_es, (major << 8) | minor);
+    GL::Extensions::query(use_es, major, minor);
 
-    if (gl_ext()->debug_output)
+    if (GL::extensions().debug_output)
     {
       glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE,
                             0, nullptr, GL_TRUE);
@@ -974,7 +946,7 @@ void Scene::gl_update_layouts()
 
       layouts_.layout_context = std::move(context);
     }
-    const unsigned int clamp_mode = (gl_ext()->texture_border_clamp)
+    const unsigned int clamp_mode = (GL::extensions().texture_border_clamp)
                                   ? GL_CLAMP_TO_BORDER : GL_CLAMP_TO_EDGE;
     layouts_.gl_update_texture(clamp_mode);
   }

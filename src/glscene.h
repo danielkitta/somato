@@ -42,17 +42,6 @@ namespace GL
 class LayoutTexView;
 using LayoutTexViewVector = std::vector<std::unique_ptr<LayoutTexView>>;
 
-struct Extensions
-{
-  bool  debug_output               = false;
-  bool  vertex_type_2_10_10_10_rev = false;
-  bool  texture_border_clamp       = false;
-  bool  texture_filter_anisotropic = false;
-  float max_anisotropy             = 1.;
-
-  void gl_query(bool use_es, int version);
-};
-
 struct LayoutAtlas
 {
   // Ink spill margins and padding between adjacent sub-images.
@@ -126,7 +115,6 @@ protected:
 
   explicit Scene(BaseObjectType* obj);
 
-  const GL::Extensions* gl_ext() const { return &gl_extensions_; }
   ContextGuard scoped_make_current() { return ContextGuard{try_make_current()}; }
 
   void start_animation_tick();
@@ -181,7 +169,6 @@ private:
   int               label_uf_intensity_ = -1;
   int               label_uf_texture_   = -1;
 
-  GL::Extensions    gl_extensions_;
   int               aa_samples_         = 0;
   int               max_aa_samples_     = 0;
 

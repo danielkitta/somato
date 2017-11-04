@@ -437,7 +437,7 @@ void CubeScene::gl_initialize()
   // volume clipping artifacts. The clamping could potentially produce some
   // artifacts of its own, but so far it appears to play along nicely.
   // Unfortunately this feature is not available with OpenGL ES.
-  if (!get_context()->get_use_es())
+  if (!GL::extensions().is_gles)
     glEnable(GL_DEPTH_CLAMP);
 
   try // go on without texturing if loading the image fails
@@ -637,7 +637,7 @@ void CubeScene::gl_create_mesh_buffers()
   g_return_if_fail(mesh_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
 
-  if (!gl_ext()->vertex_type_2_10_10_10_rev)
+  if (!GL::extensions().vertex_type_2_10_10_10_rev)
   {
     g_log(GL::log_domain, G_LOG_LEVEL_WARNING,
           "Packed integer vector format 2:10:10:10 not supported");
@@ -1386,9 +1386,9 @@ void CubeScene::gl_init_cube_texture()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-  if (gl_ext()->texture_filter_anisotropic)
+  if (GL::extensions().texture_filter_anisotropic)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-                    std::min(8.f, gl_ext()->max_anisotropy));
+                    std::min(8.f, GL::extensions().max_anisotropy));
 
   const unsigned int base_height = GUINT32_FROM_LE(dds[3]);
   const unsigned int base_width  = GUINT32_FROM_LE(dds[4]);
