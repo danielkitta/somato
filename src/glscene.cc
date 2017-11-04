@@ -250,6 +250,8 @@ void LayoutAtlas::gl_update_texture(unsigned int clamp_mode)
 
   if (tex_width == 0)
   {
+    GL::set_object_label(GL_TEXTURE, tex_name, "layoutAtlas");
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp_mode);
@@ -372,8 +374,11 @@ void LayoutAtlas::gl_create_vao()
   GL::Error::throw_if_fail(buffers[VERTICES] && buffers[INDICES]);
 
   glBindVertexArray(vao);
+  GL::set_object_label(GL_VERTEX_ARRAY, vao, "layoutsArray");
 
   glBindBuffer(GL_ARRAY_BUFFER, buffers[VERTICES]);
+  GL::set_object_label(GL_BUFFER, buffers[VERTICES], "layoutVertices");
+
   glBufferData(GL_ARRAY_BUFFER,
                views.size() * LayoutTexView::VERTEX_COUNT * sizeof(UIVertex),
                nullptr, GL_DYNAMIC_DRAW);
@@ -399,6 +404,8 @@ void LayoutAtlas::gl_create_vao()
   glEnableVertexAttribArray(ATTRIB_COLOR);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[INDICES]);
+  GL::set_object_label(GL_BUFFER, buffers[INDICES], "layoutIndices");
+
   gl_generate_indices();
 
   glBindVertexArray(0);
@@ -859,6 +866,7 @@ void Scene::gl_create_label_shader()
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/textlabel.vert"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/textlabel.frag"});
 
+  program.set_label("textlabel");
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
   program.bind_attrib_location(ATTRIB_COLOR,    "color");
@@ -885,15 +893,20 @@ void Scene::gl_update_framebuffer()
   const int samples = std::min(aa_samples_, max_aa_samples_);
 
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
+  GL::set_object_label(GL_RENDERBUFFER, render_buffers_[COLOR], "sceneColor");
+
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB8,
                                    view_width, view_height);
 
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[DEPTH]);
+  GL::set_object_label(GL_RENDERBUFFER, render_buffers_[DEPTH], "sceneDepth");
+
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24,
                                    view_width, view_height);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);
+  GL::set_object_label(GL_FRAMEBUFFER, frame_buffer_, "sceneFrame");
 
   glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                             GL_RENDERBUFFER, render_buffers_[COLOR]);

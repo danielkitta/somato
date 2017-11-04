@@ -464,6 +464,7 @@ void CubeScene::gl_create_piece_shader()
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/puzzlepieces.vert"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/puzzlepieces.frag"});
 
+  program.set_label("puzzlepieces");
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
   program.link();
@@ -483,6 +484,7 @@ void CubeScene::gl_create_grid_shader()
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/cellgrid.vert"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/cellgrid.frag"});
 
+  program.set_label("cellgrid");
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 
@@ -654,8 +656,10 @@ void CubeScene::gl_create_mesh_buffers()
   GL::Error::throw_if_fail(mesh_buffers_[VERTICES] != 0 && mesh_buffers_[INDICES] != 0);
 
   glBindVertexArray(mesh_vertex_array_);
+  GL::set_object_label(GL_VERTEX_ARRAY, mesh_vertex_array_, "meshArray");
 
   glBindBuffer(GL_ARRAY_BUFFER, mesh_buffers_[VERTICES]);
+  GL::set_object_label(GL_BUFFER, mesh_buffers_[VERTICES], "meshVertices");
 
   gsize vertices_size = 0;
   const auto *const vertices_data = vertices->get_data(vertices_size);
@@ -676,6 +680,7 @@ void CubeScene::gl_create_mesh_buffers()
   glEnableVertexAttribArray(ATTRIB_NORMAL);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_buffers_[INDICES]);
+  GL::set_object_label(GL_BUFFER, mesh_buffers_[INDICES], "meshIndices");
 
   gsize indices_size = 0;
   const auto *const indices_data = indices->get_data(indices_size);
@@ -1380,6 +1385,7 @@ void CubeScene::gl_init_cube_texture()
   GL::Error::throw_if_fail(cube_texture_ != 0);
 
   glBindTexture(GL_TEXTURE_2D, cube_texture_);
+  GL::set_object_label(GL_TEXTURE, cube_texture_, "woodtexture");
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
