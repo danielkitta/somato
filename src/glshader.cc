@@ -26,7 +26,6 @@
 #include <glibmm/bytes.h>
 #include <glibmm/ustring.h>
 #include <giomm/resource.h>
-#include <gdkmm/glcontext.h>
 #include <epoxy/gl.h>
 
 #include <memory>
@@ -57,27 +56,22 @@ void load_shader_source(GLuint shader, const std::string& name)
   const char* snippets[2];
   int lengths[G_N_ELEMENTS(snippets)];
 
-  if (const auto context = Gdk::GLContext::get_current())
-  {
-    // Select an appropriate preamble to the shader source text
-    // depending on whether we are using OpenGL ES or desktop OpenGL.
-    if (context->get_use_es())
-      snippets[0] = "#version 300 es\n"
-                    "#define noperspective\n"
-                    "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
-                    "precision highp float;\n"
-                    "#else\n"
-                    "precision mediump float;\n"
-                    "#endif\n"
-                    "#line 0\n";
-    else
-      snippets[0] = "#version 150\n"
-                    "#line 0\n";
-
-    lengths[0] = std::strlen(snippets[0]);
-  }
+  // Select an appropriate preamble to the shader source text
+  // depending on whether we are using OpenGL ES or desktop OpenGL.
+  if (GL::extensions().is_gles)
+    snippets[0] = "#version 300 es\n"
+                  "#define noperspective\n"
+                  "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
+                  "precision highp float;\n"
+                  "#else\n"
+                  "precision mediump float;\n"
+                  "#endif\n"
+                  "#line 0\n";
   else
-    throw GL::Error{"No current OpenGL context"};
+    snippets[0] = "#version 150\n"
+                  "#line 0\n";
+
+  lengths[0] = std::strlen(snippets[0]);
 
   const auto resource = Gio::Resource::lookup_data_global(name);
   gsize size = 0;
