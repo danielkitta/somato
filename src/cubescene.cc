@@ -565,8 +565,8 @@ int CubeScene::gl_render()
 
     if (mesh_vertex_array_ && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
     {
-      glEnable(GL_DEPTH_TEST);
       glBindVertexArray(mesh_vertex_array_);
+      glEnable(GL_DEPTH_TEST);
 
       Math::Matrix4 cube_transform {Math::Vector4::basis[0],
                                     Math::Vector4::basis[1],
@@ -592,7 +592,6 @@ int CubeScene::gl_render()
       {
         triangle_count += gl_draw_cube(cube_transform);
       }
-      glBindVertexArray(0);
       glDisable(GL_DEPTH_TEST);
     }
   }
@@ -1249,8 +1248,6 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
                         2 * GRID_LINE_COUNT, GL::attrib_type<MeshIndex>,
                         GL::buffer_offset<MeshIndex>(0));
-
-    GL::ShaderProgram::unuse();
   }
 }
 
@@ -1342,7 +1339,6 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
                                                         1.f});
       gl_draw_piece_elements(transform, data);
     }
-    GL::ShaderProgram::unuse();
   }
   return triangle_count;
 }

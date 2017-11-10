@@ -665,8 +665,6 @@ int Scene::gl_render()
                         LayoutTexView::INDEX_COUNT * (range.second - range.first),
                         GL::attrib_type<UIIndex>,
                         GL::buffer_offset<UIIndex>(LayoutTexView::INDEX_COUNT * range.first));
-
-    GL::ShaderProgram::unuse();
     glBindVertexArray(0);
 
     glDisable(GL_BLEND);
