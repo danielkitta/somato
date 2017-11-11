@@ -206,7 +206,7 @@ void MainWindow::on_speed_value_changed()
   // The exponent needs to be divided by the maximum value since it has
   // been scaled in order to make the step increment a whole number.
 
-  cube_scene_->set_pieces_per_second(std::pow(10., value / upper));
+  cube_scene_->set_pieces_per_second(std::exp2(std::log2(10.) * value / upper));
 }
 
 void MainWindow::on_zoom_value_changed()
@@ -223,7 +223,7 @@ void MainWindow::on_zoom_value_changed()
   // The exponent needs to be divided by the maximum value since it has
   // been scaled in order to make the step increment a whole number.
 
-  cube_scene_->set_zoom(std::pow(3., value / upper));
+  cube_scene_->set_zoom(std::exp2(std::log2(3.) * value / upper));
 }
 
 void MainWindow::on_zoom_gesture_begin(GdkEventSequence*)
