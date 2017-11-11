@@ -433,6 +433,9 @@ void CubeScene::gl_initialize()
 
   glEnable(GL_CULL_FACE);
 
+  // Depth offset when displaying the cell grid.
+  glPolygonOffset(1., 4.);
+
   // Trade viewspace clipping for depth clamping to avoid highly visible
   // volume clipping artifacts. The clamping could potentially produce some
   // artifacts of its own, but so far it appears to play along nicely.
@@ -581,11 +584,8 @@ int CubeScene::gl_render()
                                                    : GL_POLYGON_OFFSET_FILL;
         gl_draw_cell_grid(cube_transform);
 
-        glPolygonOffset(1., 4.);
         glEnable(offset_mode);
-
         triangle_count += gl_draw_cube(cube_transform);
-
         glDisable(offset_mode);
       }
       else
