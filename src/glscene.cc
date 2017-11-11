@@ -187,7 +187,7 @@ std::pair<int, int> LayoutAtlas::get_drawable_range() const
   return {start - cbegin(views), crend(views) - stop};
 }
 
-void LayoutAtlas::gl_update_texture(unsigned int clamp_mode)
+void LayoutAtlas::gl_update_texture()
 {
   std::vector<Glib::RefPtr<Pango::Layout>> layouts;
   layouts.reserve(views.size());
@@ -252,10 +252,12 @@ void LayoutAtlas::gl_update_texture(unsigned int clamp_mode)
   {
     GL::set_object_label(GL_TEXTURE, tex_name, "layoutAtlas");
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    const GLenum clamp_mode = (GL::extensions().texture_border_clamp)
+                              ? GL_CLAMP_TO_BORDER : GL_CLAMP_TO_EDGE;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   }
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, img_height,
                0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
@@ -957,9 +959,7 @@ void Scene::gl_update_layouts()
 
       layouts_.layout_context = std::move(context);
     }
-    const unsigned int clamp_mode = (GL::extensions().texture_border_clamp)
-                                  ? GL_CLAMP_TO_BORDER : GL_CLAMP_TO_EDGE;
-    layouts_.gl_update_texture(clamp_mode);
+    layouts_.gl_update_texture();
   }
 
   if (layouts_.needs_vertex_update())

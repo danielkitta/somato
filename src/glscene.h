@@ -66,7 +66,7 @@ struct LayoutAtlas
   bool needs_vertex_update() const;
   std::pair<int, int> get_drawable_range() const;
 
-  void gl_update_texture(unsigned int clamp_mode);
+  void gl_update_texture();
   void gl_generate_vertices(int view_width, int view_height);
   void gl_generate_indices();
   void gl_create_vao();
