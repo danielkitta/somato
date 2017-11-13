@@ -566,7 +566,7 @@ int CubeScene::gl_render()
     if (depth_order_changed_)
       update_depth_order();
 
-    if (mesh_vertex_array_ && mesh_buffers_[VERTICES] && mesh_buffers_[INDICES])
+    if (mesh_vertex_array_)
     {
       glBindVertexArray(mesh_vertex_array_);
       glEnable(GL_DEPTH_TEST);
