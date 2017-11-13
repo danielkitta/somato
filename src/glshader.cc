@@ -141,8 +141,12 @@ ShaderProgram::~ShaderProgram()
 
 void ShaderProgram::set_label(const char* label)
 {
-  if (program_)
-    GL::set_object_label(GL_PROGRAM, program_, label);
+  if (!program_)
+  {
+    program_ = glCreateProgram();
+    GL::Error::throw_if_fail(program_ != 0);
+  }
+  GL::set_object_label(GL_PROGRAM, program_, label);
 }
 
 void ShaderProgram::attach(const ShaderObject& shader)
