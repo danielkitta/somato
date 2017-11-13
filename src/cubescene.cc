@@ -463,11 +463,11 @@ void CubeScene::gl_initialize()
 void CubeScene::gl_create_piece_shader()
 {
   GL::ShaderProgram program;
+  program.set_label("puzzlepieces");
 
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/puzzlepieces.vert"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/puzzlepieces.frag"});
 
-  program.set_label("puzzlepieces");
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
   program.link();
@@ -483,11 +483,11 @@ void CubeScene::gl_create_piece_shader()
 void CubeScene::gl_create_grid_shader()
 {
   GL::ShaderProgram program;
+  program.set_label("cellgrid");
 
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/cellgrid.vert"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/cellgrid.frag"});
 
-  program.set_label("cellgrid");
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 

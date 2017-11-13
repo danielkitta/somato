@@ -862,11 +862,11 @@ bool Scene::try_make_current()
 void Scene::gl_create_label_shader()
 {
   GL::ShaderProgram program;
+  program.set_label("textlabel");
 
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/textlabel.vert"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/textlabel.frag"});
 
-  program.set_label("textlabel");
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
   program.bind_attrib_location(ATTRIB_COLOR,    "color");
