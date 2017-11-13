@@ -43,11 +43,14 @@ Glib::ustring error_message_from_code(unsigned int error_code)
     case GL_INVALID_OPERATION:
       message = "invalid operation";
       break;
+    case GL_OUT_OF_MEMORY:
+      message = "out of memory";
+      break;
     case GL_INVALID_FRAMEBUFFER_OPERATION:
       message = "invalid framebuffer operation";
       break;
-    case GL_OUT_OF_MEMORY:
-      message = "out of memory";
+    case GL_CONTEXT_LOST:
+      message = "context lost";
       break;
   }
   return Glib::ustring{message};
