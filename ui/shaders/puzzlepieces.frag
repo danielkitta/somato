@@ -17,17 +17,16 @@ void main()
 {
   float texIntensity = texture(pieceTexture, interpTexcoord).r;
 
-  float normalSquare  = dot(interpNormal, interpNormal);
-  float halfVecSquare = dot(interpHalfVec, interpHalfVec);
-  float rsqrtNormal   = inversesqrt(normalSquare);
-  float rsqrtNormHalf = inversesqrt(normalSquare * halfVecSquare);
-  float dotNormLight  = dot(interpNormal, dirToLight);
-  float dotNormHalf   = dot(interpNormal, interpHalfVec);
+  float rMagNormal   = inversesqrt(dot(interpNormal, interpNormal));
+  float rMagHalfVec  = inversesqrt(dot(interpHalfVec, interpHalfVec));
+  float dotNormLight = dot(interpNormal, dirToLight);
+  float dotNormHalf  = dot(interpNormal, interpHalfVec);
+  float cosIncidence = clamp(dotNormLight * rMagNormal, 0., 1.);
+  float cosHalfIncid = clamp(dotNormHalf * rMagNormal * rMagHalfVec, 0., 1.);
 
-  float cosIncidence = clamp(dotNormLight * rsqrtNormal, 0., 1.);
-  float spec = pow(clamp(dotNormHalf * rsqrtNormHalf, 0., 1.), shininess) * specIntensity;
-  float specTerm = (cosIncidence != 0.) ? spec : 0.;
-  float diffuseTerm = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
+  float specHighlight = pow(cosHalfIncid, shininess) * specIntensity;
+  float specularTerm  = (cosIncidence != 0.) ? specHighlight : 0.;
+  float diffuseTerm   = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
 
-  outputColor = diffuseMaterial.rgb * diffuseTerm + specTerm;
+  outputColor = diffuseMaterial.rgb * diffuseTerm + specularTerm;
 }
