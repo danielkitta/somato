@@ -8,13 +8,13 @@ smooth in vec2 interpTexcoord;
 out vec3 outputColor;
 
 const vec3  dirToLight     = vec3(0., 0.242535625, 0.9701425);
-const float lightIntensity = 0.8;
+const float lightIntensity = 0.7;
 const float ambIntensity   = 0.2;
 const float specIntensity  = 0.1;
 
 void main()
 {
-  float texIntensity = 0.5 * texture(pieceTexture, interpTexcoord).r + 0.3;
+  float texIntensity = texture(pieceTexture, interpTexcoord).r;
 
   float normalSquare  = dot(interpNormal, interpNormal);
   float halfVecSquare = dot(interpHalfVec, interpHalfVec);
