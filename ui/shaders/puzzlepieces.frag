@@ -11,6 +11,7 @@ const vec3  dirToLight     = vec3(0., 0.242535625, 0.9701425);
 const float lightIntensity = 0.7;
 const float ambIntensity   = 0.2;
 const float specIntensity  = 0.1;
+const float shininess      = 32.;
 
 void main()
 {
@@ -24,7 +25,7 @@ void main()
   float dotNormHalf   = dot(interpNormal, interpHalfVec);
 
   float cosIncidence = clamp(dotNormLight * rsqrtNormal, 0., 1.);
-  float spec = pow(clamp(dotNormHalf * rsqrtNormHalf, 0., 1.), 32.) * specIntensity;
+  float spec = pow(clamp(dotNormHalf * rsqrtNormHalf, 0., 1.), shininess) * specIntensity;
   float specTerm = (cosIncidence != 0.) ? spec : 0.;
   float diffuseTerm = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
 
