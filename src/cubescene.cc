@@ -1364,18 +1364,14 @@ void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
 
 void CubeScene::gl_init_cube_texture()
 {
-  const unsigned int magic_dds  = GUINT32_TO_BE(0x44445320);
-  const unsigned int magic_ati1 = GUINT32_TO_BE(0x41544931);
+  const char *const name = (GL::extensions().is_gles)
+                         ? RESOURCE_PREFIX "woodtexture-eac.ktx"
+                         : RESOURCE_PREFIX "woodtexture-rgtc.ktx";
 
-  const auto tex_resource =
-      Gio::Resource::lookup_data_global(RESOURCE_PREFIX "woodtexture.dds");
-  g_return_if_fail(tex_resource);
+  const auto resource = Gio::Resource::lookup_data_global(name);
+  g_return_if_fail(resource);
 
-  const BytesView<guint32> dds {tex_resource};
-
-  g_return_if_fail(dds.size() > 32);
-  g_return_if_fail(dds[0] == magic_dds);
-  g_return_if_fail(dds[21] == magic_ati1);
+  const BytesView<guint32> ktx {resource};
 
   glActiveTexture(GL_TEXTURE0 + SAMPLER_PIECE);
 
@@ -1394,23 +1390,7 @@ void CubeScene::gl_init_cube_texture()
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
                     std::min(8.f, GL::extensions().max_anisotropy));
 
-  const unsigned int base_height = GUINT32_FROM_LE(dds[3]);
-  const unsigned int base_width  = GUINT32_FROM_LE(dds[4]);
-  const unsigned int num_mipmaps = GUINT32_FROM_LE(dds[7]);
-  unsigned int offset = 32;
-
-  for (unsigned int level = 0; level < num_mipmaps; ++level)
-  {
-    const unsigned int width  = std::max(1u, base_width  >> level);
-    const unsigned int height = std::max(1u, base_height >> level);
-    const unsigned int size   = ((width + 3) / 4) * ((height + 3) / 4) * 2;
-
-    g_return_if_fail(offset + size <= dds.size());
-
-    glCompressedTexImage2D(GL_TEXTURE_2D, level, GL_COMPRESSED_RED_RGTC1,
-                           width, height, 0, size * 4, &dds[offset]);
-    offset += size;
-  }
+  GL::tex_image_from_ktx(&ktx[0], ktx.size());
 }
 
 } // namespace Somato

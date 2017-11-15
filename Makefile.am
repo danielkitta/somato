@@ -76,7 +76,8 @@ resource_files =			\
 	ui/shaders/textlabel.vert	\
 	ui/cubescene.css		\
 	ui/mainwindow.glade		\
-	ui/woodtexture.dds
+	ui/woodtexture-eac.ktx		\
+	ui/woodtexture-rgtc.ktx
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\
