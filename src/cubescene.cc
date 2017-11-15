@@ -443,15 +443,7 @@ void CubeScene::gl_initialize()
   if (!GL::extensions().is_gles)
     glEnable(GL_DEPTH_CLAMP);
 
-  try // go on without texturing if loading the image fails
-  {
-    gl_init_cube_texture();
-  }
-  catch (const Glib::Error& error)
-  {
-    const Glib::ustring message = error.what();
-    g_warning("%s", message.c_str());
-  }
+  gl_init_cube_texture();
 
   piece_shader_.use();
   glUniform1i(uf_piece_texture_, SAMPLER_PIECE);
