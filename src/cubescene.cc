@@ -927,6 +927,16 @@ void CubeScene::gl_reposition_layouts()
   footing_->set_window_pos(margin_x, margin_y);
 }
 
+void CubeScene::update_footing()
+{
+  const int percentage = static_cast<int>(100.f * zoom_ + 0.5f);
+
+  if (zoom_visible_ && percentage != 100)
+    footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
+  else
+    footing_->set_content({});
+}
+
 /*
  * Figure out an appropriate animation order for the cube pieces, so that
  * the puzzle can be put together without two pieces blocking each other.
@@ -1401,16 +1411,6 @@ void CubeScene::gl_init_cube_texture()
                            width, height, 0, size * 4, &dds[offset]);
     offset += size;
   }
-}
-
-void CubeScene::update_footing()
-{
-  const int percentage = static_cast<int>(100.f * zoom_ + 0.5f);
-
-  if (zoom_visible_ && percentage != 100)
-    footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
-  else
-    footing_->set_content({});
 }
 
 } // namespace Somato
