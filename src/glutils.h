@@ -140,6 +140,10 @@ inline bool access_mapped_buffer(unsigned int target, std::size_t offset,
   return false;
 }
 
+/* Load a compressed 2D texture image from a KTX file memory buffer.
+ */
+void tex_image_from_ktx(const guint32* ktx, unsigned int ktx_size);
+
 enum Packed2i16 : unsigned int {};
 enum Packed4u8  : unsigned int {};
 
