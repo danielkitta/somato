@@ -75,9 +75,13 @@ resource_files =			\
 	ui/shaders/textlabel.frag	\
 	ui/shaders/textlabel.vert	\
 	ui/cubescene.css		\
-	ui/mainwindow.glade		\
-	ui/woodtexture-dxt.ktx		\
-	ui/woodtexture-etc.ktx
+	ui/mainwindow.glade
+
+resource_deps =			\
+	$(resource_desc)	\
+	$(resource_files)	\
+	ui/mesh-desc.bin	\
+	ui/woodtexture-$(SOMATO_TEXTURE_COMPRESSION).ktx
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\
@@ -87,6 +91,8 @@ dist_noinst_DATA =		\
 	$(resource_files)	\
 	ui/puzzlepieces.dae	\
 	ui/woodtexture.png	\
+	ui/woodtexture-dxt.ktx	\
+	ui/woodtexture-etc.ktx	\
 	debian/changelog	\
 	debian/control		\
 	debian/copyright	\
@@ -121,7 +127,7 @@ ui/mesh-desc.bin: ui/.dirstamp $(compile_meshdata) ui/puzzlepieces.dae
 	$(AM_V_GEN)$(compile_meshdata) "$(srcdir)/ui/puzzlepieces.dae" \
 	 PieceOrange PieceGreen PieceRed PieceYellow PieceBlue PieceLavender PieceCyan
 
-src/resources.cc: $(resource_desc) $(resource_files) ui/mesh-desc.bin
+src/resources.cc: $(resource_deps)
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --sourcedir=ui --sourcedir="$(srcdir)/ui" \
 	 --generate-source --internal --target="$@" "$(resource_desc)"
 
