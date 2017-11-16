@@ -147,6 +147,6 @@ dist-deb: distdir
 	rm -rf "$(distdir)"
 
 README: README.md
-	cp -fp README.md $@
+	cp -fp "$(srcdir)/README.md" $@
 
 .PHONY: dist-deb install-update-icon-cache uninstall-update-icon-cache
