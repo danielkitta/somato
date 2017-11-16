@@ -14,7 +14,6 @@
     <file>mesh-desc.bin</file>
     <file>mesh-indices.bin</file>
     <file>mesh-vertices.bin</file>
-    <file>woodtexture-eac.ktx</file>
-    <file>woodtexture-rgtc.ktx</file>
+    <file alias="woodtexture.ktx">woodtexture-@SOMATO_TEXTURE_COMPRESSION@.ktx</file>
   </gresource>
 </gresources>

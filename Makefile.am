@@ -76,15 +76,14 @@ resource_files =			\
 	ui/shaders/textlabel.vert	\
 	ui/cubescene.css		\
 	ui/mainwindow.glade		\
-	ui/woodtexture-eac.ktx		\
-	ui/woodtexture-rgtc.ktx
+	ui/woodtexture-dxt.ktx		\
+	ui/woodtexture-etc.ktx
 
 dist_noinst_SCRIPTS =		\
 	debian/rules		\
 	autogen.sh
 
 dist_noinst_DATA =		\
-	$(resource_desc)	\
 	$(resource_files)	\
 	ui/puzzlepieces.dae	\
 	ui/woodtexture.png	\
@@ -124,7 +123,7 @@ ui/mesh-desc.bin: ui/.dirstamp $(compile_meshdata) ui/puzzlepieces.dae
 
 src/resources.cc: $(resource_desc) $(resource_files) ui/mesh-desc.bin
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --sourcedir=ui --sourcedir="$(srcdir)/ui" \
-	 --generate-source --internal --target="$@" "$(srcdir)/$(resource_desc)"
+	 --generate-source --internal --target="$@" "$(resource_desc)"
 
 install-data-hook: install-update-icon-cache
 uninstall-hook: uninstall-update-icon-cache

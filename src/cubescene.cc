@@ -1364,11 +1364,7 @@ void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
 
 void CubeScene::gl_init_cube_texture()
 {
-  const char *const name = (GL::extensions().is_gles)
-                         ? RESOURCE_PREFIX "woodtexture-eac.ktx"
-                         : RESOURCE_PREFIX "woodtexture-rgtc.ktx";
-
-  const auto resource = Gio::Resource::lookup_data_global(name);
+  const auto resource = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "woodtexture.ktx");
   g_return_if_fail(resource);
 
   const BytesView<guint32> ktx {resource};

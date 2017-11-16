@@ -28,6 +28,18 @@ AM_SILENT_RULES([yes])
 
 AC_PROG_CXX
 
+AC_ARG_WITH([texture-compression], [AS_HELP_STRING(
+  [--with-texture-compression=[[dxt|etc]]],
+  [select texture compression codec [dxt]])],
+  [SOMATO_TEXTURE_COMPRESSION=$withval],
+  [SOMATO_TEXTURE_COMPRESSION=dxt])
+
+AC_MSG_CHECKING([how to compress textures])
+AS_CASE([$SOMATO_TEXTURE_COMPRESSION], [dxt|etc],,
+        [AC_MSG_FAILURE([[invalid codec "$SOMATO_TEXTURE_COMPRESSION"]])])
+AC_MSG_RESULT([$SOMATO_TEXTURE_COMPRESSION])
+AC_SUBST([SOMATO_TEXTURE_COMPRESSION])
+
 PKG_CHECK_MODULES([MESHDATA_MODULES], [glib-2.0 assimp >= 3.0])
 PKG_CHECK_MODULES([SOMATO_MODULES], [gthread-2.0 epoxy >= 1.3 gtkmm-3.0 >= 3.22])
 
@@ -60,5 +72,5 @@ DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS], [-Wall], [-Wall -Wextra])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile ui/somato.gresource.xml])
 AC_OUTPUT
