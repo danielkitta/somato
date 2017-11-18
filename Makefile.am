@@ -74,7 +74,6 @@ resource_files =			\
 	ui/shaders/puzzlepieces.vert	\
 	ui/shaders/textlabel.frag	\
 	ui/shaders/textlabel.vert	\
-	ui/cubescene.css		\
 	ui/mainwindow.glade
 
 resource_deps =			\

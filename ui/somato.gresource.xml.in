@@ -9,7 +9,6 @@
     <file compressed="true">shaders/puzzlepieces.vert</file>
     <file compressed="true">shaders/textlabel.frag</file>
     <file compressed="true">shaders/textlabel.vert</file>
-    <file compressed="true">cubescene.css</file>
     <file compressed="true" preprocess="xml-stripblanks">mainwindow.glade</file>
     <file>mesh-desc.bin</file>
     <file>mesh-indices.bin</file>
