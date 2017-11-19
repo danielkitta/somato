@@ -125,6 +125,9 @@ void GL::Extensions::query_(bool use_es, int version)
   texture_filter_anisotropic = (!use_es && version >= 0x0406)
       || epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");
 
+  texture_gather = (version >= ((use_es) ? 0x0301 : 0x0400))
+      || epoxy_has_gl_extension("GL_ARB_texture_gather");
+
   max_anisotropy = 1.;
 
   if (texture_filter_anisotropic)

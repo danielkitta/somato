@@ -48,6 +48,7 @@ struct Extensions
   bool  vertex_type_2_10_10_10_rev = false;
   bool  texture_border_clamp       = false;
   bool  texture_filter_anisotropic = false;
+  bool  texture_gather             = false;
   float max_anisotropy             = 0.;
 
   // Query GL extensions after initial context setup.

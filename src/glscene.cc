@@ -292,6 +292,9 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
     const float view_scale_x = 1.f / view_width;
     const float view_scale_y = 1.f / view_height;
 
+    // Shift coordinates to center of 2x2 block for texture gather.
+    const float gather_offset = (GL::extensions().texture_gather) ? 0.5f : 0.f;
+
     auto* pv = static_cast<volatile UIVertex*>(data);
 
     for (const auto& view : views)
@@ -299,10 +302,10 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
       const int width  = view->ink_width_  + 1;
       const int height = view->ink_height_ + 1;
 
-      const float s0 = (view->x_offset_ - 1)         * tex_scale_x;
-      const float s1 = (view->x_offset_ - 1 + width) * tex_scale_x;
-      const float t0 = (height - 1) * tex_scale_y;
-      const float t1 =               -tex_scale_y;
+      const float s0 = (view->x_offset_ - 1 + gather_offset)         * tex_scale_x;
+      const float s1 = (view->x_offset_ - 1 + width + gather_offset) * tex_scale_x;
+      const float t0 = (height - 1 + gather_offset) * tex_scale_y;
+      const float t1 = (gather_offset - 1)          * tex_scale_y;
 
       const int view_x = view->window_x_ + view->ink_x_;
       const int view_y = view->window_y_ + view->ink_y_;
