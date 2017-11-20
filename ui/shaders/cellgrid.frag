@@ -1,3 +1,7 @@
+#ifdef GL_ES
+precision mediump float;
+#endif
+
 smooth in float interpIntensity;
 
 out vec3 outputColor;

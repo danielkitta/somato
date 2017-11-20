@@ -1,6 +1,9 @@
 #ifdef GL_ARB_texture_gather
 # extension GL_ARB_texture_gather : require
 #endif
+#ifdef GL_ES
+precision mediump float;
+#endif
 
 uniform sampler2D labelTexture;
 
