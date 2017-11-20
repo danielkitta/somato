@@ -14,7 +14,7 @@ out vec4 outputColor;
 
 void main()
 {
-#ifdef GL_ARB_texture_gather
+#if __VERSION__ >= 400 || (defined(GL_ES) && __VERSION__ >= 310) || defined(GL_ARB_texture_gather)
   vec4 textQuad = textureGather(labelTexture, interpTexcoord);
   vec2 shadow = max(textQuad.rg, textQuad.ba);
   float alpha = max(shadow.r, shadow.g);
