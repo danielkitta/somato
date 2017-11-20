@@ -42,6 +42,7 @@ constexpr const char* log_domain = "OpenGL";
  */
 struct Extensions
 {
+  int   version                    = 0;
   bool  is_gles                    = false;
   bool  debug                      = false;
   bool  debug_output               = false;
@@ -53,12 +54,12 @@ struct Extensions
 
   // Query GL extensions after initial context setup.
   static void query(bool use_es, int major, int minor)
-    { instance_.query_(use_es, (major << 8) | minor); }
+    { instance_.query_(use_es, 10 * major + minor); }
 
   friend inline const Extensions& extensions();
 
 private:
-  void query_(bool use_es, int version);
+  void query_(bool use_es, int ver);
 
   static Extensions instance_;
 };
