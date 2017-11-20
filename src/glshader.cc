@@ -56,27 +56,25 @@ void load_shader_source(GLuint shader, const std::string& name)
   const char* snippets[2];
   int lengths[G_N_ELEMENTS(snippets)];
 
+  const int version = (GL::extensions().version > 32 || GL::extensions().is_gles)
+                    ? GL::extensions().version : 15;
   // Select an appropriate preamble to the shader source text
   // depending on whether we are using OpenGL ES or desktop OpenGL.
-  if (GL::extensions().is_gles)
-    snippets[0] = "#version 300 es\n"
-                  "#define noperspective\n"
-                  "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
-                  "precision highp float;\n"
-                  "#else\n"
-                  "precision mediump float;\n"
-                  "#endif\n"
-                  "#line 0\n";
-  else
-    snippets[0] = "#version 150\n"
-                  "#line 0\n";
+  const auto preamble = Glib::ustring::compose((GL::extensions().is_gles)
+                      ? "#version %10 es\n"
+                        "#define noperspective\n"
+                        "#line 1\n"
+                      : "#version %10\n"
+                        "#line 1\n",
+                      version);
 
-  lengths[0] = std::strlen(snippets[0]);
+  snippets[0] = preamble.data();
+  lengths [0] = preamble.bytes();
 
   const auto resource = Gio::Resource::lookup_data_global(name);
   gsize size = 0;
   snippets[1] = static_cast<const char*>(resource->get_data(size));
-  lengths[1]  = size;
+  lengths [1] = size;
 
   glShaderSource(shader, G_N_ELEMENTS(snippets), snippets, lengths);
 }
