@@ -22,5 +22,8 @@ stamp-h?
 /missing
 /somato-*.tar.*
 /src/*.o
+/src/compile-meshdata
 /src/resources.cc
 /src/somato
+/ui/mesh-*.bin
+/ui/somato.gresource.xml
