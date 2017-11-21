@@ -259,11 +259,15 @@ void LayoutAtlas::gl_update_texture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   }
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, img_height,
-               0, GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
-
-  tex_width  = img_width;
-  tex_height = img_height;
+  if (tex_width != img_width || tex_height != img_height)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, img_width, img_height,
+                 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    tex_width  = img_width;
+    tex_height = img_height;
+  }
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img_width, img_height,
+                  GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
 
   for (const auto& view : views)
     view->text_changed_ = false;
