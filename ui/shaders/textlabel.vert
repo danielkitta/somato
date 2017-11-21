@@ -10,6 +10,6 @@ flat          out vec3 interpColor;
 void main()
 {
   gl_Position    = vec4(position, 0., 1.);
-  interpTexcoord = texcoord;
+  interpTexcoord = texcoord + 0.5;
   interpColor    = color * textIntensity;
 }

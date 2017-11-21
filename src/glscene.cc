@@ -287,13 +287,17 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
                                        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT,
                                        [=](volatile void* data)
   {
-    const float tex_scale_x  = 1.f / tex_width;
-    const float tex_scale_y  = 1.f / tex_height;
+    const float tex_scale_x  = 0.5f / tex_width;
+    const float tex_scale_y  = 0.5f / tex_height;
     const float view_scale_x = 1.f / view_width;
     const float view_scale_y = 1.f / view_height;
 
     // Shift coordinates to center of 2x2 block for texture gather.
-    const float gather_offset = (GL::extensions().texture_gather) ? 0.5f : 0.f;
+    const int shadow_offset = (GL::extensions().texture_gather) ? -1 : -2;
+
+    // Shift coordinates into normalized [-1, 1] range (reversed in shader).
+    const int tex_offset_x = shadow_offset - tex_width;
+    const int tex_offset_y = shadow_offset - tex_height;
 
     auto* pv = static_cast<volatile UIVertex*>(data);
 
@@ -302,10 +306,10 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
       const int width  = view->ink_width_  + 1;
       const int height = view->ink_height_ + 1;
 
-      const float s0 = (view->x_offset_ - 1 + gather_offset)         * tex_scale_x;
-      const float s1 = (view->x_offset_ - 1 + width + gather_offset) * tex_scale_x;
-      const float t0 = (height - 1 + gather_offset) * tex_scale_y;
-      const float t1 = (gather_offset - 1)          * tex_scale_y;
+      const float s0 = (2 * view->x_offset_ + tex_offset_x)             * tex_scale_x;
+      const float s1 = (2 * view->x_offset_ + tex_offset_x + 2 * width) * tex_scale_x;
+      const float t0 = (tex_offset_y + 2 * height) * tex_scale_y;
+      const float t1 = (tex_offset_y)              * tex_scale_y;
 
       const int view_x = view->window_x_ + view->ink_x_;
       const int view_y = view->window_y_ + view->ink_y_;
