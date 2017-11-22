@@ -788,9 +788,7 @@ void Scene::on_style_updated()
   Gtk::GLArea::on_style_updated();
 
   if (auto guard = scoped_make_current())
-  {
     gl_update_ui();
-  }
 }
 
 void Scene::on_state_changed(Gtk::StateType previous_state)
@@ -804,7 +802,6 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
       label_shader_.use();
       gl_update_focus_state();
     }
-    gl_update_ui();
   }
 }
 
