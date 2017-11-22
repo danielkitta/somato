@@ -829,6 +829,14 @@ Glib::RefPtr<Gdk::GLContext> Scene::on_create_context()
 
       if (context)
       {
+        int major = 0, minor = 0;
+        context->get_required_version(major, minor);
+
+        // The default minimum OpenGL ES version is 2.0, but we require 3.0.
+        // For desktop OpenGL the default minimum version is already 3.2.
+        if (major < 3)
+          context->set_required_version(3, 0);
+
         context->set_debug_enabled(GL::debug_mode_requested());
 
         if (context->realize())
