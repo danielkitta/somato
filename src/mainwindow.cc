@@ -324,9 +324,9 @@ bool MainWindow::on_scene_scroll_event(GdkEventScroll* event)
       return true;
     case GDK_SCROLL_SMOOTH:
       if (event->delta_y < 0.)
-        action_zoom_minus_->activate();
-      else if (event->delta_y > 0.)
         action_zoom_plus_->activate();
+      else if (event->delta_y > 0.)
+        action_zoom_minus_->activate();
       return true;
     default:
       return false;
