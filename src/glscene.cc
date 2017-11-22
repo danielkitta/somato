@@ -611,6 +611,10 @@ void Scene::gl_initialize()
   gl_update_projection();
   layouts_.gl_create_vao();
 
+  // The source function is identity because we blend in an intensity
+  // texture. That is, the color channels are premultiplied by alpha.
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
   if (label_shader_)
   {
     label_shader_.use();
@@ -660,13 +664,9 @@ int Scene::gl_render()
 
   if (range.first < range.second && label_shader_)
   {
-    // The source function is identity because we blend in an intensity
-    // texture. That is, the color channels are premultiplied by alpha.
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
-
-    glBindVertexArray(layouts_.vao);
     label_shader_.use();
+    glBindVertexArray(layouts_.vao);
 
     glDrawRangeElements(GL_TRIANGLES,
                         LayoutTexView::VERTEX_COUNT * range.first,
@@ -675,7 +675,6 @@ int Scene::gl_render()
                         GL::attrib_type<UIIndex>,
                         GL::buffer_offset<UIIndex>(LayoutTexView::INDEX_COUNT * range.first));
     glBindVertexArray(0);
-
     glDisable(GL_BLEND);
 
     triangle_count += LayoutTexView::TRIANGLE_COUNT * (range.second - range.first);
