@@ -422,7 +422,6 @@ void LayoutAtlas::gl_create_vao()
   gl_generate_indices();
 
   glBindVertexArray(0);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   instance_count = views.size();
@@ -618,8 +617,6 @@ void Scene::gl_initialize()
 
     glUniform1i(label_uf_texture_, SAMPLER_LAYOUT);
     gl_update_focus_state();
-
-    GL::ShaderProgram::unuse();
   }
 }
 
@@ -641,7 +638,6 @@ void Scene::gl_reset_state()
 {
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   glDisable(GL_BLEND);
 
@@ -808,7 +804,6 @@ void Scene::on_state_changed(Gtk::StateType previous_state)
     {
       label_shader_.use();
       gl_update_focus_state();
-      GL::ShaderProgram::unuse();
     }
     gl_update_ui();
   }

@@ -447,7 +447,6 @@ void CubeScene::gl_initialize()
 
   piece_shader_.use();
   glUniform1i(uf_piece_texture_, SAMPLER_PIECE);
-  GL::ShaderProgram::unuse();
 
   gl_create_mesh_buffers();
 }
@@ -526,16 +525,6 @@ void CubeScene::gl_cleanup()
 void CubeScene::gl_reset_state()
 {
   GL::Scene::gl_reset_state();
-
-  GL::ShaderProgram::unuse();
-
-  glBindVertexArray(0);
-
-  glDisableVertexAttribArray(ATTRIB_NORMAL);
-  glDisableVertexAttribArray(ATTRIB_POSITION);
-
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_POLYGON_OFFSET_FILL);
@@ -622,7 +611,6 @@ void CubeScene::gl_update_projection()
     grid_shader_.use();
     glUniformMatrix4fv(grid_uf_projection_, 1, GL_FALSE, &projection[0][0]);
   }
-  GL::ShaderProgram::unuse();
 }
 
 void CubeScene::gl_create_mesh_buffers()
@@ -679,7 +667,6 @@ void CubeScene::gl_create_mesh_buffers()
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices_data, GL_STATIC_DRAW);
 
   glBindVertexArray(0);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   g_info("Mesh totals: %u vertices, %u indices",
