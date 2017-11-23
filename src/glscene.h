@@ -140,7 +140,6 @@ protected:
   void on_size_allocate(Gtk::Allocation& allocation) override;
   bool on_draw(const Cairo::RefPtr<Cairo::Context>& cr) override;
   void on_style_updated() override;
-  void on_state_changed(Gtk::StateType previous_state) override;
   void on_direction_changed(Gtk::TextDirection previous_direction) override;
 
   Glib::RefPtr<Gdk::GLContext> on_create_context() override;
@@ -179,6 +178,7 @@ private:
   unsigned int      triangle_counter_   = 0;
   unsigned int      anim_tick_id_       = 0;
   bool              first_tick_         = false;
+  bool              had_focus_          = true;
 };
 
 } // namespace GL

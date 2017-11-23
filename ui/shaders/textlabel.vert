@@ -1,4 +1,4 @@
-uniform float textIntensity;
+uniform float textIntensity = 1.;
 
 in vec2 position;
 in vec2 texcoord;

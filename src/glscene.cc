@@ -618,9 +618,7 @@ void Scene::gl_initialize()
   if (label_shader_)
   {
     label_shader_.use();
-
     glUniform1i(label_uf_texture_, SAMPLER_LAYOUT);
-    gl_update_focus_state();
   }
 }
 
@@ -664,8 +662,10 @@ int Scene::gl_render()
 
   if (range.first < range.second && label_shader_)
   {
-    glEnable(GL_BLEND);
     label_shader_.use();
+    gl_update_focus_state();
+
+    glEnable(GL_BLEND);
     glBindVertexArray(layouts_.vao);
 
     glDrawRangeElements(GL_TRIANGLES,
@@ -789,20 +789,6 @@ void Scene::on_style_updated()
 
   if (auto guard = scoped_make_current())
     gl_update_ui();
-}
-
-void Scene::on_state_changed(Gtk::StateType previous_state)
-{
-  Gtk::GLArea::on_state_changed(previous_state);
-
-  if (auto guard = scoped_make_current())
-  {
-    if (label_shader_)
-    {
-      label_shader_.use();
-      gl_update_focus_state();
-    }
-  }
 }
 
 void Scene::on_direction_changed(Gtk::TextDirection previous_direction)
@@ -946,8 +932,15 @@ void Scene::gl_delete_framebuffer()
 
 void Scene::gl_update_focus_state()
 {
-  const float intensity = (has_focus()) ? 1.f : 0.75f;
-  glUniform1f(label_uf_intensity_, intensity);
+  const bool focused = has_focus();
+
+  if (focused != had_focus_)
+  {
+    had_focus_ = focused;
+
+    const float intensity = (focused) ? 1.f : 0.75f;
+    glUniform1f(label_uf_intensity_, intensity);
+  }
 }
 
 void Scene::gl_update_layouts()
