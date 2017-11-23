@@ -317,13 +317,13 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
       const float t0 = (tex_offset_y + 2 * height) * tex_scale_y;
       const float t1 = (tex_offset_y)              * tex_scale_y;
 
-      const int view_x = view->window_x_ + view->ink_x_;
-      const int view_y = view->window_y_ + view->ink_y_;
+      const int view_x = 2 * (view->window_x_ + view->ink_x_) - view_width;
+      const int view_y = 2 * (view->window_y_ + view->ink_y_) - view_height;
 
-      const float x0 = (2 * view_x - view_width)  * view_scale_x;
-      const float y0 = (2 * view_y - view_height) * view_scale_y;
-      const float x1 = (2 * (view_x + width)  - view_width)  * view_scale_x;
-      const float y1 = (2 * (view_y + height) - view_height) * view_scale_y;
+      const float x0 = view_x * view_scale_x;
+      const float y0 = view_y * view_scale_y;
+      const float x1 = (view_x + 2 * width)  * view_scale_x;
+      const float y1 = (view_y + 2 * height) * view_scale_y;
 
       const auto color = view->color_;
 
