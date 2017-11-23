@@ -226,6 +226,8 @@ void LayoutAtlas::gl_update_texture()
         Cairo::FORMAT_A8, img_width, img_height, img_width * sizeof(GLubyte));
     const auto context = Cairo::Context::create(surface);
 
+    context->set_operator(Cairo::OPERATOR_SOURCE);
+
     for (std::size_t i = 0; i < layouts.size(); ++i)
       if (const auto& layout = layouts[i])
       {
