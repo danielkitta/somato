@@ -433,9 +433,6 @@ void CubeScene::gl_initialize()
 
   glEnable(GL_CULL_FACE);
 
-  // Depth offset when displaying the cell grid.
-  glPolygonOffset(1., 4.);
-
   // Trade viewspace clipping for depth clamping to avoid highly visible
   // volume clipping artifacts. The clamping could potentially produce some
   // artifacts of its own, but so far it appears to play along nicely.
@@ -527,9 +524,6 @@ void CubeScene::gl_reset_state()
   GL::Scene::gl_reset_state();
 
   glDisable(GL_DEPTH_TEST);
-  glDisable(GL_POLYGON_OFFSET_FILL);
-  glDisable(GL_POLYGON_OFFSET_LINE);
-
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
@@ -559,20 +553,11 @@ int CubeScene::gl_render()
       cube_transform *= Math::Quat::to_matrix(rotation_);
       cube_transform.scale(zoom_);
 
-      if (show_cell_grid_)
-      {
-        const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE
-                                                   : GL_POLYGON_OFFSET_FILL;
-        glEnable(offset_mode);
-        triangle_count += gl_draw_cube(cube_transform);
-        glDisable(offset_mode);
+      triangle_count += gl_draw_cube(cube_transform);
 
+      if (show_cell_grid_)
         gl_draw_cell_grid(cube_transform);
-      }
-      else
-      {
-        triangle_count += gl_draw_cube(cube_transform);
-      }
+
       glDisable(GL_DEPTH_TEST);
     }
   }
@@ -593,13 +578,14 @@ void CubeScene::gl_update_projection()
   // will be positioned halfway between the near and far clipping planes.
   const float near = 1.;
   const float far  = -view_z_offset * 2.f - near;
+  const float spread = (far + near) / (near - far);
 
   const float topinv   = G_SQRT2 + 1.; // cot(pi/8)
   const float rightinv = view_height / view_width * topinv;
 
   Math::Matrix4 projection {{near * rightinv, 0., 0., 0.},
                             {0., near * topinv, 0., 0.},
-                            {0., 0., (far + near) / (near - far), -1.},
+                            {0., 0., spread, -1.},
                             {0., 0., 2.f * far * near / (near - far), 0.}};
   if (piece_shader_)
   {
@@ -609,6 +595,11 @@ void CubeScene::gl_update_projection()
   if (grid_shader_)
   {
     grid_shader_.use();
+
+    // Shift grid lines slighty to the front to suppress z-fighting.
+    const float offset = 1.f / (1 << 13);
+    projection[2][2] = spread + offset;
+
     glUniformMatrix4fv(grid_uf_projection_, 1, GL_FALSE, &projection[0][0]);
   }
 }
