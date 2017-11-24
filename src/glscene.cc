@@ -620,7 +620,9 @@ void Scene::gl_initialize()
   if (label_shader_)
   {
     label_shader_.use();
+
     glUniform1i(label_uf_texture_, SAMPLER_LAYOUT);
+    glUniform1f(label_uf_intensity_, 1.);
   }
 }
 
