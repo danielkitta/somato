@@ -563,11 +563,11 @@ int CubeScene::gl_render()
       {
         const GLenum offset_mode = (show_outline_) ? GL_POLYGON_OFFSET_LINE
                                                    : GL_POLYGON_OFFSET_FILL;
-        gl_draw_cell_grid(cube_transform);
-
         glEnable(offset_mode);
         triangle_count += gl_draw_cube(cube_transform);
         glDisable(offset_mode);
+
+        gl_draw_cell_grid(cube_transform);
       }
       else
       {
