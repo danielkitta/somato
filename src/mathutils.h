@@ -53,6 +53,14 @@ inline int clamp_to_int(double value)
   return static_cast<int>(value);
 }
 
+/* Round up size to the next multiple of alignment. The alignment
+ * must be a positive power of two.
+ */
+inline unsigned int align(unsigned int size, unsigned int alignment)
+{
+  return (size + (alignment - 1)) & ~(alignment - 1);
+}
+
 /*
  * Simulate a trackball.  Project the points onto the virtual trackball,
  * then figure out the axis of rotation.

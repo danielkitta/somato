@@ -41,7 +41,7 @@ private:
   bool          text_changed_;  // flag to indicate change of content
   bool          attr_changed_;  // flag to indicate change of attributes
 
-  int           x_offset_;      // horizontal offset in atlas texture
+  int           y_offset_;      // vertical offset in atlas texture
 
   int           ink_x_;         // horizontal offset from logical origin to texture origin
   int           ink_y_;         // vertical offset from logical origin to texture origin

@@ -22,6 +22,7 @@
 #include "glscene.h"
 #include "glsceneprivate.h"
 #include "glutils.h"
+#include "mathutils.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -84,6 +85,15 @@ enum
   DEPTH = 1
 };
 
+/* Texture atlas tile dimensions for 8 bit per texel.
+ * These match the tile size used by Intel hardware.
+ */
+enum
+{
+  TILE_WIDTH  = 128,
+  TILE_HEIGHT = 32
+};
+
 extern "C"
 {
 static GLAPIENTRY
@@ -93,19 +103,6 @@ void gl_on_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei,
   g_log(GL::log_domain, G_LOG_LEVEL_DEBUG, "%s", message);
 }
 } // extern "C"
-
-/* Make the texture image stride at least a multiple of 8 to meet SGI's
- * alignment recommendation.  This also avoids the padding bytes that would
- * otherwise be necessary in order to ensure row alignment.
- *
- * Note that cairo 1.6 made it mandatory to retrieve the stride to be used
- * with an image surface at runtime.  Currently, the alignment requested by
- * cairo is actually lower than our own, but that could change some day.
- */
-inline int aligned_stride(int width)
-{
-  return Cairo::ImageSurface::format_stride_for_width(Cairo::FORMAT_A8, (width + 7) & ~7u);
-}
 
 } // anonymous namespace
 
@@ -117,7 +114,7 @@ LayoutTexView::LayoutTexView()
   color_        {},
   text_changed_ {false},
   attr_changed_ {false},
-  x_offset_     {0},
+  y_offset_     {0},
   ink_x_        {0},
   ink_y_        {0},
   ink_width_    {0},
@@ -199,23 +196,23 @@ void LayoutAtlas::gl_update_texture()
   {
     layouts.push_back(update_layout_extents(*view));
 
-    if (view->ink_width_ > 0)
+    if (view->ink_height_ > 0)
     {
-      if (view->x_offset_ != img_width)
+      if (view->y_offset_ != img_height)
       {
-        view->x_offset_ = img_width;
+        view->y_offset_ = img_height;
         view->attr_changed_ = true;
       }
-      img_width += view->ink_width_ + PADDING;
-      img_height = std::max(img_height, view->ink_height_);
+      img_height += view->ink_height_ + PADDING;
+      img_width = std::max(img_width, view->ink_width_);
     }
   }
-  if (img_width <= PADDING)
+  if (img_height <= PADDING)
     return;
 
   // Remove the padding overshoot before adding alignment.
-  img_width  = aligned_stride(img_width - PADDING);
-  img_height = (img_height + 3) & ~3u;
+  img_height = Math::align(img_height - PADDING, TILE_HEIGHT);
+  img_width  = Math::align(img_width, TILE_WIDTH);
 
   std::vector<GLubyte> tex_image (img_height * img_width);
   {
@@ -233,8 +230,8 @@ void LayoutAtlas::gl_update_texture()
       {
         const Pango::Rectangle ink = layout->get_pixel_ink_extents();
 
-        context->move_to(views[i]->x_offset_ + MARGIN - ink.get_x(),
-                         MARGIN - ink.get_y());
+        context->move_to(MARGIN - ink.get_x(),
+                         views[i]->y_offset_ + MARGIN - ink.get_y());
         layout->show_in_cairo_context(context);
       }
   }
@@ -293,17 +290,17 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
                                        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT,
                                        [=](volatile void* data)
   {
-    const float tex_scale_x  = 0.5f / tex_width;
-    const float tex_scale_y  = 0.5f / tex_height;
-    const float view_scale_x = 1.f / view_width;
-    const float view_scale_y = 1.f / view_height;
+    const float scale_s = 0.5f / tex_width;
+    const float scale_t = 0.5f / tex_height;
+    const float scale_x = 1.f / view_width;
+    const float scale_y = 1.f / view_height;
 
     // Shift coordinates to center of 2x2 block for texture gather.
     const int shadow_offset = (GL::extensions().texture_gather) ? -1 : -2;
 
     // Shift coordinates into normalized [-1, 1] range (reversed in shader).
-    const int tex_offset_x = shadow_offset - tex_width;
-    const int tex_offset_y = shadow_offset - tex_height;
+    const int s_offset = shadow_offset - tex_width;
+    const int t_offset = shadow_offset - tex_height;
 
     auto* pv = static_cast<volatile UIVertex*>(data);
 
@@ -312,18 +309,18 @@ void LayoutAtlas::gl_generate_vertices(int view_width, int view_height)
       const int width  = view->ink_width_  + 1;
       const int height = view->ink_height_ + 1;
 
-      const float s0 = (2 * view->x_offset_ + tex_offset_x)             * tex_scale_x;
-      const float s1 = (2 * view->x_offset_ + tex_offset_x + 2 * width) * tex_scale_x;
-      const float t0 = (tex_offset_y + 2 * height) * tex_scale_y;
-      const float t1 = (tex_offset_y)              * tex_scale_y;
+      const float s0 = scale_s * (s_offset);
+      const float s1 = scale_s * (s_offset + 2 * width);
+      const float t0 = scale_t * (2 * view->y_offset_ + t_offset + 2 * height);
+      const float t1 = scale_t * (2 * view->y_offset_ + t_offset);
 
       const int view_x = 2 * (view->window_x_ + view->ink_x_) - view_width;
       const int view_y = 2 * (view->window_y_ + view->ink_y_) - view_height;
 
-      const float x0 = view_x * view_scale_x;
-      const float y0 = view_y * view_scale_y;
-      const float x1 = (view_x + 2 * width)  * view_scale_x;
-      const float y1 = (view_y + 2 * height) * view_scale_y;
+      const float x0 = scale_x * (view_x);
+      const float x1 = scale_x * (view_x + 2 * width);
+      const float y0 = scale_y * (view_y);
+      const float y1 = scale_y * (view_y + 2 * height);
 
       const auto color = view->color_;
 
