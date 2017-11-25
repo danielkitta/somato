@@ -4,9 +4,9 @@ uniform mat4 cameraToClipMatrix;
 in vec3 position;
 in vec3 normal;
 
-smooth out vec3 interpHalfVec;
-smooth out vec3 interpNormal;
-smooth out vec2 interpTexcoord;
+smooth out vec3 varHalfVec;
+smooth out vec3 varNormal;
+smooth out vec2 varTexcoord;
 
 const mat3x2 texShear = mat3x2( 0.474773,   0.00168634,
                                 0.0146367, -0.0145917,
@@ -19,9 +19,8 @@ void main()
   vec4 posCamSpace  = modelToCameraMatrix * vec4(position, 1.);
   vec4 normCamSpace = modelToCameraMatrix * vec4(normal, 0.);
 
-  interpHalfVec  = dirToLight - normalize(posCamSpace.xyz);
-  interpNormal   = normCamSpace.xyz;
-  interpTexcoord = texShear * position + texOffset;
-
+  varHalfVec  = dirToLight - normalize(posCamSpace.xyz);
+  varNormal   = normCamSpace.xyz;
+  varTexcoord = texShear * position + texOffset;
   gl_Position = cameraToClipMatrix * vec4(posCamSpace.xyz, 1.);
 }

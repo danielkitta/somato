@@ -2,11 +2,11 @@
 precision mediump float;
 #endif
 
-smooth in float interpIntensity;
+smooth in float varIntensity;
 
 out vec3 outputColor;
 
 void main()
 {
-  outputColor = vec3(interpIntensity);
+  outputColor = vec3(varIntensity);
 }
