@@ -20,7 +20,7 @@
 #include <config.h>
 
 #include "cubescene.h"
-#include "glsceneprivate.h"
+#include "gltextlayout.h"
 #include "glutils.h"
 #include "mathutils.h"
 #include "meshtypes.h"
@@ -34,11 +34,10 @@
 #include <gtkmm/accelgroup.h>
 #include <epoxy/gl.h>
 
-#include <cmath>
 #include <cstddef>
-#include <cstdlib>
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 namespace
 {
@@ -83,6 +82,15 @@ enum
 {
   VERTICES = 0,
   INDICES  = 1
+};
+
+/* Text layout indices.
+ */
+enum
+{
+  HEADING,
+  FOOTING,
+  NUM_TEXT_LAYOUTS
 };
 
 /*
@@ -187,12 +195,11 @@ namespace Somato
 CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 :
   GL::Scene    {obj},
-  piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N),
-  heading_     {create_layout_view()},
-  footing_     {create_layout_view()}
+  piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N)
 {
-  heading_->set_color(0.85, 0.85, 0.85);
-  footing_->set_color(0.65, 0.65, 0.65);
+  text_layouts()->set_layout_count(NUM_TEXT_LAYOUTS);
+  text_layouts()->set_layout_color(HEADING, GL::pack_4u8_norm(0.85, 0.85, 0.85, 1.));
+  text_layouts()->set_layout_color(FOOTING, GL::pack_4u8_norm(0.65, 0.65, 0.65, 1.));
 
   set_can_focus(true);
 
@@ -204,22 +211,12 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 CubeScene::~CubeScene()
 {}
 
-void CubeScene::set_heading(const Glib::ustring& heading)
+void CubeScene::set_heading(Glib::ustring heading)
 {
-  heading_->set_content(heading);
+  text_layouts()->set_layout_text(HEADING, std::move(heading));
 
-  if (heading_->need_update())
-  {
-    if (auto guard = scoped_make_current())
-      gl_update_ui();
-
+  if (text_layouts()->update_needed())
     queue_static_draw();
-  }
-}
-
-Glib::ustring CubeScene::get_heading() const
-{
-  return heading_->get_content();
 }
 
 void CubeScene::set_cube_pieces(const Solution& cube_pieces)
@@ -267,15 +264,6 @@ void CubeScene::set_zoom(float zoom)
 
     if (zoom_visible_)
       update_footing();
-
-    if (auto guard = scoped_make_current())
-    {
-      gl_update_projection();
-
-      if (footing_->need_update())
-        gl_update_ui();
-    }
-    queue_static_draw();
   }
 }
 
@@ -354,16 +342,7 @@ void CubeScene::set_zoom_visible(bool zoom_visible)
   if (zoom_visible != zoom_visible_)
   {
     zoom_visible_ = zoom_visible;
-
     update_footing();
-
-    if (footing_->need_update())
-    {
-      if (auto guard = scoped_make_current())
-        gl_update_ui();
-
-      queue_static_draw();
-    }
   }
 }
 
@@ -519,14 +498,6 @@ void CubeScene::gl_cleanup()
   GL::Scene::gl_cleanup();
 }
 
-void CubeScene::gl_reset_state()
-{
-  GL::Scene::gl_reset_state();
-
-  glDisable(GL_DEPTH_TEST);
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
 int CubeScene::gl_render()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -566,42 +537,20 @@ int CubeScene::gl_render()
   return triangle_count;
 }
 
-void CubeScene::gl_update_projection()
+void CubeScene::gl_update_viewport()
 {
-  GL::Scene::gl_update_projection();
+  GL::Scene::gl_update_viewport();
 
-  const float view_width  = get_viewport_width();
-  const float view_height = get_viewport_height();
+  cube_proj_dirty_ = true;
+  grid_proj_dirty_ = true;
 
-  // Set up a perspective projection with a field of view angle of 45 degrees
-  // in the y-direction.  Place the far clipping plane so that the cube origin
-  // will be positioned halfway between the near and far clipping planes.
-  const float near = 1.;
-  const float far  = -view_z_offset * 2.f - near;
-  const float spread = (far + near) / (near - far);
+  const int margin_x = get_viewport_width()  / 10;
+  const int margin_y = get_viewport_height() / 10;
 
-  const float topinv   = G_SQRT2 + 1.; // cot(pi/8)
-  const float rightinv = view_height / view_width * topinv;
-
-  Math::Matrix4 projection {{near * rightinv, 0., 0., 0.},
-                            {0., near * topinv, 0., 0.},
-                            {0., 0., spread, -1.},
-                            {0., 0., 2.f * far * near / (near - far), 0.}};
-  if (piece_shader_)
-  {
-    piece_shader_.use();
-    glUniformMatrix4fv(uf_projection_, 1, GL_FALSE, &projection[0][0]);
-  }
-  if (grid_shader_)
-  {
-    grid_shader_.use();
-
-    // Shift grid lines slighty to the front to suppress z-fighting.
-    const float offset = 1.f / (1 << 13);
-    projection[2][2] = spread + offset;
-
-    glUniformMatrix4fv(grid_uf_projection_, 1, GL_FALSE, &projection[0][0]);
-  }
+  text_layouts()->set_layout_pos(HEADING, GL::TextLayout::TOP_LEFT,
+                                 margin_x, get_viewport_height() - margin_y);
+  text_layouts()->set_layout_pos(FOOTING, GL::TextLayout::BOTTOM_LEFT,
+                                 margin_x, margin_y);
 }
 
 void CubeScene::gl_create_mesh_buffers()
@@ -893,26 +842,17 @@ bool CubeScene::on_animation_tick(gint64 animation_time)
   return false;
 }
 
-void CubeScene::gl_reposition_layouts()
-{
-  const int view_width  = get_viewport_width();
-  const int view_height = get_viewport_height();
-
-  const int margin_x = view_width  / 10;
-  const int margin_y = view_height / 10;
-
-  heading_->set_window_pos(margin_x, view_height - margin_y - heading_->get_height());
-  footing_->set_window_pos(margin_x, margin_y);
-}
-
 void CubeScene::update_footing()
 {
   const int percentage = static_cast<int>(100.f * zoom_ + 0.5f);
 
   if (zoom_visible_ && percentage != 100)
-    footing_->set_content(Glib::ustring::compose("Zoom %1%%", percentage));
+    text_layouts()->set_layout_text(FOOTING, Glib::ustring::compose("Zoom %1%%", percentage));
   else
-    footing_->set_content({});
+    text_layouts()->set_layout_text(FOOTING, {});
+
+  if (text_layouts()->update_needed())
+    queue_static_draw();
 }
 
 /*
@@ -1204,8 +1144,8 @@ void CubeScene::process_track_motion(int x, int y)
     const float cube_radius    = SomaCube::N * 0.5f * grid_cell_size;
     const float trackball_size = (1. + G_SQRT2) / -view_z_offset * cube_radius;
 
-    const int   width  = get_viewport_width();
-    const int   height = get_viewport_height();
+    const int   width  = std::max(1, get_allocated_width());
+    const int   height = std::max(1, get_allocated_height());
     const float scale  = 1.f / height;
 
     const auto track = Math::trackball_motion((2 * track_last_x_ - width + 1)  * scale,
@@ -1217,12 +1157,41 @@ void CubeScene::process_track_motion(int x, int y)
   }
 }
 
+void CubeScene::gl_set_projection(int id, float offset)
+{
+  const float width  = get_viewport_width();
+  const float height = get_viewport_height();
+
+  const float topinv   = G_SQRT2 + 1.; // cot(pi/8)
+  const float rightinv = height / width * topinv;
+
+  // Set up a perspective projection with a field of view angle of 45 degrees
+  // in the y-direction.  Place the far clipping plane so that the cube origin
+  // will be positioned halfway between the near and far clipping planes.
+  const float near = 1.;
+  const float far  = -view_z_offset * 2.f - near;
+  const float dist = near - far;
+
+  const Math::Matrix4 projection {{near * rightinv, 0., 0., 0.},
+                                  {0., near * topinv, 0., 0.},
+                                  {0., 0., (far + near) / dist + offset, -1.},
+                                  {0., 0., 2.f * far * near / dist, 0.}};
+
+  glUniformMatrix4fv(id, 1, GL_FALSE, &projection[0][0]);
+}
+
 void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
 {
   if (grid_shader_)
   {
     grid_shader_.use();
 
+    if (grid_proj_dirty_)
+    {
+      grid_proj_dirty_ = false;
+      // Shift grid lines slighty to the front to suppress z-fighting.
+      gl_set_projection(grid_uf_projection_, 1.f / (1 << 13));
+    }
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &cube_transform[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
@@ -1282,9 +1251,14 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
 
   if (piece_shader_)
   {
-    const BytesView<MeshDesc> desc_view {mesh_desc_};
-
     piece_shader_.use();
+
+    if (cube_proj_dirty_)
+    {
+      cube_proj_dirty_ = false;
+      gl_set_projection(uf_projection_);
+    }
+    const BytesView<MeshDesc> desc_view {mesh_desc_};
 
     int last_fixed = last;
 

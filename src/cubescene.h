@@ -60,9 +60,7 @@ public:
 
   sigc::signal<void>& signal_cycle_finished() { return signal_cycle_finished_; }
 
-  void set_heading(const Glib::ustring& heading);
-  Glib::ustring get_heading() const;
-
+  void set_heading(Glib::ustring heading);
   void set_cube_pieces(const Solution& cube_pieces);
 
   void  set_zoom(float zoom);
@@ -95,9 +93,8 @@ public:
 protected:
   void gl_initialize() override;
   void gl_cleanup() override;
-  void gl_reset_state() override;
   int  gl_render() override;
-  void gl_update_projection() override;
+  void gl_update_viewport() override;
 
   void on_size_allocate(Gtk::Allocation& allocation) override;
   bool on_visibility_notify_event(GdkEventVisibility* event) override;
@@ -111,7 +108,6 @@ protected:
 
 private:
   bool on_animation_tick(gint64 animation_time) override;
-  void gl_reposition_layouts() override;
 
   enum CursorState
   {
@@ -135,9 +131,6 @@ private:
   sigc::signal<void>          signal_cycle_finished_;
   sigc::connection            delay_timeout_;
   sigc::connection            hide_cursor_timeout_;
-
-  GL::LayoutTexView*          heading_;
-  GL::LayoutTexView*          footing_;
 
   GL::ShaderProgram           piece_shader_;
   int                         uf_modelview_         = -1;
@@ -172,6 +165,8 @@ private:
   bool                        show_cell_grid_       = false;
   bool                        show_outline_         = false;
   bool                        zoom_visible_         = true;
+  bool                        cube_proj_dirty_      = true;
+  bool                        grid_proj_dirty_      = true;
 
   void update_footing();
   void update_animation_order();
@@ -194,8 +189,9 @@ private:
   void gl_create_mesh_buffers();
   void gl_create_piece_shader();
   void gl_create_grid_shader();
-  void gl_draw_cell_grid(const Math::Matrix4& cube_transform);
+  void gl_set_projection(int id, float offset = 0.);
 
+  void gl_draw_cell_grid(const Math::Matrix4& cube_transform);
   int  gl_draw_cube(const Math::Matrix4& cube_transform);
   int  gl_draw_pieces(const Math::Matrix4& cube_transform);
   int  gl_draw_pieces_range(const Math::Matrix4& cube_transform, int first, int last);

@@ -38,9 +38,10 @@ src_somato_SOURCES =		\
 	src/cubescene.h		\
 	src/glscene.cc		\
 	src/glscene.h		\
-	src/glsceneprivate.h	\
 	src/glshader.cc		\
 	src/glshader.h		\
+	src/gltextlayout.cc	\
+	src/gltextlayout.h	\
 	src/glutils.cc		\
 	src/glutils.h		\
 	src/somato.cc		\

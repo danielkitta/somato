@@ -20,61 +20,13 @@
 #ifndef SOMATO_GLSCENE_H_INCLUDED
 #define SOMATO_GLSCENE_H_INCLUDED
 
-#include "glshader.h"
-
-#include <glibmm/ustring.h>
-#include <gdkmm/glcontext.h>
 #include <gtkmm/glarea.h>
 #include <memory>
-#include <utility>
-#include <vector>
-#include <cstddef>
-
-namespace Pango
-{
-  class Context;
-  class Layout;
-}
 
 namespace GL
 {
 
-class LayoutTexView;
-using LayoutTexViewVector = std::vector<std::unique_ptr<LayoutTexView>>;
-
-struct LayoutAtlas
-{
-  // Ink spill margins and padding between adjacent sub-images.
-  enum : int { MARGIN = 1, PADDING = 1 };
-
-  Glib::RefPtr<Pango::Context> layout_context;
-  LayoutTexViewVector          views;
-
-  unsigned int instance_count = 0;
-  unsigned int tex_name       = 0;
-  int          tex_width      = 0;
-  int          tex_height     = 0;
-  unsigned int buffers[2]     = {0, 0};
-  unsigned int vao            = 0;
-
-  LayoutAtlas();
-  ~LayoutAtlas();
-  LayoutAtlas(const LayoutAtlas&) = delete;
-  LayoutAtlas& operator=(const LayoutAtlas&) = delete;
-
-  bool needs_texture_update() const;
-  bool needs_vertex_update() const;
-  std::pair<int, int> get_drawable_range() const;
-
-  void gl_update_texture();
-  void gl_generate_vertices(int view_width, int view_height);
-  void gl_generate_indices();
-  void gl_create_vao();
-  void gl_delete();
-
-private:
-  Glib::RefPtr<Pango::Layout> update_layout_extents(LayoutTexView& view);
-};
+class TextLayoutAtlas;
 
 /*
  * Base GL widget class that implements all the generic stuff not specific
@@ -123,17 +75,15 @@ protected:
   bool animation_tick_active() const { return (anim_tick_id_ != 0); }
   void queue_static_draw();
 
-  int get_viewport_width() const;
-  int get_viewport_height() const;
+  int get_viewport_width()  const { return viewport_width_;  }
+  int get_viewport_height() const { return viewport_height_; }
 
-  LayoutTexView* create_layout_view();
-  void gl_update_ui();
+  TextLayoutAtlas* text_layouts() { return text_layouts_.get(); }
 
   virtual void gl_initialize();
   virtual void gl_cleanup();
-  virtual void gl_reset_state();
   virtual int  gl_render() = 0;
-  virtual void gl_update_projection();
+  virtual void gl_update_viewport();
 
   void on_realize() override;
   void on_unrealize() override;
@@ -146,39 +96,32 @@ protected:
 
 private:
   virtual bool on_animation_tick(gint64 animation_time);
-  virtual void gl_reposition_layouts();
 
   bool try_make_current();
 
-  void gl_create_label_shader();
   void gl_update_framebuffer();
   void gl_delete_framebuffer();
-
-  void gl_update_focus_state();
-  void gl_update_layouts();
 
   static gboolean tick_callback(GtkWidget* widget, GdkFrameClock* frame_clock,
                                 gpointer user_data);
   static void tick_callback_destroy(gpointer user_data);
 
-  gint64            anim_start_time_    = 0;
+  std::unique_ptr<TextLayoutAtlas> text_layouts_;
 
-  LayoutAtlas       layouts_;
-  GL::ShaderProgram label_shader_;
-  int               label_uf_intensity_ = -1;
-  int               label_uf_texture_   = -1;
+  gint64        anim_start_time_    = 0;
+  unsigned int  anim_tick_id_       = 0;
+  unsigned int  frame_counter_      = 0;
+  unsigned int  triangle_counter_   = 0;
 
-  int               aa_samples_         = 0;
-  int               max_aa_samples_     = 0;
+  unsigned int  frame_buffer_       = 0;
+  unsigned int  render_buffers_[2]  = {0, 0};
+  int           aa_samples_         = 0;
+  int           max_aa_samples_     = 0;
+  int           viewport_width_     = 1;
+  int           viewport_height_    = 1;
 
-  unsigned int      render_buffers_[2]  = {0, 0};
-  unsigned int      frame_buffer_       = 0;
-
-  unsigned int      frame_counter_      = 0;
-  unsigned int      triangle_counter_   = 0;
-  unsigned int      anim_tick_id_       = 0;
-  bool              first_tick_         = false;
-  bool              had_focus_          = true;
+  bool          first_tick_         = false;
+  bool          size_changed_       = true;
 };
 
 } // namespace GL
