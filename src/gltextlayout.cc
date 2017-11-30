@@ -200,6 +200,12 @@ void TextLayoutAtlas::gl_init()
   glUniform1f(uf_intensity_, 1.);
 
   need_repos_ = need_repaint_ = !items_.empty();
+
+  for (TextLayout& item : items_)
+  {
+    item.ink_width  = 0;
+    item.ink_height = 0;
+  }
 }
 
 void TextLayoutAtlas::gl_delete()
