@@ -243,23 +243,23 @@ bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
   if (!text_layouts_->has_pango_context())
     text_layouts_->set_pango_context(create_pango_context());
 
-  if (auto guard = scoped_make_current())
-  {
-    if (size_changed_)
-      gl_update_viewport();
+  make_current();
 
-    if (text_layouts_->update_needed())
-      text_layouts_->gl_update(viewport_width_, viewport_height_);
+  if (size_changed_)
+    gl_update_viewport();
 
-    const unsigned int triangle_count = gl_render();
+  if (text_layouts_->update_needed())
+    text_layouts_->gl_update(viewport_width_, viewport_height_);
 
-    gdk_cairo_draw_from_gl(cr->cobj(), gtk_widget_get_window(Gtk::Widget::gobj()),
-                           render_buffers_[COLOR], GL_RENDERBUFFER,
-                           get_scale_factor(), 0, 0,
-                           viewport_width_, viewport_height_);
-    ++frame_counter_;
-    triangle_counter_ += triangle_count;
-  }
+  const unsigned int triangle_count = gl_render();
+
+  gdk_cairo_draw_from_gl(cr->cobj(), gtk_widget_get_window(Gtk::Widget::gobj()),
+                         render_buffers_[COLOR], GL_RENDERBUFFER,
+                         get_scale_factor(), 0, 0,
+                         viewport_width_, viewport_height_);
+  ++frame_counter_;
+  triangle_counter_ += triangle_count;
+
   return true;
 }
 
