@@ -405,9 +405,6 @@ int CubeScene::get_cube_vertex_count() const
 
 void CubeScene::gl_initialize()
 {
-  gl_create_piece_shader();
-  gl_create_grid_shader();
-
   GL::Scene::gl_initialize();
 
   glEnable(GL_CULL_FACE);
@@ -419,12 +416,13 @@ void CubeScene::gl_initialize()
   if (!GL::extensions().is_gles)
     glEnable(GL_DEPTH_CLAMP);
 
+  gl_create_piece_shader();
+  gl_create_grid_shader();
   gl_init_cube_texture();
+  gl_create_mesh_buffers();
 
   piece_shader_.use();
   glUniform1i(uf_piece_texture_, SAMPLER_PIECE);
-
-  gl_create_mesh_buffers();
 }
 
 void CubeScene::gl_create_piece_shader()
