@@ -172,6 +172,9 @@ void Scene::gl_update_viewport()
   viewport_width_  = std::max(1, scale * get_allocated_width());
   viewport_height_ = std::max(1, scale * get_allocated_height());
 
+  g_log(GL::log_domain, G_LOG_LEVEL_DEBUG,
+        "Viewport resized to %dx%d", viewport_width_, viewport_height_);
+
   gl_update_framebuffer();
   glViewport(0, 0, viewport_width_, viewport_height_);
 
