@@ -97,24 +97,24 @@ enum
  * The time span, in seconds, to wait for further user input
  * before hiding the mouse cursor while the animation is running.
  */
-static const float hide_cursor_delay = 5.;
+const float hide_cursor_delay = 5.;
 
 /*
  * View offset in the direction of the z-axis.
  */
-static const float view_z_offset = -9.;
+const float view_z_offset = -9.;
 
 /*
  * The angle by which to rotate if a keyboard navigation key is pressed.
  */
-static const float rotation_step = G_PI / 60.;
+const float rotation_step = G_PI / 60.;
 
 /*
  * The materials applied to cube pieces.  Indices into the materials array
  * match the original piece order as passed to CubeScene::set_cube_pieces(),
  * reduced modulo the number of materials.
  */
-static const std::array<GLfloat[4], 8> piece_materials
+const std::array<GLfloat[4], 8> piece_materials
 {{
   { 0.80, 0.15, 0.00, 1. }, // orange
   { 0.05, 0.60, 0.05, 1. }, // green
