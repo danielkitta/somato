@@ -24,6 +24,7 @@
 #include <iostream>
 #include <vector>
 #include <cstddef>
+#include <cstring>
 
 namespace
 {
@@ -131,6 +132,28 @@ bool fill_mesh_data(const MeshLoader& loader, const MeshNodes& nodes,
   return true;
 }
 
+template <typename T>
+inline void swap_data_bytes(std::vector<T>& data)
+{
+  for (T& item : data)
+  {
+    unsigned int words[sizeof(item) / sizeof(unsigned int)];
+    std::memcpy(words, &item, sizeof words);
+
+    for (std::size_t i = 0; i < G_N_ELEMENTS(words); ++i)
+      words[i] = GUINT32_SWAP_LE_BE(words[i]);
+
+    std::memcpy(&item, words, sizeof item);
+  }
+}
+
+template <>
+inline void swap_data_bytes(std::vector<unsigned short>& data)
+{
+  for (unsigned short& value : data)
+    value = GUINT16_SWAP_LE_BE(value);
+}
+
 bool write_raw_data_file(const char* filename, const void* data, std::size_t size)
 {
   GError* error = nullptr;
@@ -181,6 +204,13 @@ int main(int argc, char** argv)
     std::cerr << "No mesh names to extract specified" << std::endl;
     return 1;
   }
+  if (byte_order_be && byte_order_le)
+  {
+    g_free(mesh_filename);
+    g_strfreev(mesh_names);
+    std::cerr << "Conflicting big-endian and little-endian options" << std::endl;
+    return 1;
+  }
   MeshLoader loader;
   const bool loaded = loader.read_file(mesh_filename);
   g_free(mesh_filename);
@@ -213,6 +243,13 @@ int main(int argc, char** argv)
   {
     std::cerr << "Failed to get mesh data" << std::endl;
     return 1;
+  }
+  if ((byte_order_be && G_BYTE_ORDER == G_LITTLE_ENDIAN) ||
+      (byte_order_le && G_BYTE_ORDER == G_BIG_ENDIAN))
+  {
+    swap_data_bytes(mesh_desc);
+    swap_data_bytes(mesh_vertices);
+    swap_data_bytes(mesh_indices);
   }
   if (!write_data_file("ui/mesh-vertices.bin", mesh_vertices) ||
       !write_data_file("ui/mesh-indices.bin",  mesh_indices)  ||
