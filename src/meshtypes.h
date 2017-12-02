@@ -20,7 +20,9 @@
 #ifndef SOMATO_MESHTYPES_H_INCLUDED
 #define SOMATO_MESHTYPES_H_INCLUDED
 
+#include <glib.h>
 #include <cmath>
+#include <cstring>
 
 namespace Somato
 {
@@ -62,6 +64,18 @@ struct MeshVertex
     position[2] = pz;
     normal = static_cast<Int_2_10_10_10_rev>(0);
   }
+  void swap_bytes()
+  {
+    guint32 words[4];
+    std::memcpy(words, this, sizeof words);
+
+    words[0] = GUINT32_SWAP_LE_BE(words[0]);
+    words[1] = GUINT32_SWAP_LE_BE(words[1]);
+    words[2] = GUINT32_SWAP_LE_BE(words[2]);
+    words[3] = GUINT32_SWAP_LE_BE(words[3]);
+
+    std::memcpy(this, words, sizeof words);
+  }
 };
 
 typedef unsigned short MeshIndex;
@@ -74,6 +88,14 @@ struct MeshDesc
   unsigned int element_last;   // maximum referenced element index
 
   unsigned int element_count() const { return element_last - element_first + 1; }
+
+  void swap_bytes()
+  {
+    triangle_count = GUINT32_SWAP_LE_BE(triangle_count);
+    indices_offset = GUINT32_SWAP_LE_BE(indices_offset);
+    element_first  = GUINT32_SWAP_LE_BE(element_first);
+    element_last   = GUINT32_SWAP_LE_BE(element_last);
+  }
 };
 
 /* Cube cell grid vertex and primitive counts.

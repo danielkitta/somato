@@ -21,11 +21,11 @@
 #include "meshtypes.h"
 
 #include <glib.h>
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <vector>
 #include <cstddef>
-#include <cstring>
 
 namespace
 {
@@ -138,23 +138,14 @@ bool fill_mesh_data(const MeshLoader& loader, const MeshNodes& nodes,
 template <typename T>
 inline void swap_data_bytes(std::vector<T>& data)
 {
-  for (T& item : data)
-  {
-    unsigned int words[sizeof(item) / sizeof(unsigned int)];
-    std::memcpy(words, &item, sizeof words);
-
-    for (std::size_t i = 0; i < G_N_ELEMENTS(words); ++i)
-      words[i] = GUINT32_SWAP_LE_BE(words[i]);
-
-    std::memcpy(&item, words, sizeof item);
-  }
+  std::for_each(begin(data), end(data), [](T& v) { v.swap_bytes(); });
 }
 
 template <>
 inline void swap_data_bytes(std::vector<unsigned short>& data)
 {
-  for (unsigned short& value : data)
-    value = GUINT16_SWAP_LE_BE(value);
+  std::transform(cbegin(data), cend(data), begin(data),
+                 [](unsigned short v) { return GUINT16_SWAP_LE_BE(v); });
 }
 
 bool write_raw_data_file(const char* filename, const void* data, std::size_t size)
