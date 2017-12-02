@@ -54,6 +54,20 @@ AC_DEFINE([RESOURCE_PREFIX], ["/org/gtk/somato/"],
 
 AC_LANG([C++])
 DK_PROG_CXX_STD([14])
+
+AC_MSG_CHECKING([host byte order])
+DK_SH_VAR_PUSH([CPPFLAGS], ["$CPPFLAGS $SOMATO_MODULES_CFLAGS"])
+AC_COMPUTE_INT([somato_little_endian],
+               [G_BYTE_ORDER == G_LITTLE_ENDIAN], [#include <glib.h>],
+               [AC_MSG_FAILURE([[Failed to detect host byte order]])])
+DK_SH_VAR_POP([CPPFLAGS])
+AS_CASE([$somato_little_endian],
+        [0], [SOMATO_BYTE_ORDER=--be somato_endianness=big],
+        [1], [SOMATO_BYTE_ORDER=--le somato_endianness=little],
+             [SOMATO_BYTE_ORDER= somato_endianness=unknown])
+AC_SUBST([SOMATO_BYTE_ORDER])
+AC_MSG_RESULT([$somato_endianness endian])
+
 DK_CHECK_VISIBILITY_SUPPORT([SOMATO_EXTRA_CXXFLAGS], [SOMATO_EXPORT])
 
 DK_CHECK_COMPILE_FLAGS([SOMATO_EXTRA_CXXFLAGS], [math without errno],

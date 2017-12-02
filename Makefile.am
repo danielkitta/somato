@@ -124,7 +124,8 @@ ui/.dirstamp:
 	@: > ui/.dirstamp
 
 ui/mesh-desc.bin: ui/.dirstamp $(compile_meshdata) ui/puzzlepieces.dae
-	$(AM_V_GEN)$(compile_meshdata) --mesh-file "$(srcdir)/ui/puzzlepieces.dae" --output-dir ui \
+	$(AM_V_GEN)$(compile_meshdata) $(SOMATO_BYTE_ORDER) \
+	 --mesh-file "$(srcdir)/ui/puzzlepieces.dae" --output-dir ui \
 	 PieceOrange PieceGreen PieceRed PieceYellow PieceBlue PieceLavender PieceCyan
 
 src/resources.cc: $(resource_deps)
