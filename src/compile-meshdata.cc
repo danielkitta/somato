@@ -33,13 +33,15 @@ using namespace Somato;
 using MeshNodes = std::vector<MeshLoader::Node>;
 
 char*    mesh_filename = nullptr;
+char*    out_dirname   = nullptr;
 char**   mesh_names    = nullptr;
 gboolean byte_order_be = FALSE;
 gboolean byte_order_le = FALSE;
 
 const GOptionEntry option_entries[] =
 {
-  {"mesh-file", 'f', 0, G_OPTION_ARG_FILENAME, &mesh_filename, "Mesh data FILE", "FILE"},
+  {"mesh-file",  'f', 0, G_OPTION_ARG_FILENAME, &mesh_filename, "Mesh data FILE", "FILE"},
+  {"output-dir", 'd', 0, G_OPTION_ARG_FILENAME, &out_dirname, "Output DIRECTORY", "DIRECTORY"},
   {"be", 'b', 0, G_OPTION_ARG_NONE, &byte_order_be, "Output big-endian data",    nullptr},
   {"le", 'l', 0, G_OPTION_ARG_NONE, &byte_order_le, "Output little-endian data", nullptr},
   {G_OPTION_REMAINING, '\0', 0, G_OPTION_ARG_STRING_ARRAY, &mesh_names, nullptr, "MESH..."},
@@ -156,9 +158,14 @@ inline void swap_data_bytes(std::vector<unsigned short>& data)
 
 bool write_raw_data_file(const char* filename, const void* data, std::size_t size)
 {
+  char* filepath = (out_dirname) ? g_build_filename(out_dirname, filename, nullptr)
+                                 : nullptr;
   GError* error = nullptr;
+  const gboolean written = g_file_set_contents((filepath) ? filepath : filename,
+                                               static_cast<const char*>(data), size, &error);
+  g_free(filepath);
 
-  if (!g_file_set_contents(filename, static_cast<const char*>(data), size, &error))
+  if (!written)
   {
     std::cerr << error->message << std::endl;
     g_error_free(error);
@@ -187,27 +194,35 @@ int main(int argc, char** argv)
   if (!parsed)
   {
     g_free(mesh_filename);
+    g_free(out_dirname);
     g_strfreev(mesh_names);
+
     std::cerr << error->message << std::endl;
     g_error_free(error);
     return 1;
   }
   if (!mesh_filename)
   {
+    g_free(out_dirname);
     g_strfreev(mesh_names);
+
     std::cerr << "No mesh data file specified" << std::endl;
     return 1;
   }
   if (!mesh_names)
   {
     g_free(mesh_filename);
+    g_free(out_dirname);
+
     std::cerr << "No mesh names to extract specified" << std::endl;
     return 1;
   }
   if (byte_order_be && byte_order_le)
   {
     g_free(mesh_filename);
+    g_free(out_dirname);
     g_strfreev(mesh_names);
+
     std::cerr << "Conflicting big-endian and little-endian options" << std::endl;
     return 1;
   }
@@ -217,6 +232,8 @@ int main(int argc, char** argv)
 
   if (!loaded)
   {
+    g_free(out_dirname);
+
     std::cerr << loader.get_error_string() << std::endl;
     return 1;
   }
@@ -227,7 +244,9 @@ int main(int argc, char** argv)
     const auto node = loader.lookup_node(*name);
     if (!node)
     {
+      g_free(out_dirname);
       g_strfreev(mesh_names);
+
       std::cerr << "Failed to load mesh " << *name << std::endl;
       return 1;
     }
@@ -241,6 +260,8 @@ int main(int argc, char** argv)
 
   if (!fill_mesh_data(loader, nodes, mesh_desc, mesh_vertices, mesh_indices))
   {
+    g_free(out_dirname);
+
     std::cerr << "Failed to get mesh data" << std::endl;
     return 1;
   }
@@ -251,10 +272,10 @@ int main(int argc, char** argv)
     swap_data_bytes(mesh_vertices);
     swap_data_bytes(mesh_indices);
   }
-  if (!write_data_file("ui/mesh-vertices.bin", mesh_vertices) ||
-      !write_data_file("ui/mesh-indices.bin",  mesh_indices)  ||
-      !write_data_file("ui/mesh-desc.bin",     mesh_desc))
-    return 1;
+  const bool written = (write_data_file("mesh-vertices.bin", mesh_vertices) &&
+                        write_data_file("mesh-indices.bin",  mesh_indices)  &&
+                        write_data_file("mesh-desc.bin",     mesh_desc));
+  g_free(out_dirname);
 
-  return 0;
+  return (written) ? 0 : 1;
 }
