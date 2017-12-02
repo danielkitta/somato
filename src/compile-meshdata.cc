@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <cstddef>
 #include <cstring>
@@ -191,49 +192,35 @@ int main(int argc, char** argv)
   const gboolean parsed = g_option_context_parse(context, &argc, &argv, &error);
   g_option_context_free(context);
 
+  const std::unique_ptr<char[], decltype(&g_free)> mesh_filename_del {mesh_filename, &g_free};
+  const std::unique_ptr<char[], decltype(&g_free)> out_dirname_del {out_dirname, &g_free};
+  const std::unique_ptr<char*[], decltype(&g_strfreev)> mesh_names_del {mesh_names, &g_strfreev};
+
   if (!parsed)
   {
-    g_free(mesh_filename);
-    g_free(out_dirname);
-    g_strfreev(mesh_names);
-
     std::cerr << error->message << std::endl;
     g_error_free(error);
     return 1;
   }
   if (!mesh_filename)
   {
-    g_free(out_dirname);
-    g_strfreev(mesh_names);
-
     std::cerr << "No mesh data file specified" << std::endl;
     return 1;
   }
   if (!mesh_names)
   {
-    g_free(mesh_filename);
-    g_free(out_dirname);
-
     std::cerr << "No mesh names to extract specified" << std::endl;
     return 1;
   }
   if (byte_order_be && byte_order_le)
   {
-    g_free(mesh_filename);
-    g_free(out_dirname);
-    g_strfreev(mesh_names);
-
     std::cerr << "Conflicting big-endian and little-endian options" << std::endl;
     return 1;
   }
   MeshLoader loader;
-  const bool loaded = loader.read_file(mesh_filename);
-  g_free(mesh_filename);
 
-  if (!loaded)
+  if (!loader.read_file(mesh_filename))
   {
-    g_free(out_dirname);
-
     std::cerr << loader.get_error_string() << std::endl;
     return 1;
   }
@@ -244,24 +231,17 @@ int main(int argc, char** argv)
     const auto node = loader.lookup_node(*name);
     if (!node)
     {
-      g_free(out_dirname);
-      g_strfreev(mesh_names);
-
       std::cerr << "Failed to load mesh " << *name << std::endl;
       return 1;
     }
     nodes.push_back(node);
   }
-  g_strfreev(mesh_names);
-
   std::vector<MeshDesc>   mesh_desc;
   std::vector<MeshVertex> mesh_vertices;
   std::vector<MeshIndex>  mesh_indices;
 
   if (!fill_mesh_data(loader, nodes, mesh_desc, mesh_vertices, mesh_indices))
   {
-    g_free(out_dirname);
-
     std::cerr << "Failed to get mesh data" << std::endl;
     return 1;
   }
@@ -272,10 +252,10 @@ int main(int argc, char** argv)
     swap_data_bytes(mesh_vertices);
     swap_data_bytes(mesh_indices);
   }
-  const bool written = (write_data_file("mesh-vertices.bin", mesh_vertices) &&
-                        write_data_file("mesh-indices.bin",  mesh_indices)  &&
-                        write_data_file("mesh-desc.bin",     mesh_desc));
-  g_free(out_dirname);
+  if (!write_data_file("mesh-vertices.bin", mesh_vertices) ||
+      !write_data_file("mesh-indices.bin",  mesh_indices)  ||
+      !write_data_file("mesh-desc.bin",     mesh_desc))
+    return 1;
 
-  return (written) ? 0 : 1;
+  return 0;
 }
