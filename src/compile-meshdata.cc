@@ -31,6 +31,20 @@ namespace
 using namespace Somato;
 using MeshNodes = std::vector<MeshLoader::Node>;
 
+char*    mesh_filename = nullptr;
+char**   mesh_names    = nullptr;
+gboolean byte_order_be = FALSE;
+gboolean byte_order_le = FALSE;
+
+const GOptionEntry option_entries[] =
+{
+  {"mesh-file", 'f', 0, G_OPTION_ARG_FILENAME, &mesh_filename, "Mesh data FILE", "FILE"},
+  {"be", 'b', 0, G_OPTION_ARG_NONE, &byte_order_be, "Output big-endian data",    nullptr},
+  {"le", 'l', 0, G_OPTION_ARG_NONE, &byte_order_le, "Output little-endian data", nullptr},
+  {G_OPTION_REMAINING, '\0', 0, G_OPTION_ARG_STRING_ARRAY, &mesh_names, nullptr, "MESH..."},
+  {nullptr, '\0', 0, G_OPTION_ARG_NONE, nullptr, nullptr, nullptr}
+};
+
 /* Generate a grid of solid lines along the cell boundaries.
  * Note that the lines are split at the crossing points in order to avoid
  * gaps, and also to more closely match the tesselation of the cube parts.
@@ -140,31 +154,57 @@ inline bool write_data_file(const char* filename, const std::vector<T>& data)
 
 int main(int argc, char** argv)
 {
-  if (argc < 3)
+  GOptionContext *const context = g_option_context_new(nullptr);
+  g_option_context_add_main_entries(context, option_entries, nullptr);
+
+  GError* error = nullptr;
+  const gboolean parsed = g_option_context_parse(context, &argc, &argv, &error);
+  g_option_context_free(context);
+
+  if (!parsed)
   {
-    std::cerr << "Missing arguments" << std::endl;
+    g_free(mesh_filename);
+    g_strfreev(mesh_names);
+    std::cerr << error->message << std::endl;
+    g_error_free(error);
+    return 1;
+  }
+  if (!mesh_filename)
+  {
+    g_strfreev(mesh_names);
+    std::cerr << "No mesh data file specified" << std::endl;
+    return 1;
+  }
+  if (!mesh_names)
+  {
+    g_free(mesh_filename);
+    std::cerr << "No mesh names to extract specified" << std::endl;
     return 1;
   }
   MeshLoader loader;
+  const bool loaded = loader.read_file(mesh_filename);
+  g_free(mesh_filename);
 
-  if (!loader.read_file(argv[1]))
+  if (!loaded)
   {
     std::cerr << loader.get_error_string() << std::endl;
     return 1;
   }
   MeshNodes nodes;
-  nodes.reserve(argc - 2);
 
-  for (int i = 2; i < argc; ++i)
+  for (const char *const * name = mesh_names; *name; ++name)
   {
-    const auto node = loader.lookup_node(argv[i]);
+    const auto node = loader.lookup_node(*name);
     if (!node)
     {
-      std::cerr << "Failed to load mesh of " << argv[i] << std::endl;
+      g_strfreev(mesh_names);
+      std::cerr << "Failed to load mesh " << *name << std::endl;
       return 1;
     }
     nodes.push_back(node);
   }
+  g_strfreev(mesh_names);
+
   std::vector<MeshDesc>   mesh_desc;
   std::vector<MeshVertex> mesh_vertices;
   std::vector<MeshIndex>  mesh_indices;
