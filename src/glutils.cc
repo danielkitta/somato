@@ -197,22 +197,23 @@ void GL::tex_image_from_ktx(const guint32* ktx, unsigned int ktx_size)
   const unsigned int magic0 = GUINT32_TO_BE(0xAB4B5458);
   const unsigned int magic1 = GUINT32_TO_BE(0x203131BB);
   const unsigned int magic2 = GUINT32_TO_BE(0x0D0A1A0A);
-  const unsigned int host_endian = 0x04030201;
+  const unsigned int little_endian = GUINT32_TO_LE(0x04030201);
+  const unsigned int le_1 = GUINT32_TO_LE(1);
 
   g_return_if_fail(ktx_size > 16);
   g_return_if_fail(ktx[0] == magic0 && ktx[1] == magic1 && ktx[2] == magic2);
-  g_return_if_fail(ktx[3] == host_endian);
-  g_return_if_fail(ktx[4] == 0 && ktx[5] == 1 && ktx[6] == 0); // compressed?
+  g_return_if_fail(ktx[3] == little_endian);
+  g_return_if_fail(ktx[4] == 0 && ktx[5] == le_1 && ktx[6] == 0); // compressed?
 
-  const unsigned int int_format  = ktx[7];
-  const unsigned int base_width  = ktx[9];
-  const unsigned int base_height = ktx[10];
-  const unsigned int num_mipmaps = ktx[14];
+  const unsigned int int_format  = GUINT32_FROM_LE(ktx[7]);
+  const unsigned int base_width  = GUINT32_FROM_LE(ktx[9]);
+  const unsigned int base_height = GUINT32_FROM_LE(ktx[10]);
+  const unsigned int num_mipmaps = GUINT32_FROM_LE(ktx[14]);
 
   g_return_if_fail(base_width > 0 && base_height > 0 && num_mipmaps > 0);
-  g_return_if_fail(ktx[11] == 0 && ktx[12] == 0 && ktx[13] == 1); // 2D?
+  g_return_if_fail(ktx[11] == 0 && ktx[12] == 0 && ktx[13] == le_1); // 2D?
 
-  unsigned int offset = 16 + ktx[15] / 4;
+  unsigned int offset = 16 + GUINT32_FROM_LE(ktx[15]) / 4;
 
   for (unsigned int level = 0; level < num_mipmaps; ++level)
   {
@@ -220,8 +221,8 @@ void GL::tex_image_from_ktx(const guint32* ktx, unsigned int ktx_size)
 
     const unsigned int width  = std::max(1u, base_width  >> level);
     const unsigned int height = std::max(1u, base_height >> level);
-    const unsigned int size   = ktx[offset++] / 4;
-
+    const unsigned int size   = GUINT32_FROM_LE(ktx[offset]) / 4;
+    ++offset;
     g_return_if_fail(offset + size <= ktx_size);
 
     glCompressedTexImage2D(GL_TEXTURE_2D, level, int_format,
