@@ -27,6 +27,7 @@ AM_INIT_AUTOMAKE([1.11 -Wall no-define nostdinc])
 AM_SILENT_RULES([yes])
 
 AC_PROG_CXX
+AX_PROG_CXX_FOR_BUILD
 
 AC_ARG_WITH([texture-compression], [AS_HELP_STRING(
   [--with-texture-compression=[[dxt|etc]]],
@@ -86,5 +87,5 @@ DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS], [-Wall], [-Wall -Wextra])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
-AC_CONFIG_FILES([Makefile ui/somato.gresource.xml])
+AC_CONFIG_FILES([Makefile src/tool/Makefile ui/somato.gresource.xml])
 AC_OUTPUT

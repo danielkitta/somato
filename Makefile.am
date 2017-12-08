@@ -15,17 +15,13 @@
 ## You should have received a copy of the GNU General Public License
 ## along with Somato.  If not, see <http://www.gnu.org/licenses/>.
 
+SUBDIRS = src/tool
+
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS  = -I m4
 DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 
 bin_PROGRAMS = src/somato
-noinst_PROGRAMS = src/compile-meshdata
-
-src_compile_meshdata_SOURCES =	\
-	src/compile-meshdata.cc	\
-	src/meshloader.cc	\
-	src/meshloader.h
 
 src_somato_SOURCES =		\
 	src/application.cc	\
@@ -100,7 +96,7 @@ dist_noinst_DATA =		\
 	README.md		\
 	screenshot.png
 
-DISTCLEANFILES	  = src/resources.cc ui/*.bin ui/.dirstamp
+DISTCLEANFILES	  = src/resources.cc ui/*.bin
 
 iconthemedir	  = $(datadir)/icons/hicolor
 appicondir	  = $(iconthemedir)/48x48/apps
@@ -113,18 +109,11 @@ AM_CPPFLAGS	  = -I$(top_builddir) $(SOMATO_MODULES_CFLAGS)
 AM_CXXFLAGS	  = $(SOMATO_EXTRA_CXXFLAGS) $(SOMATO_WARNING_FLAGS)
 src_somato_LDADD  = $(SOMATO_MODULES_LIBS)
 
-src_compile_meshdata_CPPFLAGS = $(MESHDATA_MODULES_CFLAGS)
-src_compile_meshdata_LDADD    = $(MESHDATA_MODULES_LIBS)
-
-compile_meshdata  = $(noinst_PROGRAMS)
+bake_meshdata     = src/tool/bake-meshdata$(BUILD_EXEEXT)
 update_icon_cache = $(GTK_UPDATE_ICON_CACHE) --ignore-theme-index --force
 
-ui/.dirstamp:
-	@$(MKDIR_P) ui
-	@: > ui/.dirstamp
-
-ui/mesh-desc.bin: ui/.dirstamp $(compile_meshdata) ui/puzzlepieces.dae
-	$(AM_V_GEN)$(compile_meshdata) $(SOMATO_BYTE_ORDER) \
+ui/mesh-desc.bin: $(bake_meshdata) ui/puzzlepieces.dae
+	$(AM_V_GEN)$(bake_meshdata) $(SOMATO_BYTE_ORDER) \
 	 --mesh-file "$(srcdir)/ui/puzzlepieces.dae" --output-dir ui \
 	 PieceOrange PieceGreen PieceRed PieceYellow PieceBlue PieceLavender PieceCyan
 
