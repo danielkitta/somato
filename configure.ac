@@ -29,9 +29,9 @@ AM_SILENT_RULES([yes])
 AC_PROG_CXX
 AX_PROG_CXX_FOR_BUILD
 
-AC_ARG_WITH([texture-compression], [AS_HELP_STRING(
-  [--with-texture-compression=[[dxt|etc]]],
-  [select texture compression codec [dxt]])],
+AC_ARG_WITH([texture-compression],
+  [AS_HELP_STRING([--with-texture-compression=[[dxt|etc]]],
+                  [select texture compression codec [dxt]])],
   [SOMATO_TEXTURE_COMPRESSION=$withval],
   [SOMATO_TEXTURE_COMPRESSION=dxt])
 
@@ -41,7 +41,7 @@ AS_CASE([$SOMATO_TEXTURE_COMPRESSION], [dxt|etc],,
 AC_MSG_RESULT([$SOMATO_TEXTURE_COMPRESSION])
 AC_SUBST([SOMATO_TEXTURE_COMPRESSION])
 
-PKG_CHECK_MODULES([MESHDATA_MODULES], [glib-2.0 assimp >= 3.0])
+DK_PKG_CHECK_BUILD_MODULES([MESHDATA_MODULES], [glib-2.0 assimp >= 3.0])
 PKG_CHECK_MODULES([SOMATO_MODULES], [gthread-2.0 epoxy >= 1.3 gtkmm-3.0 >= 3.22])
 
 DK_PKG_CONFIG_SUBST([GLIB_COMPILE_RESOURCES],

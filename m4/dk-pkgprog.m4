@@ -15,7 +15,7 @@
 ## You should have received a copy of the GNU General Public License along
 ## with danielk's Autostuff.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20170922
+#serial 20171209
 
 ## DK_PKG_PATH_PROG(variable, package, executable)
 ##
@@ -64,4 +64,44 @@ AS_IF([test -z "[$]{$1+set}"],
 dnl
 AC_MSG_RESULT([[$]$1])
 AC_SUBST([$1])[]dnl
+])
+
+## DK_PKG_PROG_BUILD_PKG_CONFIG
+##
+## Like PKG_PROG_PKG_CONFIG, but for tools to run on the build machine.
+##
+AC_DEFUN([DK_PKG_PROG_BUILD_PKG_CONFIG],
+[dnl
+AC_REQUIRE([PKG_PROG_PKG_CONFIG])[]dnl
+AC_ARG_VAR([BUILD_PKG_CONFIG], [path to pkg-config utility for build machine packages])
+AC_ARG_VAR([BUILD_PKG_CONFIG_PATH], [directories to add to build machine pkg-config's search path])
+AC_ARG_VAR([BUILD_PKG_CONFIG_LIBDIR], [path overriding build machine pkg-config's built-in search path])
+dnl
+AC_CHECK_PROGS([BUILD_PKG_CONFIG], [[$]{build_alias:+$build_alias-pkg-config} pkg-config])
+AS_IF([$BUILD_PKG_CONFIG --atleast-pkgconfig-version=0.28 2>&AS_MESSAGE_LOG_FD],,
+      [AC_MSG_ERROR([[build machine pkg-config not found]])])
+])
+
+## DK_PKG_CHECK_BUILD_MODULES(variable, arguments, [action-if-found], [action-if-not-found])
+##
+## Like PKG_CHECK_MODULES, but for tools to run on the build machine.
+##
+AC_DEFUN([DK_PKG_CHECK_BUILD_MODULES],
+[dnl
+m4_assert([$# >= 2])[]dnl
+AC_REQUIRE([DK_PKG_PROG_BUILD_PKG_CONFIG])[]dnl
+dnl
+dk_save_pkg_config=$PKG_CONFIG
+dk_save_pkg_config_path=$PKG_CONFIG_PATH
+dk_save_pkg_config_libdir=$PKG_CONFIG_LIBDIR
+dk_save_pkg_config_sysroot_dir=$PKG_CONFIG_SYSROOT_DIR
+PKG_CONFIG=$BUILD_PKG_CONFIG
+PKG_CONFIG_PATH=$BUILD_PKG_CONFIG_PATH
+PKG_CONFIG_LIBDIR=$BUILD_PKG_CONFIG_LIBDIR
+PKG_CONFIG_SYSROOT_DIR=
+m4_apply([PKG_CHECK_MODULES], [$@])
+PKG_CONFIG=$dk_save_pkg_config
+PKG_CONFIG_PATH=$dk_save_pkg_config_path
+PKG_CONFIG_LIBDIR=$dk_save_pkg_config_libdir
+PKG_CONFIG_SYSROOT_DIR=$dk_save_pkg_config_sysroot_dir
 ])
