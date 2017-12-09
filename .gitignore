@@ -10,6 +10,9 @@ stamp-h?
 /aclocal.m4
 /autom4te.cache/
 /build/
+/compile
+/config.guess
+/config.sub
 /config.h
 /config.h.in
 /config.log
@@ -22,8 +25,11 @@ stamp-h?
 /missing
 /somato-*.tar.*
 /src/*.o
-/src/compile-meshdata
 /src/resources.cc
 /src/somato
+/src/tool/*.o
+/src/tool/Makefile
+/src/tool/Makefile.in
+/src/tool/bake-meshdata
 /ui/mesh-*.bin
 /ui/somato.gresource.xml
