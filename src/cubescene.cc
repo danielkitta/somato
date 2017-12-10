@@ -438,7 +438,7 @@ void CubeScene::gl_create_piece_shader()
   program.link();
 
   uf_modelview_        = program.get_uniform_location("modelToCameraMatrix");
-  uf_projection_       = program.get_uniform_location("cameraToClipMatrix");
+  uf_view_frustum_     = program.get_uniform_location("viewFrustum");
   uf_diffuse_material_ = program.get_uniform_location("diffuseMaterial");
   uf_piece_texture_    = program.get_uniform_location("pieceTexture");
 
@@ -456,20 +456,20 @@ void CubeScene::gl_create_grid_shader()
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 
-  grid_uf_modelview_  = program.get_uniform_location("modelToCameraMatrix");
-  grid_uf_projection_ = program.get_uniform_location("cameraToClipMatrix");
+  grid_uf_modelview_    = program.get_uniform_location("modelToCameraMatrix");
+  grid_uf_view_frustum_ = program.get_uniform_location("viewFrustum");
 
   grid_shader_ = std::move(program);
 }
 
 void CubeScene::gl_cleanup()
 {
-  uf_modelview_        = -1;
-  uf_projection_       = -1;
-  uf_diffuse_material_ = -1;
-  uf_piece_texture_    = -1;
-  grid_uf_modelview_   = -1;
-  grid_uf_projection_  = -1;
+  uf_modelview_         = -1;
+  uf_view_frustum_      = -1;
+  uf_diffuse_material_  = -1;
+  uf_piece_texture_     = -1;
+  grid_uf_modelview_    = -1;
+  grid_uf_view_frustum_ = -1;
 
   piece_shader_.reset();
   grid_shader_.reset();
@@ -1170,12 +1170,15 @@ void CubeScene::gl_set_projection(int id, float offset)
   const float far  = -view_z_offset * 2.f - near;
   const float dist = near - far;
 
-  const Math::Matrix4 projection {{near * rightinv, 0., 0., 0.},
-                                  {0., near * topinv, 0., 0.},
-                                  {0., 0., (far + near) / dist + offset, -1.},
-                                  {0., 0., 2.f * far * near / dist, 0.}};
-
-  glUniformMatrix4fv(id, 1, GL_FALSE, &projection[0][0]);
+  // Since the viewing volume is symmetrical, the resulting projection matrix
+  // can be compacted to just four coefficients packed into a single 4-vector
+  // uniform. This requires slightly more verbose code in the vertex shader,
+  // but saves instruction cycles compared to a matrix multiply.
+  const Math::Vector4 frustum {near * rightinv,
+                               near * topinv,
+                               (far + near) / dist + offset,
+                               2.f * far * near / dist};
+  glUniform4fv(id, 1, &frustum[0]);
 }
 
 void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
@@ -1188,7 +1191,7 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
     {
       grid_proj_dirty_ = false;
       // Shift grid lines slighty to the front to suppress z-fighting.
-      gl_set_projection(grid_uf_projection_, 1.f / (1 << 13));
+      gl_set_projection(grid_uf_view_frustum_, 1.f / (1 << 13));
     }
     glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &cube_transform[0][0]);
 
@@ -1254,7 +1257,7 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
     if (cube_proj_dirty_)
     {
       cube_proj_dirty_ = false;
-      gl_set_projection(uf_projection_);
+      gl_set_projection(uf_view_frustum_);
     }
     const BytesView<MeshDesc> desc_view {mesh_desc_};
 

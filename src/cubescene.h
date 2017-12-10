@@ -134,13 +134,13 @@ private:
 
   GL::ShaderProgram           piece_shader_;
   int                         uf_modelview_         = -1;
-  int                         uf_projection_        = -1;
+  int                         uf_view_frustum_      = -1;
   int                         uf_diffuse_material_  = -1;
   int                         uf_piece_texture_     = -1;
 
   GL::ShaderProgram           grid_shader_;
   int                         grid_uf_modelview_    = -1;
-  int                         grid_uf_projection_   = -1;
+  int                         grid_uf_view_frustum_ = -1;
 
   unsigned int                cube_texture_         = 0;
   unsigned int                mesh_buffers_[2]      = {0, 0};

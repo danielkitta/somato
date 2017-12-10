@@ -1,5 +1,5 @@
 uniform mat4 modelToCameraMatrix;
-uniform mat4 cameraToClipMatrix;
+uniform vec4 viewFrustum;
 
 in vec3 position;
 in vec3 normal;
@@ -20,5 +20,8 @@ void main()
   varHalfVec  = dirToLight - normalize(posCamSpace.xyz);
   varNormal   = normCamSpace.xyz;
   varTexcoord = vec4(position, 1.) * texShear;
-  gl_Position = cameraToClipMatrix * vec4(posCamSpace.xyz, 1.);
+
+  gl_Position = vec4(posCamSpace.xy * viewFrustum.xy,
+                     posCamSpace.z  * viewFrustum.z + viewFrustum.w,
+                    -posCamSpace.z);
 }
