@@ -437,7 +437,7 @@ void CubeScene::gl_create_piece_shader()
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
   program.link();
 
-  uf_modelview_        = program.get_uniform_location("modelToCameraMatrix");
+  uf_model_view_       = program.get_uniform_location("modelView");
   uf_view_frustum_     = program.get_uniform_location("viewFrustum");
   uf_diffuse_material_ = program.get_uniform_location("diffuseMaterial");
   uf_piece_texture_    = program.get_uniform_location("pieceTexture");
@@ -456,7 +456,7 @@ void CubeScene::gl_create_grid_shader()
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.link();
 
-  grid_uf_modelview_    = program.get_uniform_location("modelToCameraMatrix");
+  grid_uf_model_view_   = program.get_uniform_location("modelView");
   grid_uf_view_frustum_ = program.get_uniform_location("viewFrustum");
 
   grid_shader_ = std::move(program);
@@ -464,11 +464,11 @@ void CubeScene::gl_create_grid_shader()
 
 void CubeScene::gl_cleanup()
 {
-  uf_modelview_         = -1;
+  uf_model_view_        = -1;
   uf_view_frustum_      = -1;
   uf_diffuse_material_  = -1;
   uf_piece_texture_     = -1;
-  grid_uf_modelview_    = -1;
+  grid_uf_model_view_   = -1;
   grid_uf_view_frustum_ = -1;
 
   piece_shader_.reset();
@@ -1193,7 +1193,10 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
       // Shift grid lines slighty to the front to suppress z-fighting.
       gl_set_projection(grid_uf_view_frustum_, 1.f / (1 << 13));
     }
-    glUniformMatrix4fv(grid_uf_modelview_, 1, GL_FALSE, &cube_transform[0][0]);
+    Math::Matrix4 model_view = cube_transform;
+    model_view.transpose();
+
+    glUniformMatrix3x4fv(grid_uf_model_view_, 1, GL_FALSE, &model_view[0][0]);
 
     glDrawRangeElements(GL_LINES, 0, GRID_VERTEX_COUNT - 1,
                         2 * GRID_LINE_COUNT, GL::attrib_type<MeshIndex>,
@@ -1301,9 +1304,10 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
 void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
                                        const AnimationData& data)
 {
-  const Math::Matrix4 modelview = transform * data.transform;
+  Math::Matrix4 model_view = transform * data.transform;
+  model_view.transpose();
 
-  glUniformMatrix4fv(uf_modelview_, 1, GL_FALSE, &modelview[0][0]);
+  glUniformMatrix3x4fv(uf_model_view_, 1, GL_FALSE, &model_view[0][0]);
 
   glUniform4fv(uf_diffuse_material_, 1,
                piece_materials[data.cube_index % piece_materials.size()]);

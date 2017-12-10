@@ -1,8 +1,8 @@
-uniform mat4 modelToCameraMatrix;
-uniform vec4 viewFrustum;
+uniform mat3x4 modelView;
+uniform vec4   viewFrustum;
 
-in vec3 position;
-in vec3 normal;
+in vec4 position;
+in vec4 normal;
 
 smooth out vec3 varHalfVec;
 smooth out vec3 varNormal;
@@ -14,12 +14,11 @@ const vec3 dirToLight = vec3(0., 0.242535625, 0.9701425);
 
 void main()
 {
-  vec4 posCamSpace  = modelToCameraMatrix * vec4(position, 1.);
-  vec4 normCamSpace = modelToCameraMatrix * vec4(normal, 0.);
+  vec3 posCamSpace = position * modelView;
 
-  varHalfVec  = dirToLight - normalize(posCamSpace.xyz);
-  varNormal   = normCamSpace.xyz;
-  varTexcoord = vec4(position, 1.) * texShear;
+  varHalfVec  = dirToLight - normalize(posCamSpace);
+  varNormal   = normal   * modelView;
+  varTexcoord = position * texShear;
 
   gl_Position = vec4(posCamSpace.xy * viewFrustum.xy,
                      posCamSpace.z  * viewFrustum.z + viewFrustum.w,
