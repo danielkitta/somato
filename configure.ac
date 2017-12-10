@@ -87,5 +87,19 @@ DK_ARG_ENABLE_WARNINGS([SOMATO_WARNING_FLAGS], [-Wall], [-Wall -Wextra])
 
 DK_SH_VAR_POP([CPPFLAGS])
 
+DK_SH_VAR_PUSH([CXX], [$CXX_FOR_BUILD])
+DK_SH_VAR_PUSH([CXXFLAGS], [$CXXFLAGS_FOR_BUILD])
+DK_SH_VAR_PUSH([LDFLAGS], [$LDFLAGS_FOR_BUILD])
+
+DK_CHECK_COMPILE_FLAGS([TOOL_EXTRA_CXXFLAGS], [math without errno (build)],
+                       [-fno-math-errno])
+DK_CHECK_COMPILE_FLAGS([TOOL_EXTRA_CXXFLAGS], [link-time optimization (build)],
+                       [-flto])
+DK_ARG_ENABLE_WARNINGS([TOOL_WARNING_FLAGS], [-Wall], [-Wall -Wextra])
+
+DK_SH_VAR_POP([LDFLAGS])
+DK_SH_VAR_POP([CXXFLAGS])
+DK_SH_VAR_POP([CXX])
+
 AC_CONFIG_FILES([Makefile src/tool/Makefile ui/somato.gresource.xml])
 AC_OUTPUT
