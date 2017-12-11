@@ -1193,8 +1193,7 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
       // Shift grid lines slighty to the front to suppress z-fighting.
       gl_set_projection(grid_uf_view_frustum_, 1.f / (1 << 13));
     }
-    Math::Matrix4 model_view = cube_transform;
-    model_view.transpose();
+    const Math::Matrix4 model_view = cube_transform.transposed();
 
     glUniformMatrix3x4fv(grid_uf_model_view_, 1, GL_FALSE, &model_view[0][0]);
 

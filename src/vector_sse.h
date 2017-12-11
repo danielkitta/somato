@@ -206,6 +206,7 @@ private:
   enum Uninitialized { uninitialized };
   explicit Matrix4(Uninitialized) {}
 
+  static void transpose_(const __m128* m, __m128* result);
   static void scale_(const __m128* a, __m128 s, __m128* result);
   static __m128 mul_(const __m128* a, __m128 b);
   static void   mul_(const __m128* a, const __m128* b, __m128* result);
@@ -238,7 +239,9 @@ public:
   Matrix4 translated(const Vector4& t) const
     { return {Vector4(m_[0]), Vector4(m_[1]), Vector4(m_[2]), Vector4(mul_(m_, t.v_))}; }
 
-  void transpose();
+  void transpose() { transpose_(m_, m_); }
+  Matrix4 transposed() const
+    { Matrix4 r (uninitialized); transpose_(m_, r.m_); return r; }
 
   value_type*       operator[](size_type i)       { return reinterpret_cast<float*>(&m_[i]); }
   const value_type* operator[](size_type i) const { return reinterpret_cast<const float*>(&m_[i]); }

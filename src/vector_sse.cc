@@ -235,6 +235,24 @@ Matrix4& Matrix4::operator=(const value_type b[][4])
   return *this;
 }
 
+void Matrix4::transpose_(const __m128* m, __m128* result)
+{
+  const __m128 c0 = m[0];
+  const __m128 c1 = m[1];
+  const __m128 c2 = m[2];
+  const __m128 c3 = m[3];
+
+  const __m128 t0 = _mm_unpacklo_ps(c0, c1);
+  const __m128 t1 = _mm_unpacklo_ps(c2, c3);
+  const __m128 t2 = _mm_unpackhi_ps(c0, c1);
+  const __m128 t3 = _mm_unpackhi_ps(c2, c3);
+
+  result[0] = _mm_movelh_ps(t0, t1);
+  result[1] = _mm_movehl_ps(t1, t0);
+  result[2] = _mm_movelh_ps(t2, t3);
+  result[3] = _mm_movehl_ps(t3, t2);
+}
+
 void Matrix4::scale_(const __m128* a, __m128 s, __m128* result)
 {
   const __m128 a0 = a[0];
@@ -248,11 +266,6 @@ void Matrix4::scale_(const __m128* a, __m128 s, __m128* result)
   result[1] = _mm_mul_ps(a1, ssss);
   result[2] = _mm_mul_ps(a2, ssss);
   result[3] = a3;
-}
-
-void Matrix4::transpose()
-{
-  _MM_TRANSPOSE4_PS(m_[0], m_[1], m_[2], m_[3]);
 }
 
 __m128 Matrix4::mul_(const __m128* a, __m128 b)

@@ -22,7 +22,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
 
 namespace
 {
@@ -143,22 +142,29 @@ Matrix4::Matrix4()
       {0.f, 0.f, 0.f, 1.f}}
 {}
 
+void Matrix4::transpose_(const float m[][4], float result[][4])
+{
+  const float m01 = m[0][1];
+  const float m02 = m[0][2];
+  const float m03 = m[0][3];
+  set_vector(result[0], m[0][0], m[1][0], m[2][0], m[3][0]);
+
+  const float m12 = m[1][2];
+  const float m13 = m[1][3];
+  set_vector(result[1], m01, m[1][1], m[2][1], m[3][1]);
+
+  const float m23 = m[2][3];
+  set_vector(result[2], m02, m12, m[2][2], m[3][2]);
+
+  set_vector(result[3], m03, m13, m23, m[3][3]);
+}
+
 void Matrix4::scale_(const float a[][4], float s, float result[][4])
 {
   set_vector(result[0], a[0][0] * s, a[0][1] * s, a[0][2] * s, a[0][3] * s);
   set_vector(result[1], a[1][0] * s, a[1][1] * s, a[1][2] * s, a[1][3] * s);
   set_vector(result[2], a[2][0] * s, a[2][1] * s, a[2][2] * s, a[2][3] * s);
   set_vector(result[3], a[3][0],     a[3][1],     a[3][2],     a[3][3]);
-}
-
-void Matrix4::transpose()
-{
-  std::swap(m_[1][0], m_[0][1]);
-  std::swap(m_[2][0], m_[0][2]);
-  std::swap(m_[3][0], m_[0][3]);
-  std::swap(m_[2][1], m_[1][2]);
-  std::swap(m_[3][1], m_[1][3]);
-  std::swap(m_[3][2], m_[2][3]);
 }
 
 Matrix4& Matrix4::operator=(const value_type b[][4])
