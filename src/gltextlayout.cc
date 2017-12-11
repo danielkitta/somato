@@ -106,6 +106,10 @@ enum : int
   PADDING = 1
 };
 
+/* Text intensity without and with focus.
+ */
+const GLfloat focus_intensity[] = { 0.75, 1. };
+
 } // anonymous namespace
 
 namespace GL
@@ -197,7 +201,7 @@ void TextLayoutAtlas::gl_init()
 
   shader_.use();
   glUniform1i(uf_texture_, SAMPLER_LAYOUT);
-  glUniform1f(uf_intensity_, 1.);
+  glUniform1fv(uf_intensity_, 1, &focus_intensity[had_focus_]);
 
   need_repos_ = need_repaint_ = !items_.empty();
 
@@ -251,7 +255,7 @@ int TextLayoutAtlas::gl_draw_layouts(bool has_focus)
   if (has_focus != had_focus_)
   {
     had_focus_ = has_focus;
-    glUniform1f(uf_intensity_, (has_focus) ? 1.f : 0.75f);
+    glUniform1fv(uf_intensity_, 1, &focus_intensity[has_focus]);
   }
   if (draw_count_ > 0)
   {
