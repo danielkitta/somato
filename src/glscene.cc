@@ -244,8 +244,11 @@ void Scene::on_size_allocate(Gtk::Allocation& allocation)
 bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
 {
   if (!text_layouts_->has_pango_context())
-    text_layouts_->set_pango_context(create_pango_context());
-
+  {
+    auto context = create_pango_context();
+    context->set_resolution(get_scale_factor() * 96);
+    text_layouts_->set_pango_context(std::move(context));
+  }
   make_current();
 
   if (size_changed_)
