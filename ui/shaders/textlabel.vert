@@ -1,6 +1,6 @@
 uniform float textIntensity;
 
-in vec2 position;
+in vec4 position;
 in vec2 texcoord;
 in vec3 color;
 
@@ -9,7 +9,7 @@ flat          out vec3 varColor;
 
 void main()
 {
-  gl_Position = vec4(position, 0., 1.);
+  gl_Position = position;
   varTexcoord = texcoord + 0.5;
   varColor    = color * textIntensity;
 }
