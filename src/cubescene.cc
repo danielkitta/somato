@@ -480,7 +480,7 @@ void CubeScene::gl_cleanup()
     mesh_vertex_array_ = 0;
   }
 
-  if (mesh_buffers_[VERTICES] || mesh_buffers_[INDICES])
+  if (mesh_buffers_[VERTICES] | mesh_buffers_[INDICES])
   {
     glDeleteBuffers(G_N_ELEMENTS(mesh_buffers_), mesh_buffers_);
     mesh_buffers_[VERTICES] = 0;

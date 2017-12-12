@@ -103,8 +103,8 @@ private:
   int          uf_texture_    = -1;       // texture sampler uniform ID
   int          uf_intensity_  = -1;       // text intensity uniform ID
 
-  unsigned int buffers_[2]    = {0, 0};   // vertex and index buffer objects
   unsigned int vao_           = 0;        // vertex array object
+  unsigned int buffers_[2]    = {0, 0};   // vertex and index buffer objects
   unsigned int tex_name_      = 0;        // texture ID
   int          tex_width_     = 0;        // layout texture width
   int          tex_height_    = 0;        // layout texture height

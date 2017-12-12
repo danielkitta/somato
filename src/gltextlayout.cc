@@ -221,7 +221,7 @@ void TextLayoutAtlas::gl_delete()
     glDeleteVertexArrays(1, &vao_);
     vao_ = 0;
   }
-  if (buffers_[VERTICES] || buffers_[INDICES])
+  if (buffers_[VERTICES] | buffers_[INDICES])
   {
     glDeleteBuffers(G_N_ELEMENTS(buffers_), buffers_);
     buffers_[VERTICES] = 0;

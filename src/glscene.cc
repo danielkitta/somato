@@ -377,7 +377,7 @@ void Scene::gl_delete_framebuffer()
     glDeleteFramebuffers(1, &frame_buffer_);
     frame_buffer_ = 0;
   }
-  if (render_buffers_[COLOR] || render_buffers_[DEPTH])
+  if (render_buffers_[COLOR] | render_buffers_[DEPTH])
   {
     glDeleteRenderbuffers(G_N_ELEMENTS(render_buffers_), render_buffers_);
     render_buffers_[COLOR] = 0;
