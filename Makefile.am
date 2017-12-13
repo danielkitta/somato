@@ -38,6 +38,7 @@ src_somato_SOURCES =		\
 	src/glshader.h		\
 	src/gltextlayout.cc	\
 	src/gltextlayout.h	\
+	src/gltypes.h		\
 	src/glutils.cc		\
 	src/glutils.h		\
 	src/somato.cc		\

@@ -20,49 +20,32 @@
 #ifndef SOMATO_MESHTYPES_H_INCLUDED
 #define SOMATO_MESHTYPES_H_INCLUDED
 
+#include "gltypes.h"
+
 #include <glib.h>
-#include <cmath>
 #include <cstring>
 
 namespace Somato
 {
 
-/* Vector packed as 32-bit unsigned integer.
- */
-enum Int_2_10_10_10_rev : unsigned int {};
-
-/* Convert a floating-point normal into a packed 10-bit integer format.
- */
-inline Int_2_10_10_10_rev pack_normal(float x, float y, float z)
-{
-  const float scale = 511.f;
-  const int ix = std::lrint(x * scale);
-  const int iy = std::lrint(y * scale);
-  const int iz = std::lrint(z * scale);
-
-  return static_cast<Int_2_10_10_10_rev>((ix & 0x3FFu)
-                                      | ((iy & 0x3FFu) << 10)
-                                      | ((iz & 0x3FFu) << 20));
-}
-
 struct MeshVertex
 {
-  float              position[3];
-  Int_2_10_10_10_rev normal;
+  float                   position[3];
+  GL::Int_2_10_10_10_rev  normal;
 
   void set(float px, float py, float pz, float nx, float ny, float nz)
   {
     position[0] = px;
     position[1] = py;
     position[2] = pz;
-    normal = pack_normal(nx, ny, nz);
+    normal = GL::pack_3i10rev_norm(nx, ny, nz);
   }
   void set(float px, float py, float pz)
   {
     position[0] = px;
     position[1] = py;
     position[2] = pz;
-    normal = static_cast<Int_2_10_10_10_rev>(0);
+    normal = static_cast<GL::Int_2_10_10_10_rev>(0);
   }
   void swap_bytes()
   {
