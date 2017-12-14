@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <cmath>
+#include <tuple>
 
 namespace GL
 {
@@ -43,6 +44,11 @@ inline Packed2i16 pack_2i16_norm(float x, float y)
 {
   const float scale = 32767.f;
   return pack_2i16(std::lrint(x * scale), std::lrint(y * scale));
+}
+
+inline Packed2i16 pack_2i16_norm(std::tuple<float, float> xy)
+{
+  return pack_2i16_norm(std::get<0>(xy), std::get<1>(xy));
 }
 
 inline Packed4u8 pack_4u8(int r, int g, int b, int a)

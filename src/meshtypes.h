@@ -23,29 +23,47 @@
 #include "gltypes.h"
 
 #include <glib.h>
+#include <cmath>
 #include <cstring>
+#include <tuple>
 
 namespace Somato
 {
 
+/* Map 3D unit normal vector to 2D octahedron surface coordinates.
+ * https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+ */
+inline std::tuple<float, float> wrap_octahedron_normal(float x, float y, float z)
+{
+  const float sum_abs = std::abs(x) + std::abs(y) + std::abs(z);
+
+  const float nx = x / sum_abs;
+  const float ny = y / sum_abs;
+
+  const float ox = (z >= 0.f) ? nx : std::copysign(1.f - std::abs(ny), nx);
+  const float oy = (z >= 0.f) ? ny : std::copysign(1.f - std::abs(nx), ny);
+
+  return std::make_tuple(ox, oy);
+}
+
 struct MeshVertex
 {
-  float                   position[3];
-  GL::Int_2_10_10_10_rev  normal;
+  float           position[3];
+  GL::Packed2i16  normal;
 
   void set(float px, float py, float pz, float nx, float ny, float nz)
   {
     position[0] = px;
     position[1] = py;
     position[2] = pz;
-    normal = GL::pack_3i10rev_norm(nx, ny, nz);
+    normal = GL::pack_2i16_norm(wrap_octahedron_normal(nx, ny, nz));
   }
   void set(float px, float py, float pz)
   {
     position[0] = px;
     position[1] = py;
     position[2] = pz;
-    normal = static_cast<GL::Int_2_10_10_10_rev>(0);
+    normal = static_cast<GL::Packed2i16>(0);
   }
   void swap_bytes()
   {
@@ -55,7 +73,7 @@ struct MeshVertex
     words[0] = GUINT32_SWAP_LE_BE(words[0]);
     words[1] = GUINT32_SWAP_LE_BE(words[1]);
     words[2] = GUINT32_SWAP_LE_BE(words[2]);
-    words[3] = GUINT32_SWAP_LE_BE(words[3]);
+    words[3] = GUINT32_SWAP_LE_BE((words[3] << 16) | (words[3] >> 16));
 
     std::memcpy(this, words, sizeof words);
   }
