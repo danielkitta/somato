@@ -109,6 +109,14 @@ const float view_z_offset = -9.;
  */
 const float rotation_step = G_PI / 60.;
 
+/* Wood texture shear and translate matrix.
+ */
+const GLfloat texture_shear[2][4] =
+{
+  {0.474773,    0.0146367, -0.0012365, 0.74},
+  {0.00168634, -0.0145917,  0.474773,  0.26}
+};
+
 /*
  * The materials applied to cube pieces.  Indices into the materials array
  * match the original piece order as passed to CubeScene::set_cube_pieces(),
@@ -422,6 +430,7 @@ void CubeScene::gl_initialize()
   gl_create_mesh_buffers();
 
   piece_shader_.use();
+  glUniformMatrix2x4fv(uf_texture_shear_, 1, GL_FALSE, texture_shear[0]);
   glUniform1i(uf_piece_texture_, SAMPLER_PIECE);
 }
 
@@ -439,6 +448,7 @@ void CubeScene::gl_create_piece_shader()
 
   uf_model_view_       = program.get_uniform_location("modelView");
   uf_view_frustum_     = program.get_uniform_location("viewFrustum");
+  uf_texture_shear_    = program.get_uniform_location("textureShear");
   uf_diffuse_material_ = program.get_uniform_location("diffuseMaterial");
   uf_piece_texture_    = program.get_uniform_location("pieceTexture");
 
@@ -466,6 +476,7 @@ void CubeScene::gl_cleanup()
 {
   uf_model_view_        = -1;
   uf_view_frustum_      = -1;
+  uf_texture_shear_     = -1;
   uf_diffuse_material_  = -1;
   uf_piece_texture_     = -1;
   grid_uf_model_view_   = -1;
