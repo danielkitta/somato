@@ -117,9 +117,6 @@ void GL::Extensions::query_(bool use_es, int ver)
   debug_output = debug
       || epoxy_has_gl_extension("GL_ARB_debug_output");
 
-  vertex_type_2_10_10_10_rev = (ver >= ((use_es) ? 30 : 33))
-      || epoxy_has_gl_extension("GL_ARB_vertex_type_2_10_10_10_rev");
-
   texture_border_clamp = (!use_es || ver >= 32)
       || epoxy_has_gl_extension("GL_OES_texture_border_clamp");
 

@@ -556,12 +556,6 @@ void CubeScene::gl_create_mesh_buffers()
   g_return_if_fail(mesh_vertex_array_ == 0);
   g_return_if_fail(mesh_buffers_[VERTICES] == 0 && mesh_buffers_[INDICES] == 0);
 
-  if (!GL::extensions().vertex_type_2_10_10_10_rev)
-  {
-    g_log(GL::log_domain, G_LOG_LEVEL_WARNING,
-          "Packed integer vector format 2:10:10:10 not supported");
-    return;
-  }
   mesh_desc_ = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "mesh-desc.bin");
   const auto vertices = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "mesh-vertices.bin");
   const auto indices  = Gio::Resource::lookup_data_global(RESOURCE_PREFIX "mesh-indices.bin");
