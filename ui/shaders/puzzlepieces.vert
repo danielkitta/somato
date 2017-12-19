@@ -20,16 +20,18 @@ vec4 unwrapOctahedron(vec2 oct)
   return vec4(xy, z, 0.);
 }
 
+vec4 project(vec4 frustum, vec3 pos)
+{
+  return vec4(pos.xy * frustum.xy, pos.z * frustum.z + frustum.w, -pos.z);
+}
+
 void main()
 {
   vec4 modelNormal = unwrapOctahedron(normal);
   vec3 posCamSpace = position * modelView;
 
+  gl_Position = project(viewFrustum, posCamSpace);
   varHalfVec  = dirToLight - normalize(posCamSpace);
   varNormal   = normalize(modelNormal * modelView);
   varTexcoord = position * textureShear;
-
-  gl_Position = vec4(posCamSpace.xy * viewFrustum.xy,
-                     posCamSpace.z  * viewFrustum.z + viewFrustum.w,
-                    -posCamSpace.z);
 }

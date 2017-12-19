@@ -17,12 +17,17 @@ const float ambIntensity   = 0.2;
 const float specIntensity  = 0.1;
 const float shininess      = 32.;
 
+float inverseLength(vec3 v)
+{
+  return inversesqrt(dot(v, v));
+}
+
 void main()
 {
   float texIntensity = texture(pieceTexture, varTexcoord).r;
 
-  float rMagNormal   = inversesqrt(dot(varNormal, varNormal));
-  float rMagHalfVec  = inversesqrt(dot(varHalfVec, varHalfVec));
+  float rMagNormal   = inverseLength(varNormal);
+  float rMagHalfVec  = inverseLength(varHalfVec);
   float dotNormLight = dot(varNormal, dirToLight);
   float dotNormHalf  = dot(varNormal, varHalfVec);
   float cosIncidence = clamp(dotNormLight * rMagNormal, 0., 1.);
