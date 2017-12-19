@@ -167,16 +167,15 @@ int Scene::gl_render()
 
 void Scene::gl_update_viewport()
 {
-  const int scale = get_scale_factor();
+  scale_factor_ = get_scale_factor();
+  alloc_width_  = std::max(1, get_allocated_width());
+  alloc_height_ = std::max(1, get_allocated_height());
 
-  viewport_width_  = std::max(1, scale * get_allocated_width());
-  viewport_height_ = std::max(1, scale * get_allocated_height());
-
-  g_log(GL::log_domain, G_LOG_LEVEL_DEBUG,
-        "Viewport resized to %dx%d", viewport_width_, viewport_height_);
+  g_log(GL::log_domain, G_LOG_LEVEL_DEBUG, "Viewport resized to %dx%d",
+        get_viewport_width(), get_viewport_height());
 
   gl_update_framebuffer();
-  glViewport(0, 0, viewport_width_, viewport_height_);
+  glViewport(0, 0, get_viewport_width(), get_viewport_height());
 
   size_changed_ = false;
 }
@@ -255,14 +254,14 @@ bool Scene::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
     gl_update_viewport();
 
   if (text_layouts_->update_needed())
-    text_layouts_->gl_update(viewport_width_, viewport_height_);
+    text_layouts_->gl_update(get_viewport_width(), get_viewport_height());
 
   const unsigned int triangle_count = gl_render();
 
   gdk_cairo_draw_from_gl(cr->cobj(), gtk_widget_get_window(Gtk::Widget::gobj()),
                          render_buffers_[COLOR], GL_RENDERBUFFER,
-                         get_scale_factor(), 0, 0,
-                         viewport_width_, viewport_height_);
+                         scale_factor_, 0, 0,
+                         get_viewport_width(), get_viewport_height());
   ++frame_counter_;
   triangle_counter_ += triangle_count;
 
@@ -347,13 +346,13 @@ void Scene::gl_update_framebuffer()
   GL::set_object_label(GL_RENDERBUFFER, render_buffers_[COLOR], "sceneColor");
 
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB8,
-                                   viewport_width_, viewport_height_);
+                                   get_viewport_width(), get_viewport_height());
 
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[DEPTH]);
   GL::set_object_label(GL_RENDERBUFFER, render_buffers_[DEPTH], "sceneDepth");
 
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24,
-                                   viewport_width_, viewport_height_);
+                                   get_viewport_width(), get_viewport_height());
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frame_buffer_);

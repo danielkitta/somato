@@ -75,8 +75,10 @@ protected:
   bool animation_tick_active() const { return (anim_tick_id_ != 0); }
   void queue_static_draw();
 
-  int get_viewport_width()  const { return viewport_width_;  }
-  int get_viewport_height() const { return viewport_height_; }
+  int get_unscaled_width()  const { return alloc_width_;  }
+  int get_unscaled_height() const { return alloc_height_; }
+  int get_viewport_width()  const { return scale_factor_ * alloc_width_;  }
+  int get_viewport_height() const { return scale_factor_ * alloc_height_; }
 
   TextLayoutAtlas* text_layouts() { return text_layouts_.get(); }
 
@@ -117,8 +119,9 @@ private:
   unsigned int  render_buffers_[2]  = {0, 0};
   int           aa_samples_         = 0;
   int           max_aa_samples_     = 0;
-  int           viewport_width_     = 1;
-  int           viewport_height_    = 1;
+  int           scale_factor_       = 1;
+  int           alloc_width_        = 1;
+  int           alloc_height_       = 1;
 
   bool          first_tick_         = false;
   bool          size_changed_       = true;
