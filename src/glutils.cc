@@ -117,6 +117,9 @@ void GL::Extensions::query_(bool use_es, int ver)
   debug_output = debug
       || epoxy_has_gl_extension("GL_ARB_debug_output");
 
+  geometry_shader = (!use_es || ver >= 32)
+      || epoxy_has_gl_extension("GL_OES_geometry_shader");
+
   texture_border_clamp = (!use_es || ver >= 32)
       || epoxy_has_gl_extension("GL_OES_texture_border_clamp");
 

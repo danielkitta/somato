@@ -46,6 +46,7 @@ struct Extensions
   bool  is_gles                    = false;
   bool  debug                      = false;
   bool  debug_output               = false;
+  bool  geometry_shader            = false;
   bool  texture_border_clamp       = false;
   bool  texture_filter_anisotropic = false;
   bool  texture_gather             = false;
