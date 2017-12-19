@@ -68,6 +68,9 @@ resource_files =			\
 	ui/gtk/menus.ui			\
 	ui/shaders/cellgrid.frag	\
 	ui/shaders/cellgrid.vert	\
+	ui/shaders/pieceoutline.frag	\
+	ui/shaders/pieceoutline.geom	\
+	ui/shaders/pieceoutline.vert	\
 	ui/shaders/puzzlepieces.frag	\
 	ui/shaders/puzzlepieces.vert	\
 	ui/shaders/textlabel.frag	\

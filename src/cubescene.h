@@ -139,6 +139,12 @@ private:
   int                         uf_diffuse_material_  = -1;
   int                         uf_piece_texture_     = -1;
 
+  GL::ShaderProgram           outline_shader_;
+  int                         ol_uf_model_view_     = -1;
+  int                         ol_uf_view_frustum_   = -1;
+  int                         ol_uf_window_size_    = -1;
+  int                         ol_uf_diffuse_mat_    = -1;
+
   GL::ShaderProgram           grid_shader_;
   int                         grid_uf_model_view_   = -1;
   int                         grid_uf_view_frustum_ = -1;
@@ -167,6 +173,7 @@ private:
   bool                        show_outline_         = false;
   bool                        zoom_visible_         = true;
   bool                        cube_proj_dirty_      = true;
+  bool                        outline_proj_dirty_   = true;
   bool                        grid_proj_dirty_      = true;
 
   void update_footing();
@@ -189,11 +196,11 @@ private:
 
   void gl_create_mesh_buffers();
   void gl_create_piece_shader();
+  void gl_create_outline_shader();
   void gl_create_grid_shader();
   void gl_set_projection(int id, float offset = 0.);
 
   void gl_draw_cell_grid(const Math::Matrix4& cube_transform);
-  int  gl_draw_cube(const Math::Matrix4& cube_transform);
   int  gl_draw_pieces(const Math::Matrix4& cube_transform);
   int  gl_draw_pieces_range(const Math::Matrix4& cube_transform, int first, int last);
   void gl_draw_piece_elements(const Math::Matrix4& transform, const AnimationData& data);

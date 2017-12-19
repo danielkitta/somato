@@ -425,6 +425,10 @@ void CubeScene::gl_initialize()
     glEnable(GL_DEPTH_CLAMP);
 
   gl_create_piece_shader();
+
+  if (GL::extensions().geometry_shader)
+    gl_create_outline_shader();
+
   gl_create_grid_shader();
   gl_init_cube_texture();
   gl_create_mesh_buffers();
@@ -455,6 +459,27 @@ void CubeScene::gl_create_piece_shader()
   piece_shader_ = std::move(program);
 }
 
+void CubeScene::gl_create_outline_shader()
+{
+  GL::ShaderProgram program;
+  program.set_label("pieceoutline");
+
+  program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/pieceoutline.vert"});
+  program.attach({GL_GEOMETRY_SHADER, RESOURCE_PREFIX "shaders/pieceoutline.geom"});
+  program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/pieceoutline.frag"});
+
+  program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
+  program.link();
+
+  ol_uf_model_view_   = program.get_uniform_location("modelView");
+  ol_uf_view_frustum_ = program.get_uniform_location("viewFrustum");
+  ol_uf_window_size_  = program.get_uniform_location("windowSize");
+  ol_uf_diffuse_mat_  = program.get_uniform_location("diffuseMaterial");
+
+  outline_shader_ = std::move(program);
+}
+
 void CubeScene::gl_create_grid_shader()
 {
   GL::ShaderProgram program;
@@ -479,10 +504,15 @@ void CubeScene::gl_cleanup()
   uf_texture_shear_     = -1;
   uf_diffuse_material_  = -1;
   uf_piece_texture_     = -1;
+  ol_uf_model_view_     = -1;
+  ol_uf_view_frustum_   = -1;
+  ol_uf_window_size_    = -1;
+  ol_uf_diffuse_mat_    = -1;
   grid_uf_model_view_   = -1;
   grid_uf_view_frustum_ = -1;
 
   piece_shader_.reset();
+  outline_shader_.reset();
   grid_shader_.reset();
 
   if (mesh_vertex_array_)
@@ -533,7 +563,8 @@ int CubeScene::gl_render()
       cube_transform *= Math::Quat::to_matrix(rotation_);
       cube_transform.scale(zoom_);
 
-      triangle_count += gl_draw_cube(cube_transform);
+      if (animation_piece_ > 0 && animation_piece_ <= static_cast<int>(animation_data_.size()))
+        triangle_count += gl_draw_pieces(cube_transform);
 
       if (show_cell_grid_)
         gl_draw_cell_grid(cube_transform);
@@ -550,8 +581,9 @@ void CubeScene::gl_update_viewport()
 {
   GL::Scene::gl_update_viewport();
 
-  cube_proj_dirty_ = true;
-  grid_proj_dirty_ = true;
+  cube_proj_dirty_    = true;
+  outline_proj_dirty_ = true;
+  grid_proj_dirty_    = true;
 
   const int margin_x = get_viewport_width()  / 10;
   const int margin_y = get_viewport_height() / 10;
@@ -1208,26 +1240,6 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
   }
 }
 
-int CubeScene::gl_draw_cube(const Math::Matrix4& cube_transform)
-{
-  int triangle_count = 0;
-
-  if (animation_piece_ > 0 && animation_piece_ <= static_cast<int>(animation_data_.size()))
-  {
-    if (!show_outline_)
-    {
-      triangle_count += gl_draw_pieces(cube_transform);
-    }
-    else
-    {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      triangle_count += gl_draw_pieces(cube_transform);
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-  }
-  return triangle_count;
-}
-
 int CubeScene::gl_draw_pieces(const Math::Matrix4& cube_transform)
 {
   const int count = animation_data_.size();
@@ -1256,15 +1268,23 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
                                     int first, int last)
 {
   int triangle_count = 0;
+  GL::ShaderProgram& shader = (show_outline_) ? outline_shader_ : piece_shader_;
 
-  if (piece_shader_)
+  if (shader)
   {
-    piece_shader_.use();
+    shader.use();
+    bool& proj_dirty = (show_outline_) ? outline_proj_dirty_ : cube_proj_dirty_;
 
-    if (cube_proj_dirty_)
+    if (proj_dirty)
     {
-      cube_proj_dirty_ = false;
-      gl_set_projection(uf_view_frustum_);
+      proj_dirty = false;
+
+      if (show_outline_)
+      {
+        const float window_size[] = {0.5f * get_unscaled_width(), 0.5f * get_unscaled_height()};
+        glUniform2fv(ol_uf_window_size_, 1, window_size);
+      }
+      gl_set_projection((show_outline_) ? ol_uf_view_frustum_ : uf_view_frustum_);
     }
     const BytesView<MeshDesc> desc_view {mesh_desc_};
 
@@ -1311,10 +1331,10 @@ void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
   Math::Matrix4 model_view = transform * data.transform;
   model_view.transpose();
 
-  glUniformMatrix3x4fv(uf_model_view_, 1, GL_FALSE, &model_view[0][0]);
-
-  glUniform4fv(uf_diffuse_material_, 1,
-               piece_materials[data.cube_index % piece_materials.size()]);
+  glUniformMatrix3x4fv((show_outline_) ? ol_uf_model_view_ : uf_model_view_,
+                       1, GL_FALSE, &model_view[0][0]);
+  glUniform4fv((show_outline_) ? ol_uf_diffuse_mat_ : uf_diffuse_material_,
+               1, piece_materials[data.cube_index % piece_materials.size()]);
 
   const auto& mesh = BytesView<MeshDesc>{mesh_desc_}[data.cube_index];
 
