@@ -67,6 +67,7 @@ resource_files =			\
 	ui/gtk/help-overlay.ui		\
 	ui/gtk/menus.ui			\
 	ui/shaders/cellgrid.frag	\
+	ui/shaders/cellgrid.geom	\
 	ui/shaders/cellgrid.vert	\
 	ui/shaders/pieceoutline.frag	\
 	ui/shaders/pieceoutline.geom	\

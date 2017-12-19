@@ -427,9 +427,10 @@ void CubeScene::gl_initialize()
   gl_create_piece_shader();
 
   if (GL::extensions().geometry_shader)
+  {
     gl_create_outline_shader();
-
-  gl_create_grid_shader();
+    gl_create_grid_shader();
+  }
   gl_init_cube_texture();
   gl_create_mesh_buffers();
 
@@ -486,6 +487,7 @@ void CubeScene::gl_create_grid_shader()
   program.set_label("cellgrid");
 
   program.attach({GL_VERTEX_SHADER,   RESOURCE_PREFIX "shaders/cellgrid.vert"});
+  program.attach({GL_GEOMETRY_SHADER, RESOURCE_PREFIX "shaders/cellgrid.geom"});
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/cellgrid.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
@@ -493,6 +495,7 @@ void CubeScene::gl_create_grid_shader()
 
   grid_uf_model_view_   = program.get_uniform_location("modelView");
   grid_uf_view_frustum_ = program.get_uniform_location("viewFrustum");
+  grid_uf_pixel_scale_  = program.get_uniform_location("pixelScale");
 
   grid_shader_ = std::move(program);
 }
@@ -510,6 +513,7 @@ void CubeScene::gl_cleanup()
   ol_uf_diffuse_mat_    = -1;
   grid_uf_model_view_   = -1;
   grid_uf_view_frustum_ = -1;
+  grid_uf_pixel_scale_  = -1;
 
   piece_shader_.reset();
   outline_shader_.reset();
@@ -1227,6 +1231,15 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
     if (grid_proj_dirty_)
     {
       grid_proj_dirty_ = false;
+
+      const float w = get_unscaled_width();
+      const float h = get_unscaled_height();
+
+      // Negate the width reciprocal to save a partial negation in the shader.
+      const Math::Vector4 pixel_scale {0.5f * w, 0.5f * h, -2.f / w, 2.f / h};
+
+      glUniform4fv(grid_uf_pixel_scale_, 1, &pixel_scale[0]);
+
       // Shift grid lines slighty to the front to suppress z-fighting.
       gl_set_projection(grid_uf_view_frustum_, 1.f / (1 << 13));
     }

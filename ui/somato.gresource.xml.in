@@ -4,6 +4,7 @@
     <file compressed="true" preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
     <file compressed="true">shaders/cellgrid.frag</file>
+    <file compressed="true">shaders/cellgrid.geom</file>
     <file compressed="true">shaders/cellgrid.vert</file>
     <file compressed="true">shaders/pieceoutline.frag</file>
     <file compressed="true">shaders/pieceoutline.geom</file>

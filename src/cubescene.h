@@ -148,6 +148,7 @@ private:
   GL::ShaderProgram           grid_shader_;
   int                         grid_uf_model_view_   = -1;
   int                         grid_uf_view_frustum_ = -1;
+  int                         grid_uf_pixel_scale_  = -1;
 
   unsigned int                mesh_vertex_array_    = 0;
   unsigned int                mesh_buffers_[2]      = {0, 0};

@@ -1,19 +1,35 @@
+#if defined(GL_ES) && __VERSION__ < 320
+# extension GL_OES_shader_io_blocks : require
+#endif
+
 uniform mat3x4 modelView;
 uniform vec4   viewFrustum;
 
 in vec4 position;
 
-smooth out vec3 varColor;
+out Vertex {
+  vec2  devCoord;
+  float intensity;
+} v_out;
 
-const float gridIntensity = 0.3;
+const float gridLuminance = 0.3;
+
+vec4 project(vec4 frustum, vec3 pos)
+{
+  return vec4(pos.xy * frustum.xy, pos.z * frustum.z + frustum.w, -pos.z);
+}
+
+float depthFade(float z)
+{
+  return clamp(0.0625 * z + 1., 0., 1.);
+}
 
 void main()
 {
   vec3 posCamSpace = position * modelView;
-  float fadeIntensity = clamp(0.08 * posCamSpace.z + 1., 0., 1.);
+  vec4 clipPos     = project(viewFrustum, posCamSpace);
 
-  varColor    = vec3(fadeIntensity * gridIntensity);
-  gl_Position = vec4(posCamSpace.xy * viewFrustum.xy,
-                     posCamSpace.z  * viewFrustum.z + viewFrustum.w,
-                    -posCamSpace.z);
+  gl_Position     = clipPos;
+  v_out.devCoord  = 1. / clipPos.w * clipPos.xy;
+  v_out.intensity = gridLuminance * depthFade(posCamSpace.z);
 }
