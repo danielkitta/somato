@@ -118,10 +118,10 @@ void GL::Extensions::query_(bool use_es, int ver)
       || epoxy_has_gl_extension("GL_ARB_debug_output");
 
   geometry_shader = (!use_es || ver >= 32)
-      || epoxy_has_gl_extension("GL_OES_geometry_shader");
+      || epoxy_has_gl_extension("GL_EXT_geometry_shader");
 
   texture_border_clamp = (!use_es || ver >= 32)
-      || epoxy_has_gl_extension("GL_OES_texture_border_clamp");
+      || epoxy_has_gl_extension("GL_EXT_texture_border_clamp");
 
   texture_filter_anisotropic = (!use_es && ver >= 46)
       || epoxy_has_gl_extension("GL_EXT_texture_filter_anisotropic");

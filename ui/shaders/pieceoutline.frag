@@ -1,5 +1,5 @@
 #if defined(GL_ES) && __VERSION__ < 320
-# extension GL_OES_shader_io_blocks : require
+# extension GL_EXT_shader_io_blocks : require
 #endif
 #ifdef GL_ES
 precision mediump float;

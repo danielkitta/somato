@@ -1,5 +1,5 @@
 #if defined(GL_ES) && __VERSION__ < 320
-# extension GL_OES_geometry_shader : require
+# extension GL_EXT_geometry_shader : require
 #endif
 
 layout(lines) in;
