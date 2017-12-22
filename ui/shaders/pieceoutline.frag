@@ -41,8 +41,8 @@ void main()
   float cosIncidence = clamp(dotNormLight * rMagNormal, 0., 1.);
   float cosHalfIncid = clamp(dotNormHalf * rMagNormal * rMagHalfVec, 0., 1.);
 
-  float specHighlight = pow(cosHalfIncid, shininess) * specIntensity;
-  float specularTerm  = (cosIncidence != 0.) ? specHighlight : 0.;
+  float specHighlight = pow(cosHalfIncid, shininess);
+  float specularTerm  = specHighlight * specIntensity * cosIncidence;
   float diffuseTerm   = lightIntensity * cosIncidence + ambIntensity;
 
   float edgeFactor = smoothstep(0., 1., minComponent(var.edgeDist));
