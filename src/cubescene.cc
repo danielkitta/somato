@@ -117,21 +117,20 @@ const GLfloat texture_shear[2][4] =
   {0.00168634, -0.0145917,  0.474773,  0.26}
 };
 
-/*
- * The materials applied to cube pieces.  Indices into the materials array
+/* The materials applied to cube pieces. Indices into the materials array
  * match the original piece order as passed to CubeScene::set_cube_pieces(),
  * reduced modulo the number of materials.
  */
 const std::array<GLfloat[4], 8> piece_materials
 {{
-  { 0.80, 0.15, 0.00, 1. }, // orange
-  { 0.05, 0.60, 0.05, 1. }, // green
-  { 0.80, 0.00, 0.00, 1. }, // red
-  { 0.80, 0.50, 0.00, 1. }, // yellow
-  { 0.10, 0.00, 0.80, 1. }, // blue
-  { 0.60, 0.00, 0.80, 1. }, // lavender
-  { 0.05, 0.45, 0.80, 1. }, // cyan
-  { 0.80, 0.00, 0.25, 1. }  // pink
+  { 0.61, 0.04, 0.00, 1. }, // orange
+  { 0.01, 0.33, 0.01, 1. }, // green
+  { 0.61, 0.00, 0.00, 1. }, // red
+  { 0.61, 0.20, 0.00, 1. }, // yellow
+  { 0.01, 0.00, 0.61, 1. }, // blue
+  { 0.33, 0.00, 0.61, 1. }, // lavender
+  { 0.01, 0.17, 0.61, 1. }, // cyan
+  { 0.61, 0.00, 0.05, 1. }  // pink
 }};
 
 /*
@@ -206,8 +205,8 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
   piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N)
 {
   text_layouts()->set_layout_count(NUM_TEXT_LAYOUTS);
-  text_layouts()->set_layout_color(HEADING, GL::pack_4u8_norm(0.85, 0.85, 0.85, 1.));
-  text_layouts()->set_layout_color(FOOTING, GL::pack_4u8_norm(0.65, 0.65, 0.65, 1.));
+  text_layouts()->set_layout_color(HEADING, GL::pack_4u8_norm(0.5, 0.5, 0.5, 1.));
+  text_layouts()->set_layout_color(FOOTING, GL::pack_4u8_norm(0.2, 0.2, 0.2, 1.));
 
   set_can_focus(true);
 

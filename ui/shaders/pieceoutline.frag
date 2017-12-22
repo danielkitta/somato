@@ -16,11 +16,11 @@ in Varying {
 out vec4 outputColor;
 
 const vec3  dirToLight     = vec3(0., 0.242535625, 0.9701425);
-const float lightIntensity = 0.7;
-const float ambIntensity   = 0.2;
-const float specIntensity  = 0.1;
-const float shininess      = 32.;
-const vec3  edgeColor      = vec3(0.1);
+const float lightIntensity = 0.8;
+const float ambIntensity   = 0.05;
+const float specIntensity  = 0.04;
+const float shininess      = 12.;
+const vec3  edgeColor      = vec3(0.02);
 
 float inverseLength(vec3 v)
 {

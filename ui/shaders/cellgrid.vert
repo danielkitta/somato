@@ -12,7 +12,7 @@ out Vertex {
   float intensity;
 } v_out;
 
-const float gridLuminance = 0.3;
+const float gridLuminance = 0.1;
 
 vec4 project(vec4 frustum, vec3 pos)
 {
@@ -21,7 +21,8 @@ vec4 project(vec4 frustum, vec3 pos)
 
 float depthFade(float z)
 {
-  return clamp(0.0625 * z + 1., 0., 1.);
+  float fade = clamp(0.0625 * z + 1., 0., 1.);
+  return fade * fade;
 }
 
 void main()

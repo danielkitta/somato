@@ -108,7 +108,7 @@ enum : int
 
 /* Text intensity without and with focus.
  */
-const GLfloat focus_intensity[] = { 0.75, 1. };
+const GLfloat focus_intensity[] = { 0.6, 1. };
 
 } // anonymous namespace
 
