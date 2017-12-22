@@ -134,6 +134,9 @@ void Scene::gl_initialize()
   gl_update_viewport();
   text_layouts_->gl_init();
 
+  if (!GL::extensions().is_gles)
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
   // The source function is identity because we blend in an intensity
   // texture. That is, the color channels are premultiplied by alpha.
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -203,11 +206,7 @@ void Scene::on_realize()
       glDebugMessageCallback(&gl_on_debug_message, nullptr);
     }
     max_aa_samples_ = 0;
-
-    // Don't enable multi-sample AA on OpenGL ES, as it may be broken
-    // even though advertised.
-    if (!use_es)
-      glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
+    glGetIntegerv(GL_MAX_SAMPLES, &max_aa_samples_);
 
     gl_initialize();
   }
@@ -330,7 +329,7 @@ bool Scene::try_make_current()
   return !!context;
 }
 
-void Scene::gl_update_framebuffer()
+unsigned int Scene::gl_try_create_framebuffer(unsigned int color_format, int samples)
 {
   gl_delete_framebuffer();
 
@@ -340,12 +339,10 @@ void Scene::gl_update_framebuffer()
   glGenFramebuffers(1, &frame_buffer_);
   GL::Error::throw_if_fail(frame_buffer_ != 0);
 
-  const int samples = std::min(aa_samples_, max_aa_samples_);
-
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[COLOR]);
   GL::set_object_label(GL_RENDERBUFFER, render_buffers_[COLOR], "sceneColor");
 
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGB8,
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, color_format,
                                    get_viewport_width(), get_viewport_height());
 
   glBindRenderbuffer(GL_RENDERBUFFER, render_buffers_[DEPTH]);
@@ -363,7 +360,26 @@ void Scene::gl_update_framebuffer()
   glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                             GL_RENDERBUFFER, render_buffers_[DEPTH]);
 
-  const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+  return glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+}
+
+void Scene::gl_update_framebuffer()
+{
+  if (!GL::extensions().is_gles)
+  {
+    const int samples = std::min(aa_samples_, max_aa_samples_);
+
+    // SRGB8 is not a required color-renderable format, but it appears to
+    // be widely supported. Unfortunately, using the required SRGB8_ALPHA8
+    // format instead causes problems due to a GTK+ bug.
+    if (gl_try_create_framebuffer(GL_SRGB8, samples) == GL_FRAMEBUFFER_COMPLETE)
+      return;
+  }
+  // The GDK OpenGL-Cairo code is unable to handle multisample renderbuffer
+  // sources if the color format includes an alpha component. Unfortunately
+  // there is no way to instruct GDK to not do any alpha blending and just
+  // blit the framebuffer as it does without alpha.
+  const unsigned int status = gl_try_create_framebuffer(GL_SRGB8_ALPHA8, 0);
 
   if (status != GL_FRAMEBUFFER_COMPLETE)
     throw GL::FramebufferError{status};

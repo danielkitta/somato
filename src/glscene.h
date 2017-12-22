@@ -101,6 +101,7 @@ private:
 
   bool try_make_current();
 
+  unsigned int gl_try_create_framebuffer(unsigned int color_format, int samples);
   void gl_update_framebuffer();
   void gl_delete_framebuffer();
 
