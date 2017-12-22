@@ -13,7 +13,7 @@ in Varying {
   noperspective vec3 edgeDist;
 } var;
 
-out vec3 outputColor;
+out vec4 outputColor;
 
 const vec3  dirToLight     = vec3(0., 0.242535625, 0.9701425);
 const float lightIntensity = 0.7;
@@ -48,5 +48,5 @@ void main()
   float edgeFactor = smoothstep(0., 1., minComponent(var.edgeDist));
   vec3  innerColor = diffuseMaterial.rgb * diffuseTerm + specularTerm;
 
-  outputColor = mix(edgeColor, innerColor, edgeFactor);
+  outputColor = vec4(mix(edgeColor, innerColor, edgeFactor), 1.);
 }

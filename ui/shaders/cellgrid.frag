@@ -9,9 +9,9 @@ in Varying {
   smooth float intensity;
 } var;
 
-out vec3 outputColor;
+out vec4 outputColor;
 
 void main()
 {
-  outputColor = vec3(var.intensity);
+  outputColor = vec4(vec3(var.intensity), 1.);
 }

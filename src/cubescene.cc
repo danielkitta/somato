@@ -415,6 +415,7 @@ void CubeScene::gl_initialize()
 {
   GL::Scene::gl_initialize();
 
+  glClearColor(0., 0., 0., 1.);
   glEnable(GL_CULL_FACE);
 
   // Trade viewspace clipping for depth clamping to avoid highly visible
