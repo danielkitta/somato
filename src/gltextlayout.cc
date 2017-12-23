@@ -80,8 +80,10 @@ enum
   SAMPLER_LAYOUT = 0
 };
 
-/* Texture atlas tile dimensions for 8 bit per texel.
- * These match the tile size used by Intel hardware.
+/* Texture atlas tile dimensions for 8 bit per texel. Note that the tile
+ * width is expected to be an integer multiple of the Cairo image surface
+ * row alignment, so that it always equals the row stride.
+ * The specified dimensions match the tile size used by Intel hardware.
  */
 enum
 {
@@ -414,15 +416,13 @@ void TextLayoutAtlas::gl_update_texture()
   img_height = Math::align(img_height - PADDING, TILE_HEIGHT);
   img_width  = Math::align(img_width, TILE_WIDTH);
 
-  std::vector<GLubyte> tex_image (img_height * img_width);
+  // Create a Cairo surface for the texture image. Note that the image will be
+  // upside-down from the point of view of OpenGL, thus the texture coordinates
+  // need to be adjusted accordingly.
+  const auto surface = Cairo::ImageSurface::create(Cairo::FORMAT_A8,
+                                                   img_width, img_height);
   {
-    // Create a Cairo surface to draw the layout directly into the texture image.
-    // Note that the image will be upside-down from the point of view of OpenGL,
-    // thus the texture coordinates need to be adjusted accordingly.
-    const auto surface = Cairo::ImageSurface::create(&tex_image[0],
-        Cairo::FORMAT_A8, img_width, img_height, img_width * sizeof(GLubyte));
     const auto cairo = Cairo::Context::create(surface);
-
     cairo->set_operator(Cairo::OPERATOR_SOURCE);
 
     for (std::size_t i = 0; i < layouts.size(); ++i)
@@ -434,6 +434,8 @@ void TextLayoutAtlas::gl_update_texture()
         layout->show_in_cairo_context(cairo);
       }
   }
+  surface->flush();
+
   glActiveTexture(GL_TEXTURE0 + SAMPLER_LAYOUT);
 
   g_return_if_fail(tex_name_);
@@ -447,7 +449,7 @@ void TextLayoutAtlas::gl_update_texture()
     tex_height_ = img_height;
   }
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img_width, img_height,
-                  GL_RED, GL_UNSIGNED_BYTE, &tex_image[0]);
+                  GL_RED, GL_UNSIGNED_BYTE, surface->get_data());
 
   need_repaint_ = false;
 }
