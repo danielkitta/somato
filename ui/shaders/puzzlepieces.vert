@@ -5,9 +5,9 @@ uniform mat2x4 textureShear;
 in vec4 position;
 in vec2 normal;
 
-smooth out vec3 varHalfVec;
-smooth out vec3 varNormal;
-smooth out vec2 varTexcoord;
+smooth out mediump vec3 varHalfVec;
+smooth out mediump vec3 varNormal;
+smooth out mediump vec2 varTexcoord;
 
 const vec3 dirToLight = vec3(0., 0.242535625, 0.9701425);
 

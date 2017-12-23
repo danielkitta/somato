@@ -13,7 +13,7 @@ in Vertex {
 } v_in[2];
 
 out Varying {
-  smooth float intensity;
+  smooth mediump float intensity;
 } var;
 
 void emitVertexPair(vec4 pos, vec2 shift, float intensity)

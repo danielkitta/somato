@@ -4,8 +4,8 @@ in vec4 position;
 in vec2 texcoord;
 in vec3 color;
 
-noperspective out vec2 varTexcoord;
-flat          out vec3 varColor;
+noperspective out mediump vec2 varTexcoord;
+flat          out mediump vec3 varColor;
 
 void main()
 {

@@ -12,9 +12,9 @@ in Vertex {
 } v_in[3];
 
 out Varying {
-  smooth        vec3 halfVec;
-  smooth        vec3 normal;
-  noperspective vec3 edgeDist;
+  smooth        mediump vec3 halfVec;
+  smooth        mediump vec3 normal;
+  noperspective mediump vec3 edgeDist;
 } var;
 
 float triangleHeight(float area2, vec2 edge)

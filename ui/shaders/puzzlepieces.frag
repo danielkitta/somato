@@ -1,13 +1,11 @@
-#ifdef GL_ES
 precision mediump float;
-#endif
 
 uniform sampler2D pieceTexture;
 uniform vec4 diffuseMaterial;
 
-smooth in vec3 varHalfVec;
-smooth in vec3 varNormal;
-smooth in vec2 varTexcoord;
+smooth in mediump vec3 varHalfVec;
+smooth in mediump vec3 varNormal;
+smooth in mediump vec2 varTexcoord;
 
 out vec4 outputColor;
 

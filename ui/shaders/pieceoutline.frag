@@ -1,16 +1,14 @@
 #if defined(GL_ES) && __VERSION__ < 320
 # extension GL_EXT_shader_io_blocks : require
 #endif
-#ifdef GL_ES
 precision mediump float;
-#endif
 
 uniform vec4 diffuseMaterial;
 
 in Varying {
-  smooth        vec3 halfVec;
-  smooth        vec3 normal;
-  noperspective vec3 edgeDist;
+  smooth        mediump vec3 halfVec;
+  smooth        mediump vec3 normal;
+  noperspective mediump vec3 edgeDist;
 } var;
 
 out vec4 outputColor;

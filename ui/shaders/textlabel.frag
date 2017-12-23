@@ -1,14 +1,12 @@
 #ifdef GL_ARB_texture_gather
 # extension GL_ARB_texture_gather : require
 #endif
-#ifdef GL_ES
 precision mediump float;
-#endif
 
 uniform sampler2D labelTexture;
 
-noperspective in vec2 varTexcoord;
-flat          in vec3 varColor;
+noperspective in mediump vec2 varTexcoord;
+flat          in mediump vec3 varColor;
 
 out vec4 outputColor;
 
