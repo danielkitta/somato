@@ -117,11 +117,11 @@ const GLfloat texture_shear[2][4] =
   {0.00168634, -0.0145917,  0.474773,  0.26}
 };
 
-/* The materials applied to cube pieces. Indices into the materials array
- * match the original piece order as passed to CubeScene::set_cube_pieces(),
- * reduced modulo the number of materials.
+/* The color of each cube piece. Indices into the colors array match
+ * the original piece order as passed to CubeScene::set_cube_pieces(),
+ * reduced modulo the number of colors.
  */
-const std::array<GLfloat[4], 8> piece_materials
+const std::array<GLfloat[4], 8> piece_colors
 {{
   { 0.61, 0.04, 0.00, 1. }, // orange
   { 0.01, 0.33, 0.01, 1. }, // green
@@ -451,11 +451,11 @@ void CubeScene::gl_create_piece_shader()
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
   program.link();
 
-  uf_model_view_       = program.get_uniform_location("modelView");
-  uf_view_frustum_     = program.get_uniform_location("viewFrustum");
-  uf_texture_shear_    = program.get_uniform_location("textureShear");
-  uf_diffuse_material_ = program.get_uniform_location("diffuseMaterial");
-  uf_piece_texture_    = program.get_uniform_location("pieceTexture");
+  uf_model_view_    = program.get_uniform_location("modelView");
+  uf_view_frustum_  = program.get_uniform_location("viewFrustum");
+  uf_texture_shear_ = program.get_uniform_location("textureShear");
+  uf_diffuse_color_ = program.get_uniform_location("diffuseColor");
+  uf_piece_texture_ = program.get_uniform_location("pieceTexture");
 
   piece_shader_ = std::move(program);
 }
@@ -473,10 +473,10 @@ void CubeScene::gl_create_outline_shader()
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
   program.link();
 
-  ol_uf_model_view_   = program.get_uniform_location("modelView");
-  ol_uf_view_frustum_ = program.get_uniform_location("viewFrustum");
-  ol_uf_window_size_  = program.get_uniform_location("windowSize");
-  ol_uf_diffuse_mat_  = program.get_uniform_location("diffuseMaterial");
+  ol_uf_model_view_    = program.get_uniform_location("modelView");
+  ol_uf_view_frustum_  = program.get_uniform_location("viewFrustum");
+  ol_uf_window_size_   = program.get_uniform_location("windowSize");
+  ol_uf_diffuse_color_ = program.get_uniform_location("diffuseColor");
 
   outline_shader_ = std::move(program);
 }
@@ -505,12 +505,12 @@ void CubeScene::gl_cleanup()
   uf_model_view_        = -1;
   uf_view_frustum_      = -1;
   uf_texture_shear_     = -1;
-  uf_diffuse_material_  = -1;
+  uf_diffuse_color_     = -1;
   uf_piece_texture_     = -1;
   ol_uf_model_view_     = -1;
   ol_uf_view_frustum_   = -1;
   ol_uf_window_size_    = -1;
-  ol_uf_diffuse_mat_    = -1;
+  ol_uf_diffuse_color_  = -1;
   grid_uf_model_view_   = -1;
   grid_uf_view_frustum_ = -1;
   grid_uf_pixel_scale_  = -1;
@@ -1346,8 +1346,8 @@ void CubeScene::gl_draw_piece_elements(const Math::Matrix4& transform,
 
   glUniformMatrix3x4fv((show_outline_) ? ol_uf_model_view_ : uf_model_view_,
                        1, GL_FALSE, &model_view[0][0]);
-  glUniform4fv((show_outline_) ? ol_uf_diffuse_mat_ : uf_diffuse_material_,
-               1, piece_materials[data.cube_index % piece_materials.size()]);
+  glUniform4fv((show_outline_) ? ol_uf_diffuse_color_ : uf_diffuse_color_,
+               1, piece_colors[data.cube_index % piece_colors.size()]);
 
   const auto& mesh = BytesView<MeshDesc>{mesh_desc_}[data.cube_index];
 

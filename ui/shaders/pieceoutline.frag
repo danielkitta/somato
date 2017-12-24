@@ -3,7 +3,7 @@
 #endif
 precision mediump float;
 
-uniform vec4 diffuseMaterial;
+uniform vec4 diffuseColor;
 
 in Varying {
   smooth        mediump vec3 halfVec;
@@ -44,7 +44,7 @@ void main()
   float diffuseTerm   = lightIntensity * cosIncidence + ambIntensity;
 
   float edgeFactor = smoothstep(0., 1., minComponent(var.edgeDist));
-  vec3  innerColor = diffuseMaterial.rgb * diffuseTerm + specularTerm;
+  vec3  innerColor = diffuseColor.rgb * diffuseTerm + specularTerm;
 
   outputColor = vec4(mix(edgeColor, innerColor, edgeFactor), 1.);
 }

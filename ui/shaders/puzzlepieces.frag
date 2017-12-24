@@ -1,7 +1,7 @@
 precision mediump float;
 
 uniform sampler2D pieceTexture;
-uniform vec4 diffuseMaterial;
+uniform vec4      diffuseColor;
 
 smooth in mediump vec3 varHalfVec;
 smooth in mediump vec3 varNormal;
@@ -35,5 +35,5 @@ void main()
   float specularTerm  = specHighlight * specIntensity * cosIncidence;
   float diffuseTerm   = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
 
-  outputColor = vec4(diffuseMaterial.rgb * diffuseTerm + specularTerm, 1.);
+  outputColor = vec4(diffuseColor.rgb * diffuseTerm + specularTerm, 1.);
 }

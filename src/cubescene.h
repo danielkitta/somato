@@ -136,14 +136,14 @@ private:
   int                         uf_model_view_        = -1;
   int                         uf_view_frustum_      = -1;
   int                         uf_texture_shear_     = -1;
-  int                         uf_diffuse_material_  = -1;
+  int                         uf_diffuse_color_     = -1;
   int                         uf_piece_texture_     = -1;
 
   GL::ShaderProgram           outline_shader_;
   int                         ol_uf_model_view_     = -1;
   int                         ol_uf_view_frustum_   = -1;
   int                         ol_uf_window_size_    = -1;
-  int                         ol_uf_diffuse_mat_    = -1;
+  int                         ol_uf_diffuse_color_  = -1;
 
   GL::ShaderProgram           grid_shader_;
   int                         grid_uf_model_view_   = -1;
