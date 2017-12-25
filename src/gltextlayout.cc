@@ -280,6 +280,7 @@ void TextLayoutAtlas::gl_create_shader()
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_TEXCOORD, "texcoord");
   program.bind_attrib_location(ATTRIB_COLOR,    "color");
+  program.bind_frag_data_location(0, "outputColor");
   program.link();
 
   uf_texture_   = program.get_uniform_location("labelTexture");

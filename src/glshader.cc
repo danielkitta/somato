@@ -166,6 +166,14 @@ void ShaderProgram::bind_attrib_location(unsigned int idx, const char* name)
   glBindAttribLocation(program_, idx, name);
 }
 
+void ShaderProgram::bind_frag_data_location(unsigned int color_number, const char* name)
+{
+  g_return_if_fail(program_ != 0);
+
+  if (!GL::extensions().is_gles)
+    glBindFragDataLocation(program_, color_number, name);
+}
+
 void ShaderProgram::link()
 {
   g_return_if_fail(program_ != 0);

@@ -75,6 +75,7 @@ public:
 
   void attach(const ShaderObject& shader);
   void bind_attrib_location(unsigned int idx, const char* name);
+  void bind_frag_data_location(unsigned int color_number, const char* name);
   void link();
 
   int get_uniform_location(const char* name) const;

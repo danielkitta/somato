@@ -449,6 +449,7 @@ void CubeScene::gl_create_piece_shader()
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
+  program.bind_frag_data_location(0, "outputColor");
   program.link();
 
   uf_model_view_    = program.get_uniform_location("modelView");
@@ -471,6 +472,7 @@ void CubeScene::gl_create_outline_shader()
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
   program.bind_attrib_location(ATTRIB_NORMAL,   "normal");
+  program.bind_frag_data_location(0, "outputColor");
   program.link();
 
   ol_uf_model_view_    = program.get_uniform_location("modelView");
@@ -491,6 +493,7 @@ void CubeScene::gl_create_grid_shader()
   program.attach({GL_FRAGMENT_SHADER, RESOURCE_PREFIX "shaders/cellgrid.frag"});
 
   program.bind_attrib_location(ATTRIB_POSITION, "position");
+  program.bind_frag_data_location(0, "outputColor");
   program.link();
 
   grid_uf_model_view_   = program.get_uniform_location("modelView");
