@@ -51,13 +51,24 @@ public:
   GLuint release() { const GLuint shader = shader_; shader_ = 0; return shader; }
 };
 
+int choose_glsl_version()
+{
+  const int api_version = GL::extensions().version;
+
+  if (GL::extensions().is_gles)
+    return std::min(std::max(30, api_version), 32);
+
+  if (api_version > 32)
+    return std::min(api_version, 46);
+
+  return 15; // require at least GLSL 1.50
+}
+
 void load_shader_source(GLuint shader, const std::string& name)
 {
   const char* snippets[2];
   int lengths[G_N_ELEMENTS(snippets)];
 
-  const int version = (GL::extensions().version > 32 || GL::extensions().is_gles)
-                    ? GL::extensions().version : 15;
   // Select an appropriate preamble to the shader source text
   // depending on whether we are using OpenGL ES or desktop OpenGL.
   const auto preamble = Glib::ustring::compose((GL::extensions().is_gles)
@@ -66,7 +77,7 @@ void load_shader_source(GLuint shader, const std::string& name)
                         "#line 1\n"
                       : "#version %10\n"
                         "#line 1\n",
-                      version);
+                      choose_glsl_version());
 
   snippets[0] = preamble.data();
   lengths [0] = preamble.bytes();
