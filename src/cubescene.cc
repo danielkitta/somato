@@ -205,7 +205,7 @@ CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
   piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N)
 {
   text_layouts()->set_layout_count(NUM_TEXT_LAYOUTS);
-  text_layouts()->set_layout_color(HEADING, GL::pack_4u8_norm(0.5, 0.5, 0.5, 1.));
+  text_layouts()->set_layout_color(HEADING, GL::pack_4u8_norm(0.4, 0.4, 0.4, 1.));
   text_layouts()->set_layout_color(FOOTING, GL::pack_4u8_norm(0.2, 0.2, 0.2, 1.));
 
   set_can_focus(true);
