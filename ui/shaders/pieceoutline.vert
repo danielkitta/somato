@@ -17,13 +17,13 @@ out Vertex {
 
 const vec3 dirToLight = vec3(0., 0.242535625, 0.9701425);
 
-vec4 unwrapOctahedron(vec2 oct)
+vec3 unwrapOctahedron(vec2 oct)
 {
   float z = 1. - abs(oct.x) - abs(oct.y);
   float t = clamp(-z, 0., 1.);
   vec2 xy = oct + mix(vec2(-t), vec2(t), lessThan(oct, vec2(0.)));
 
-  return vec4(xy, z, 0.);
+  return vec3(xy, z);
 }
 
 vec4 project(vec4 frustum, vec3 pos)
@@ -33,12 +33,12 @@ vec4 project(vec4 frustum, vec3 pos)
 
 void main()
 {
-  vec4 modelNormal = unwrapOctahedron(normal);
+  vec3 modelNormal = unwrapOctahedron(normal);
   vec3 posCamSpace = position * modelView;
   vec4 clipPos     = project(viewFrustum, posCamSpace);
 
   gl_Position   = clipPos;
   v_out.winPos  = 1. / clipPos.w * clipPos.xy * windowSize;
   v_out.halfVec = dirToLight - normalize(posCamSpace);
-  v_out.normal  = normalize(modelNormal * modelView);
+  v_out.normal  = normalize(modelNormal * mat3(modelView));
 }
