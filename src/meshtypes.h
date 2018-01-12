@@ -37,13 +37,14 @@ inline std::tuple<float, float> wrap_octahedron_normal(float x, float y, float z
 {
   const float sum_abs = std::abs(x) + std::abs(y) + std::abs(z);
 
-  const float nx = x / sum_abs;
-  const float ny = y / sum_abs;
+  const float u = x / sum_abs;
+  const float v = y / sum_abs;
 
-  const float ox = (z >= 0.f) ? nx : std::copysign(1.f - std::abs(ny), nx);
-  const float oy = (z >= 0.f) ? ny : std::copysign(1.f - std::abs(nx), ny);
+  if (!std::signbit(z))
+    return std::make_tuple(u, v);
 
-  return std::make_tuple(ox, oy);
+  return std::make_tuple(std::copysign(1.f - std::abs(v), u),
+                         std::copysign(1.f - std::abs(u), v));
 }
 
 struct MeshVertex
