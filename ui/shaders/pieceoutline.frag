@@ -20,11 +20,6 @@ const float specIntensity  = 0.04;
 const float shininess      = 12.;
 const vec3  edgeColor      = vec3(0.02);
 
-float inverseLength(vec3 v)
-{
-  return inversesqrt(dot(v, v));
-}
-
 float minComponent(vec3 v)
 {
   return min(min(v.x, v.y), v.z);
@@ -32,19 +27,17 @@ float minComponent(vec3 v)
 
 void main()
 {
-  float rMagNormal   = inverseLength(var.normal);
-  float rMagHalfVec  = inverseLength(var.halfVec);
-  float dotNormLight = dot(var.normal, dirToLight);
-  float dotNormHalf  = dot(var.normal, var.halfVec);
-  float cosIncidence = clamp(dotNormLight * rMagNormal, 0., 1.);
-  float cosHalfIncid = clamp(dotNormHalf * rMagNormal * rMagHalfVec, 0., 1.);
+  float rmagNorm = inversesqrt(dot(var.normal, var.normal));
+  float rmagHalf = inversesqrt(dot(var.halfVec, var.halfVec));
 
-  float specHighlight = pow(cosHalfIncid, shininess);
-  float specularTerm  = specHighlight * specIntensity * cosIncidence;
-  float diffuseTerm   = lightIntensity * cosIncidence + ambIntensity;
+  float cosLight = clamp(dot(var.normal, dirToLight) * rmagNorm, 0., 1.);
+  float cosHalf  = clamp(dot(var.normal, var.halfVec) * rmagNorm * rmagHalf, 0., 1.);
 
-  float edgeFactor = smoothstep(0., 1., minComponent(var.edgeDist));
-  vec3  innerColor = diffuseColor.rgb * diffuseTerm + specularTerm;
+  float specular = pow(cosHalf, shininess) * specIntensity * cosLight;
+  float diffuse  = lightIntensity * cosLight + ambIntensity;
 
-  outputColor = vec4(mix(edgeColor, innerColor, edgeFactor), 1.);
+  float edgeDist = smoothstep(0., 1., minComponent(var.edgeDist));
+  vec3  interior = diffuseColor.rgb * diffuse + specular;
+
+  outputColor = vec4(mix(edgeColor, interior, edgeDist), 1.);
 }

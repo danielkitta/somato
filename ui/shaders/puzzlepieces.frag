@@ -15,25 +15,18 @@ const float ambIntensity   = 0.05;
 const float specIntensity  = 0.04;
 const float shininess      = 12.;
 
-float inverseLength(vec3 v)
-{
-  return inversesqrt(dot(v, v));
-}
-
 void main()
 {
-  float texIntensity = texture(pieceTexture, varTexcoord).r;
+  float luminance = texture(pieceTexture, varTexcoord).r;
 
-  float rMagNormal   = inverseLength(varNormal);
-  float rMagHalfVec  = inverseLength(varHalfVec);
-  float dotNormLight = dot(varNormal, dirToLight);
-  float dotNormHalf  = dot(varNormal, varHalfVec);
-  float cosIncidence = clamp(dotNormLight * rMagNormal, 0., 1.);
-  float cosHalfIncid = clamp(dotNormHalf * rMagNormal * rMagHalfVec, 0., 1.);
+  float rmagNorm = inversesqrt(dot(varNormal, varNormal));
+  float rmagHalf = inversesqrt(dot(varHalfVec, varHalfVec));
 
-  float specHighlight = pow(cosHalfIncid, shininess);
-  float specularTerm  = specHighlight * specIntensity * cosIncidence;
-  float diffuseTerm   = texIntensity * (lightIntensity * cosIncidence + ambIntensity);
+  float cosLight = clamp(dot(varNormal, dirToLight) * rmagNorm, 0., 1.);
+  float cosHalf  = clamp(dot(varNormal, varHalfVec) * rmagNorm * rmagHalf, 0., 1.);
 
-  outputColor = vec4(diffuseColor.rgb * diffuseTerm + specularTerm, 1.);
+  float specular = pow(cosHalf, shininess) * specIntensity * cosLight;
+  float diffuse  = luminance * (lightIntensity * cosLight + ambIntensity);
+
+  outputColor = vec4(diffuseColor.rgb * diffuse + specular, 1.);
 }
