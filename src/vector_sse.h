@@ -142,13 +142,10 @@ public:
  */
 inline __m128 Vector4::dot_(__m128 a, __m128 b)
 {
-  __m128 c = _mm_mul_ps(a, b);
-  __m128 d = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1));
+  const __m128 c = _mm_mul_ps(a, b);
+  const __m128 d = _mm_add_ps(c, _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1)));
 
-  c = _mm_add_ps(c, d);
-  d = _mm_movehl_ps(d, c);
-
-  return _mm_add_ss(c, d);
+  return _mm_add_ps(d, _mm_shuffle_ps(d, d, _MM_SHUFFLE(1,0,3,2)));
 }
 
 inline __m128 Vector4::cross_(__m128 a, __m128 b)

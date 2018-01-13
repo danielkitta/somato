@@ -183,9 +183,8 @@ __m128 Vector4::mag_(__m128 v)
 
 __m128 Vector4::norm_(__m128 v)
 {
-  const __m128 m = _mm_sqrt_ss(dot_(v, v));
-
-  return _mm_div_ps(v, _mm_shuffle_ps(m, m, _MM_SHUFFLE(0,0,0,0)));
+  const __m128 d = dot_(v, v);
+  return _mm_div_ps(v, _mm_sqrt_ps(d));
 }
 
 #if !SOMATO_VECTOR_USE_SSE2
