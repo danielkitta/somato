@@ -49,6 +49,7 @@ private:
   friend class Matrix4;
   friend class Quat;
   friend Vector4 operator*(const Matrix4& a, const Vector4& b);
+  friend Vector4 operator*(const Vector4& a, const Matrix4& b);
 
   explicit Vector4(__m128 v) : v_ {v} {}
 
@@ -209,6 +210,7 @@ private:
   static void transpose_(const __m128* m, __m128* result);
   static void scale_(const __m128* a, __m128 s, __m128* result);
   static __m128 mul_(const __m128* a, __m128 b);
+  static __m128 mul_(__m128 a, const __m128* b);
   static void   mul_(const __m128* a, const __m128* b, __m128* result);
 
 public:
@@ -230,6 +232,9 @@ public:
 
   friend Vector4 operator*(const Matrix4& a, const Vector4& b)
     { return Vector4(mul_(a.m_, b.v_)); }
+
+  friend Vector4 operator*(const Vector4& a, const Matrix4& b)
+    { return Vector4(mul_(a.v_, b.m_)); }
 
   void scale(float s) { scale_(m_, _mm_set_ss(s), m_); }
   Matrix4 scaled(float s) const

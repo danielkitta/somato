@@ -37,6 +37,9 @@ private:
   friend Vector4 operator*(const Matrix4& a, const Vector4& b);
   friend Vector4 operator*(const Matrix4& a, const float* b);
   friend Vector4 operator*(const float a[][4], const Vector4& b);
+  friend Vector4 operator*(const Vector4& a, const Matrix4& b);
+  friend Vector4 operator*(const float* a, const Matrix4& b);
+  friend Vector4 operator*(const Vector4& a, const float b[][4]);
 
   enum Uninitialized { uninitialized };
   explicit Vector4(Uninitialized) {}
@@ -211,6 +214,7 @@ private:
   static void transpose_(const float m[][4], float result[][4]);
   static void scale_(const float a[][4], float s, float result[][4]);
   static void mul_(const float a[][4], const float* b, float* result);
+  static void mul_(const float* a, const float b[][4], float* result);
   static void mul_(const float a[][4], const float b[][4], float result[][4]);
 
 public:
@@ -239,6 +243,15 @@ public:
 
   friend Vector4 operator*(const value_type a[][4], const Vector4& b)
     { Vector4 r (Vector4::uninitialized); mul_(a, b.v_, r.v_); return r; }
+
+  friend Vector4 operator*(const Vector4& a, const Matrix4& b)
+    { Vector4 r (Vector4::uninitialized); mul_(a.v_, b.m_, r.v_); return r; }
+
+  friend Vector4 operator*(const value_type* a, const Matrix4& b)
+    { Vector4 r (Vector4::uninitialized); mul_(a, b.m_, r.v_); return r; }
+
+  friend Vector4 operator*(const Vector4& a, const value_type b[][4])
+    { Vector4 r (Vector4::uninitialized); mul_(a.v_, b, r.v_); return r; }
 
   friend Matrix4 operator*(const Matrix4& a, const Matrix4& b)
     { Matrix4 r (uninitialized); mul_(a.m_, b.m_, r.m_); return r; }

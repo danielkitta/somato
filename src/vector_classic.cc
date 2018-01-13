@@ -190,6 +190,19 @@ void Matrix4::mul_(const float a[][4], const float* b, float* result)
   result[3] = a[0][3] * b0 + a[1][3] * b1 + a[2][3] * b2 + a[3][3] * b3;
 }
 
+void Matrix4::mul_(const float* a, const float b[][4], float* result)
+{
+  const float a0 = a[0];
+  const float a1 = a[1];
+  const float a2 = a[2];
+  const float a3 = a[3];
+
+  result[0] = b[0][0] * a0 + b[0][1] * a1 + b[0][2] * a2 + b[0][3] * a3;
+  result[1] = b[1][0] * a0 + b[1][1] * a1 + b[1][2] * a2 + b[1][3] * a3;
+  result[2] = b[2][0] * a0 + b[2][1] * a1 + b[2][2] * a2 + b[2][3] * a3;
+  result[3] = b[3][0] * a0 + b[3][1] * a1 + b[3][2] * a2 + b[3][3] * a3;
+}
+
 void Matrix4::mul_(const float a[][4], const float b[][4], float result[][4])
 {
   Matrix4 temp (uninitialized);

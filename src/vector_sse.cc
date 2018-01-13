@@ -281,6 +281,27 @@ __m128 Matrix4::mul_(const __m128* a, __m128 b)
   return _mm_add_ps(s0, s2);
 }
 
+__m128 Matrix4::mul_(__m128 a, const __m128* b)
+{
+  const __m128 r0 = _mm_mul_ps(b[0], a);
+  const __m128 r1 = _mm_mul_ps(b[1], a);
+  const __m128 r2 = _mm_mul_ps(b[2], a);
+  const __m128 r3 = _mm_mul_ps(b[3], a);
+
+  const __m128 t0 = _mm_unpacklo_ps(r0, r1);  // 00, 10, 01, 11
+  const __m128 t1 = _mm_unpackhi_ps(r0, r1);  // 02, 12, 03, 13
+  const __m128 t2 = _mm_unpacklo_ps(r2, r3);  // 20, 30, 21, 31
+  const __m128 t3 = _mm_unpackhi_ps(r2, r3);  // 22, 32, 23, 33
+
+  const __m128 s0 = _mm_add_ps(t0, t1);       // 00+02, 10+12, 01+03, 11+13
+  const __m128 s2 = _mm_add_ps(t2, t3);       // 20+22, 30+32, 21+23, 31+33
+
+  const __m128 c0 = _mm_movelh_ps(s0, s2);    // 00+02, 10+12, 20+22, 30+32
+  const __m128 c2 = _mm_movehl_ps(s2, s0);    // 01+03, 11+13, 21+23, 31+33
+
+  return _mm_add_ps(c0, c2);
+}
+
 void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
 {
   const __m128 a0 = a[0];
