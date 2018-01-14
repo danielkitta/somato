@@ -52,10 +52,6 @@ private:
   static void  cross_(const float* a, const float* b, float* result);
   static bool  equal_(const float* a, const float* b);
   static void  norm_ (const float* v, float* result);
-  static void  rint_ (const float* v, float* result);
-  static void  sign_ (const float* v, float* result);
-  static void  mask_ifzero_   (const float* a, const float* b, float* result);
-  static void  mask_ifnonzero_(const float* a, const float* b, float* result);
 
 public:
   typedef float         value_type;
@@ -157,42 +153,6 @@ public:
   void normalize() { norm_(v_, v_); }
   Vector4 normalized() const
     { Vector4 r (uninitialized); norm_(v_, r.v_); return r; }
-
-  static Vector4 rint(const Vector4& v)
-    { Vector4 r (uninitialized); rint_(v.v_, r.v_); return r; }
-
-  static Vector4 rint(const value_type* v)
-    { Vector4 r (uninitialized); rint_(v, r.v_); return r; }
-
-  static Vector4 sign(const Vector4& v)
-    { Vector4 r (uninitialized); sign_(v.v_, r.v_); return r; }
-
-  static Vector4 sign(const value_type* v)
-    { Vector4 r (uninitialized); sign_(v, r.v_); return r; }
-
-  static Vector4 mask_ifzero(const Vector4& a, const Vector4& b)
-    { Vector4 r (uninitialized); mask_ifzero_(a.v_, b.v_, r.v_); return r; }
-
-  static Vector4 mask_ifzero(const Vector4& a, const value_type* b)
-    { Vector4 r (uninitialized); mask_ifzero_(a.v_, b, r.v_); return r; }
-
-  static Vector4 mask_ifzero(const value_type* a, const Vector4& b)
-    { Vector4 r (uninitialized); mask_ifzero_(a, b.v_, r.v_); return r; }
-
-  static Vector4 mask_ifzero(const value_type* a, const value_type* b)
-    { Vector4 r (uninitialized); mask_ifzero_(a, b, r.v_); return r; }
-
-  static Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b)
-    { Vector4 r (uninitialized); mask_ifnonzero_(a.v_, b.v_, r.v_); return r; }
-
-  static Vector4 mask_ifnonzero(const Vector4& a, const value_type* b)
-    { Vector4 r (uninitialized); mask_ifnonzero_(a.v_, b, r.v_); return r; }
-
-  static Vector4 mask_ifnonzero(const value_type* a, const Vector4& b)
-    { Vector4 r (uninitialized); mask_ifnonzero_(a, b.v_, r.v_); return r; }
-
-  static Vector4 mask_ifnonzero(const value_type* a, const value_type* b)
-    { Vector4 r (uninitialized); mask_ifnonzero_(a, b, r.v_); return r; }
 };
 
 inline Vector4 operator+(const Vector4& v)

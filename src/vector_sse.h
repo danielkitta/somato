@@ -21,10 +21,6 @@
 
 #include <array>
 #include <cmath>
-
-#if SOMATO_VECTOR_USE_SSE2
-# include <emmintrin.h>
-#endif
 #include <xmmintrin.h>
 
 namespace Math
@@ -32,14 +28,10 @@ namespace Math
 
 class Matrix4;
 
-/*
- * Math::Vector4 represents a vector of four single-precision floating point
- * scalars.  Most of the common vector operations are made available via
- * operators.  If a and b are both vectors, a * b denotes the dot product
+/* Math::Vector4 represents a vector of four single-precision floating point
+ * scalars. Most of the common vector operations are made available via
+ * operators. If a and b are both vectors, a * b denotes the dot product
  * (scalar product) and a % b denotes the cross product.
- *
- * Note that for performance reasons, the result of the rint() method
- * is undefined if the rounded value exceeds the range [-2^31, 2^31-1].
  */
 class Vector4
 {
@@ -55,9 +47,6 @@ private:
 
   static inline __m128 dot_  (__m128 a, __m128 b); // scalar product across (x,y,z,w)
   static inline __m128 cross_(__m128 a, __m128 b); // 3-D vector product, returns w = 0
-#if !SOMATO_VECTOR_USE_SSE2
-  static __m128 rint_(__m128 v);
-#endif
   static __m128 mag_(__m128 v);  // magnitude of (x,y,z,w)
   static __m128 norm_(__m128 v); // normalize
 
@@ -112,14 +101,6 @@ public:
     { return (_mm_movemask_ps(_mm_cmpneq_ps(a.v_, b.v_)) != 0); }
 
   static value_type mag(const Vector4& v) { return _mm_cvtss_f32(mag_(v.v_)); }
-  static inline Vector4 sign(const Vector4& v); // returns 1, -1 or 0 depending on sign of input
-  static inline Vector4 rint(const Vector4& v); // round to nearest integer, halfway cases to even
-
-  static Vector4 mask_ifzero(const Vector4& a, const Vector4& b)
-    { return Vector4(_mm_and_ps(a.v_, _mm_cmpneq_ps(_mm_setzero_ps(), b.v_))); }
-
-  static Vector4 mask_ifnonzero(const Vector4& a, const Vector4& b)
-    { return Vector4(_mm_and_ps(a.v_, _mm_cmpeq_ps(_mm_setzero_ps(), b.v_))); }
 
   void normalize() { v_ = norm_(v_); }
   Vector4 normalized() const { return Vector4(norm_(v_)); }
@@ -135,10 +116,9 @@ public:
   value_type w() const { return _mm_cvtss_f32(_mm_shuffle_ps(v_, v_, _MM_SHUFFLE(3,3,3,3))); }
 };
 
-/*
- * Although the actual function call overhead would be small, inlining dot_(),
- * cross_() and sign() in fact reduces code size. And more importantly, it
- * avoids register save and restore overhead in computation chains.
+/* Although the actual function call overhead would be small, inlining dot_()
+ * and cross_() in fact reduces code size. And more importantly, it avoids
+ * register save and restore overhead in computation chains.
  */
 inline __m128 Vector4::dot_(__m128 a, __m128 b)
 {
@@ -163,33 +143,7 @@ inline __m128 Vector4::cross_(__m128 a, __m128 b)
   return _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(3,0,2,1));
 }
 
-inline Vector4 Vector4::sign(const Vector4& v)
-{
-  const __m128 u = v.v_;
-  const __m128 zero = _mm_setzero_ps();
-
-  const __m128 n = _mm_cmplt_ps(u, zero);
-  const __m128 p = _mm_cmplt_ps(zero, u);
-
-  const __m128 neg1 = _mm_set1_ps(-1.f);
-
-  // a - b calculated as (-b) - (-a) to avoid a register move.
-  const __m128 s = _mm_sub_ps(_mm_and_ps(n, neg1), _mm_and_ps(p, neg1));
-
-  return Vector4(s);
-}
-
-inline Vector4 Vector4::rint(const Vector4& v)
-{
-#if SOMATO_VECTOR_USE_SSE2
-  return Vector4(_mm_cvtepi32_ps(_mm_cvtps_epi32(v.v_)));
-#else
-  return Vector4(Vector4::rint_(v.v_));
-#endif
-}
-
-/*
- * Math::Matrix4 represents a 4x4 square matrix of single-precision
+/* Math::Matrix4 represents a 4x4 square matrix of single-precision
  * floating point scalars in column-major order, compatible with OpenGL.
  * Multiplication with another matrix and multiplication with a vector
  * are supported via operators.
@@ -249,8 +203,7 @@ public:
   const value_type* operator[](size_type i) const { return reinterpret_cast<const float*>(&m_[i]); }
 };
 
-/*
- * Math::Quat represents a unit quaternion.  The interface provides
+/* Math::Quat represents a unit quaternion. The interface provides
  * a subset of quaternion operations useful for rotation in 3-D space.
  */
 class Quat

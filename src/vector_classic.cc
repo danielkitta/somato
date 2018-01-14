@@ -52,39 +52,6 @@ const std::array<Vector4, 4> Vector4::basis =
   {0.f, 0.f, 0.f, 1.f},
 }};
 
-void Vector4::sign_(const float* v, float* result)
-{
-  set_vector(result, int{v[0] > 0.f} - int{v[0] < 0.f},
-                     int{v[1] > 0.f} - int{v[1] < 0.f},
-                     int{v[2] > 0.f} - int{v[2] < 0.f},
-                     int{v[3] > 0.f} - int{v[3] < 0.f});
-}
-
-void Vector4::rint_(const float* v, float* result)
-{
-  // Boldly assume the default rounding style.  This way, shooting yourself
-  // into the foot by changing the rounding direction non-temporarily becomes
-  // an even more delighting experience than usual.
-  set_vector(result, std::lrint(v[0]), std::lrint(v[1]),
-                     std::lrint(v[2]), std::lrint(v[3]));
-}
-
-void Vector4::mask_ifzero_(const float* a, const float* b, float* result)
-{
-  set_vector(result, (b[0] == 0.f) ? 0.f : a[0],
-                     (b[1] == 0.f) ? 0.f : a[1],
-                     (b[2] == 0.f) ? 0.f : a[2],
-                     (b[3] == 0.f) ? 0.f : a[3]);
-}
-
-void Vector4::mask_ifnonzero_(const float* a, const float* b, float* result)
-{
-  set_vector(result, (b[0] != 0.f) ? 0.f : a[0],
-                     (b[1] != 0.f) ? 0.f : a[1],
-                     (b[2] != 0.f) ? 0.f : a[2],
-                     (b[3] != 0.f) ? 0.f : a[3]);
-}
-
 void Vector4::add_(const float* a, const float* b, float* result)
 {
   set_vector(result, a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]);

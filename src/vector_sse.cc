@@ -98,17 +98,16 @@ inline void v4_align_free(void* p) noexcept
 
 } // anonymous namespace
 
-/*
- * Replace the global new and delete operators to ensure that dynamically
- * allocated memory meets the SSE alignment requirements.  This is of course
+/* Replace the global new and delete operators to ensure that dynamically
+ * allocated memory meets the SSE alignment requirements. This is of course
  * a somewhat heavy-handed approach, but if not done globally, every class
  * or struct that has a data member of type Vector4/Matrix4/Quat would have
- * to provide its own memory allocation operators.  Worse yet, this applies
+ * to provide its own memory allocation operators. Worse yet, this applies
  * even to indirectly contained data members, and inheritance as a possible
  * solution does not apply there!
  *
  * Obviously this is all too easy to get wrong, thus I opted for the global
- * solution.  This implies that the current SSE vector implementation should
+ * solution. This implies that the current SSE vector implementation should
  * not be included in a library.
  *
  * Note that the GNU C library already uses a minimum alignment of 16 bytes
@@ -186,26 +185,6 @@ __m128 Vector4::norm_(__m128 v)
   const __m128 d = dot_(v, v);
   return _mm_div_ps(v, _mm_sqrt_ps(d));
 }
-
-#if !SOMATO_VECTOR_USE_SSE2
-
-__m128 Vector4::rint_(__m128 v)
-{
-  __m128 u = _mm_movehl_ps(v, v);
-
-  // Note: causes transition to MMX state
-  const __m64 i0 = _mm_cvtps_pi32(v);
-  const __m64 i1 = _mm_cvtps_pi32(u);
-
-  v = _mm_cvtpi32_ps(v, i0);
-  u = _mm_cvtpi32_ps(u, i1);
-
-  _mm_empty(); // reset FP state
-
-  return _mm_movelh_ps(v, u);
-}
-
-#endif /* !SOMATO_VECTOR_USE_SSE2 */
 
 Matrix4::Matrix4()
 {
