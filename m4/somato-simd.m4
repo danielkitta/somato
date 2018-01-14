@@ -15,7 +15,7 @@
 ## You should have received a copy of the GNU General Public License
 ## along with Somato.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20170924
+#serial 20180113
 
 ## SOMATO_ARG_ENABLE_VECTOR_SIMD()
 ##
@@ -37,20 +37,6 @@ b = _mm_mul_ps(a, a);
 ]])],
   [somato_cv_simd_sse_support=yes],
   [somato_cv_simd_sse_support=no])
-])
-AC_CACHE_CHECK([for SSE2 support], [somato_cv_simd_sse2_support],
-               [AC_LINK_IFELSE([AC_LANG_PROGRAM(
-[[
-#include <emmintrin.h>
-]], [[
-__m128 a;
-__m128i b;
-a = _mm_setr_ps(1.0f, 2.0f, 3.0f, 4.0f);
-b = _mm_cvtps_epi32(a);
-(void) _mm_cvtepi32_ps(b);
-]])],
-  [somato_cv_simd_sse2_support=yes],
-  [somato_cv_simd_sse2_support=no])
 ])
 AC_CHECK_ALIGNOF([max_align_t])
 AS_IF([test "$ac_cv_alignof_max_align_t" -ge 16],
@@ -80,7 +66,7 @@ if (posix_memalign(&p, 16, 128) == 0)
 ]])
 ])
 AC_ARG_ENABLE([vector-simd], [AS_HELP_STRING(
-  [--enable-vector-simd=@<:@auto|sse|sse2|no@:>@],
+  [--enable-vector-simd=@<:@auto|sse|no@:>@],
   [use SIMD instructions for vector arithmetic @<:@auto@:>@])],
   [somato_enable_vector_simd=$enableval],
   [somato_enable_vector_simd=auto])[]dnl
@@ -89,23 +75,18 @@ AC_MSG_CHECKING([which SIMD vector implementation to use])
 somato_result=none
 
 AS_CASE([$somato_cv_simd_sse_support.$somato_align_sufficient.$SOMATO_FEATURE__MM_MALLOC.$SOMATO_FEATURE_POSIX_MEMALIGN],
-        [yes.*yes*], [AS_CASE([$somato_enable_vector_simd.$somato_cv_simd_sse2_support],
-                              [sse2.yes|auto.yes|yes.yes], [somato_result=sse2],
-                              [sse2.*|sse.*|auto.*|yes.*], [somato_result=sse])])
-AS_CASE([$somato_result], [sse|sse2],
-        [AC_DEFINE([SOMATO_VECTOR_USE_SSE], [1],
-                   [Define to 1 to enable the SSE vector code.])])
-AS_IF([test "x$somato_result" = xsse2],
-      [AC_DEFINE([SOMATO_VECTOR_USE_SSE2], [1],
-                 [Define to 1 to enable the SSE2 vector code.])])
+        [yes.*yes*], [AS_CASE([$somato_enable_vector_simd],
+                              [sse|auto|yes], [somato_result=sse])])
+AS_IF([test "x$somato_result" = xsse],
+      [AC_DEFINE([SOMATO_VECTOR_USE_SSE], [1],
+                 [Define to 1 to enable the SSE vector code.])])
 
 AC_MSG_RESULT([$somato_result])
 
 AS_CASE([$somato_enable_vector_simd], [auto|yes|no],,
         [AS_IF([test "x$somato_result" != "x$somato_enable_vector_simd"], [AC_MSG_FAILURE([[
-The requested SIMD target "$somato_enable_vector_simd" is not available.  It might be
+The requested SIMD target "$somato_enable_vector_simd" is not supported. It might be
 necessary to append the appropriate architecture selection options to
-your CFLAGS or CXXFLAGS, respectively.  E.g. if you use GCC, try with
-"-march=pentium3" to generate code for Pentium III processors.
+your CFLAGS or CXXFLAGS, respectively.
 ]])])])
 ])
