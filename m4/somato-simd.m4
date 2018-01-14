@@ -77,10 +77,9 @@ somato_result=none
 AS_CASE([$somato_cv_simd_sse_support.$somato_align_sufficient.$SOMATO_FEATURE__MM_MALLOC.$SOMATO_FEATURE_POSIX_MEMALIGN],
         [yes.*yes*], [AS_CASE([$somato_enable_vector_simd],
                               [sse|auto|yes], [somato_result=sse])])
-AS_IF([test "x$somato_result" = xsse],
-      [AC_DEFINE([SOMATO_VECTOR_USE_SSE], [1],
-                 [Define to 1 to enable the SSE vector code.])])
-
+AM_CONDITIONAL([SIMD_SSE], [test "x$somato_result" = xsse])
+AM_COND_IF([SIMD_SSE], [AC_DEFINE([SOMATO_VECTOR_USE_SSE], [1],
+                                  [Define to 1 to enable the SSE vector code.])])
 AC_MSG_RESULT([$somato_result])
 
 AS_CASE([$somato_enable_vector_simd], [auto|yes|no],,

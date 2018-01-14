@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2018  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -20,8 +20,29 @@
 #include <config.h>
 #include "vectormath.h"
 
-#if SOMATO_VECTOR_USE_SSE
-# include "vector_sse.cc"
-#else
-# include "vector_classic.cc"
-#endif
+namespace Math
+{
+
+const std::array<Vector4, 4> Vector4::basis =
+{{
+  {1.f, 0.f, 0.f, 0.f},
+  {0.f, 1.f, 0.f, 0.f},
+  {0.f, 0.f, 1.f, 0.f},
+  {0.f, 0.f, 0.f, 1.f},
+}};
+
+Matrix4::Matrix4()
+:
+  Matrix4(Vector4::basis[0], Vector4::basis[1], Vector4::basis[2], Vector4::basis[3])
+{}
+
+float Quat::angle_(Simd::V4f quat)
+{
+  const float cosine = Simd::ext4s<3>(quat);
+  const float sine   = Simd::mag3s(quat);
+
+  const float a = std::atan2(sine, cosine);
+  return 2.f * a;
+}
+
+} // namespace Math

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2006  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2018  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -21,9 +21,211 @@
 #define SOMATO_VECTORMATH_H_INCLUDED
 
 #if SOMATO_VECTOR_USE_SSE
-# include "vector_sse.h"
+# include "simd_sse.h"
 #else
-# include "vector_classic.h"
+# include "simd_fallback.h"
 #endif
 
-#endif /* SOMATO_VECTORMATH_H_INCLUDED */
+#include <array>
+#include <cmath>
+
+namespace Math
+{
+
+class Matrix4;
+
+/* Math::Vector4 represents a vector of four single-precision floating point
+ * scalars. Most of the common vector operations are made available via
+ * operators. If a and b are both vectors, a * b denotes the dot product
+ * (scalar product) and a % b denotes the cross product.
+ */
+class Vector4
+{
+private:
+  Simd::V4f v_;
+
+  friend class Matrix4;
+  friend class Quat;
+  friend Vector4 operator*(const Matrix4& a, const Vector4& b);
+  friend Vector4 operator*(const Vector4& a, const Matrix4& b);
+
+  explicit Vector4(Simd::V4f v) : v_ {v} {}
+
+public:
+  typedef float       value_type;
+  typedef std::size_t size_type;
+
+  static const std::array<Vector4, 4> basis;
+
+  constexpr Vector4() : v_ {0.f, 0.f, 0.f, 0.f} {}
+  constexpr Vector4(value_type x_, value_type y_, value_type z_, value_type w_ = 0.f)
+    : v_ {x_, y_, z_, w_} {}
+
+  Vector4& operator+=(const Vector4& b) { v_ = Simd::add4(v_, b.v_); return *this; }
+  Vector4& operator-=(const Vector4& b) { v_ = Simd::sub4(v_, b.v_); return *this; }
+  Vector4& operator*=(value_type b) { v_ = Simd::mul4s(v_, b); return *this; }
+  Vector4& operator/=(value_type b) { v_ = Simd::div4s(v_, b); return *this; }
+  Vector4& operator%=(const Vector4& b) { v_ = Simd::cross3(v_, b.v_); return *this; }
+
+  friend Vector4 operator+(const Vector4& a, const Vector4& b)
+    { return Vector4(Simd::add4(a.v_, b.v_)); }
+
+  friend Vector4 operator-(const Vector4& a, const Vector4& b)
+    { return Vector4(Simd::sub4(a.v_, b.v_)); }
+
+  friend Vector4 operator*(const Vector4& a, value_type b)
+    { return Vector4(Simd::mul4s(a.v_, b)); }
+
+  friend Vector4 operator*(value_type a, const Vector4& b)
+    { return Vector4(Simd::mul4s(b.v_, a)); }
+
+  friend Vector4 operator/(const Vector4& a, value_type b)
+    { return Vector4(Simd::div4s(a.v_, b)); }
+
+  friend value_type operator*(const Vector4& a, const Vector4& b)
+    { return Simd::dot4s(a.v_, b.v_); }
+
+  friend Vector4 operator%(const Vector4& a, const Vector4& b)
+    { return Vector4(Simd::cross3(a.v_, b.v_)); }
+
+  friend Vector4 operator+(const Vector4& v) { return v; }
+  friend Vector4 operator-(const Vector4& v) { return Vector4(Simd::neg4(v.v_)); }
+
+  friend bool operator==(const Vector4& a, const Vector4& b)
+    { return Simd::cmp4eq(a.v_, b.v_); }
+
+  friend bool operator!=(const Vector4& a, const Vector4& b)
+    { return !Simd::cmp4eq(a.v_, b.v_); }
+
+  static value_type mag(const Vector4& v) { return Simd::mag4s(v.v_); }
+
+  void normalize() { v_ = Simd::norm4(v_); }
+  Vector4 normalized() const { return Vector4(Simd::norm4(v_)); }
+
+  value_type&       operator[](size_type i)       { return Simd::ref4s(v_, i); }
+  const value_type& operator[](size_type i) const { return Simd::ref4s(v_, i); }
+
+  value_type x() const { return Simd::ext4s<0>(v_); }
+  value_type y() const { return Simd::ext4s<1>(v_); }
+  value_type z() const { return Simd::ext4s<2>(v_); }
+  value_type w() const { return Simd::ext4s<3>(v_); }
+};
+
+/* Math::Matrix4 represents a 4x4 square matrix of single-precision
+ * floating point scalars in column-major order, compatible with OpenGL.
+ * Multiplication with another matrix and multiplication with a vector
+ * are supported via operators.
+ */
+class Matrix4
+{
+private:
+  Simd::V4f m_[4];
+
+  friend class Quat;
+
+  enum Uninitialized { uninitialized };
+  explicit Matrix4(Uninitialized) {}
+
+public:
+  typedef Vector4::value_type value_type;
+  typedef Vector4::size_type  size_type;
+
+  Matrix4(); // load identity matrix
+  constexpr Matrix4(const Vector4& c0, const Vector4& c1,
+                    const Vector4& c2, const Vector4& c3 = {0.f, 0.f, 0.f, 1.f})
+    : m_ {c0.v_, c1.v_, c2.v_, c3.v_} {}
+
+  Matrix4& operator*=(const Matrix4& b)
+    { Simd::mat4_mul_mm(m_, b.m_, m_); return *this; }
+
+  friend Matrix4 operator*(const Matrix4& a, const Matrix4& b)
+    { Matrix4 r (uninitialized); Simd::mat4_mul_mm(a.m_, b.m_, r.m_); return r; }
+
+  friend Vector4 operator*(const Matrix4& a, const Vector4& b)
+    { return Vector4(Simd::mat4_mul_mv(a.m_, b.v_)); }
+
+  friend Vector4 operator*(const Vector4& a, const Matrix4& b)
+    { return Vector4(Simd::mat4_mul_vm(a.v_, b.m_)); }
+
+  void scale(float s)
+  {
+    m_[0] = Simd::mul4s(m_[0], s);
+    m_[1] = Simd::mul4s(m_[1], s);
+    m_[2] = Simd::mul4s(m_[2], s);
+  }
+  Matrix4 scaled(float s) const
+  {
+    return {Vector4(Simd::mul4s(m_[0], s)),
+            Vector4(Simd::mul4s(m_[1], s)),
+            Vector4(Simd::mul4s(m_[2], s)),
+            Vector4(m_[3])};
+  }
+  void translate(const Vector4& t) { m_[3] = Simd::mat4_mul_mv(m_, t.v_); }
+  Matrix4 translated(const Vector4& t) const
+  {
+    return {Vector4(m_[0]),
+            Vector4(m_[1]),
+            Vector4(m_[2]),
+            Vector4(Simd::mat4_mul_mv(m_, t.v_))};
+  }
+  void transpose() { Simd::mat4_transpose(m_, m_); }
+  Matrix4 transposed() const
+    { Matrix4 r (uninitialized); Simd::mat4_transpose(m_, r.m_); return r; }
+
+  value_type*       operator[](size_type i)       { return &Simd::ref4s(m_[i], 0); }
+  const value_type* operator[](size_type i) const { return &Simd::ref4s(m_[i], 0); }
+};
+
+/* Math::Quat represents a unit quaternion. The interface provides
+ * a subset of quaternion operations useful for rotation in 3-D space.
+ */
+class Quat
+{
+private:
+  Simd::V4f v_;
+
+  explicit Quat(Simd::V4f v) : v_ {v} {}
+
+  static float angle_(Simd::V4f quat);
+  static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
+    { return {x * s, y * s, z * s, c}; }
+
+public:
+  typedef Vector4::value_type value_type;
+  typedef Vector4::size_type  size_type;
+
+  constexpr Quat() : v_ {0.f, 0.f, 0.f, 1.f} {}
+  constexpr Quat(value_type x_, value_type y_, value_type z_, value_type w_)
+    : v_ {x_, y_, z_, w_} {}
+
+  static constexpr Quat from_axis(value_type x, value_type y, value_type z, value_type phi)
+    { return from_axis_(x, y, z, std::sin(0.5f * phi), std::cos(0.5f * phi)); }
+
+  static Quat from_axis(const Vector4& a, value_type phi)
+    { return Quat(Simd::quat_from_axis(a.v_, phi)); }
+
+  static Matrix4 to_matrix(const Quat& quat)
+    { Matrix4 r (Matrix4::uninitialized); Simd::quat_to_matrix(quat.v_, r.m_); return r; }
+
+  Vector4 axis() const { return Vector4(Simd::quat_axis(v_)); }
+  value_type angle() const { return angle_(v_); }
+
+  Quat& operator*=(const Quat& b)
+    { v_ = Simd::quat_mul(v_, b.v_); return *this; }
+  friend Quat operator*(const Quat& a, const Quat& b)
+    { return Quat(Simd::quat_mul(a.v_, b.v_)); }
+
+  Quat renormalized() const { return Quat(Simd::norm4(v_)); }
+
+  value_type&       operator[](size_type i)       { return Simd::ref4s(v_, i); }
+  const value_type& operator[](size_type i) const { return Simd::ref4s(v_, i); }
+
+  value_type x() const { return Simd::ext4s<0>(v_); }
+  value_type y() const { return Simd::ext4s<1>(v_); }
+  value_type z() const { return Simd::ext4s<2>(v_); }
+  value_type w() const { return Simd::ext4s<3>(v_); }
+};
+
+} // namespace Math
+
+#endif // !SOMATO_VECTORMATH_H_INCLUDED

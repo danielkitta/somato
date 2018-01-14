@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2018  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -17,9 +17,9 @@
  * along with Somato.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if SOMATO_VECTOR_USE_SSE
+#include <config.h>
+#include "simd_sse.h"
 
-#include <glib.h>
 #include <cmath>
 #include <cstdlib>
 #include <new>
@@ -31,16 +31,7 @@
 namespace
 {
 
-inline __m128 vector3_mag(__m128 v)
-{
-  __m128 c = _mm_mul_ps(v, v);
-  __m128 d = _mm_shuffle_ps(c, c, _MM_SHUFFLE(2,3,0,1));
-
-  d = _mm_add_ss(d, c);
-  c = _mm_movehl_ps(c, c);
-
-  return _mm_sqrt_ss(_mm_add_ss(c, d));
-}
+using Simd::V4f;
 
 #if SOMATO_CUSTOM_ALLOC
 
@@ -164,56 +155,13 @@ void operator delete[](void* p, const std::nothrow_t&) throw()
 
 #endif /* SOMATO_CUSTOM_ALLOC */
 
-namespace Math
+V4f Simd::norm4(V4f v)
 {
-
-const std::array<Vector4, 4> Vector4::basis =
-{{
-  {1.f, 0.f, 0.f, 0.f},
-  {0.f, 1.f, 0.f, 0.f},
-  {0.f, 0.f, 1.f, 0.f},
-  {0.f, 0.f, 0.f, 1.f},
-}};
-
-__m128 Vector4::mag_(__m128 v)
-{
-  return _mm_sqrt_ss(dot_(v, v));
-}
-
-__m128 Vector4::norm_(__m128 v)
-{
-  const __m128 d = dot_(v, v);
+  const __m128 d = dot4r(v, v);
   return _mm_div_ps(v, _mm_sqrt_ps(d));
 }
 
-Matrix4::Matrix4()
-{
-  __m128 v = _mm_set_ss(1.f);
-  m_[0] = v;
-  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,2,0,1));
-  m_[1] = v;
-  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3,1,2,0));
-  m_[2] = v;
-  v = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2,3,1,0));
-  m_[3] = v;
-}
-
-Matrix4& Matrix4::operator=(const value_type b[][4])
-{
-  const __m128 b0 = _mm_loadu_ps(b[0]);
-  const __m128 b1 = _mm_loadu_ps(b[1]);
-  const __m128 b2 = _mm_loadu_ps(b[2]);
-  const __m128 b3 = _mm_loadu_ps(b[3]);
-
-  m_[0] = b0;
-  m_[1] = b1;
-  m_[2] = b2;
-  m_[3] = b3;
-
-  return *this;
-}
-
-void Matrix4::transpose_(const __m128* m, __m128* result)
+void Simd::mat4_transpose(const V4f* m, V4f* result)
 {
   const __m128 c0 = m[0];
   const __m128 c1 = m[1];
@@ -231,22 +179,7 @@ void Matrix4::transpose_(const __m128* m, __m128* result)
   result[3] = _mm_movehl_ps(t3, t2);
 }
 
-void Matrix4::scale_(const __m128* a, __m128 s, __m128* result)
-{
-  const __m128 a0 = a[0];
-  const __m128 a1 = a[1];
-  const __m128 a2 = a[2];
-  const __m128 a3 = a[3];
-
-  const __m128 ssss = _mm_shuffle_ps(s, s, _MM_SHUFFLE(0,0,0,0));
-
-  result[0] = _mm_mul_ps(a0, ssss);
-  result[1] = _mm_mul_ps(a1, ssss);
-  result[2] = _mm_mul_ps(a2, ssss);
-  result[3] = a3;
-}
-
-__m128 Matrix4::mul_(const __m128* a, __m128 b)
+V4f Simd::mat4_mul_mv(const V4f* a, V4f b)
 {
   const __m128 c0 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(0,0,0,0)), a[0]);
   const __m128 c1 = _mm_mul_ps(_mm_shuffle_ps(b, b, _MM_SHUFFLE(1,1,1,1)), a[1]);
@@ -259,7 +192,7 @@ __m128 Matrix4::mul_(const __m128* a, __m128 b)
   return _mm_add_ps(s0, s2);
 }
 
-__m128 Matrix4::mul_(__m128 a, const __m128* b)
+V4f Simd::mat4_mul_vm(V4f a, const V4f* b)
 {
   const __m128 r0 = _mm_mul_ps(b[0], a);
   const __m128 r1 = _mm_mul_ps(b[1], a);
@@ -280,7 +213,7 @@ __m128 Matrix4::mul_(__m128 a, const __m128* b)
   return _mm_add_ps(c0, c2);
 }
 
-void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
+void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
 {
   const __m128 a0 = a[0];
   const __m128 a1 = a[1];
@@ -291,7 +224,6 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
   {
     // It is assumed that b[] and result[] either refer to the same location
     // in memory or are completely distinct, i.e. not partially overlapping.
-
     const __m128 bi = b[i];
 
     const __m128 c0 = _mm_mul_ps(_mm_shuffle_ps(bi, bi, _MM_SHUFFLE(0,0,0,0)), a0);
@@ -306,9 +238,9 @@ void Matrix4::mul_(const __m128* a, const __m128* b, __m128* result)
   }
 }
 
-__m128 Quat::from_axis_(const Vector4& a, __m128 phi)
+V4f Simd::quat_from_axis(const V4f& a, float phi)
 {
-  const float phi_2  = _mm_cvtss_f32(_mm_mul_ss(phi, _mm_set_ss(0.5f)));
+  const float phi_2  = 0.5f * phi;
   const float sine   = std::sin(phi_2);
   const float cosine = std::cos(phi_2);
 
@@ -318,12 +250,12 @@ __m128 Quat::from_axis_(const Vector4& a, __m128 phi)
   s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(1,0,0,0));
   c = _mm_shuffle_ps(c, c, _MM_SHUFFLE(0,1,1,1));
 
-  return _mm_or_ps(_mm_mul_ps(s, a.v_), c);
+  return _mm_or_ps(_mm_mul_ps(s, a), c);
 }
 
-void Quat::to_matrix_(__m128 quat, __m128* result)
+void Simd::quat_to_matrix(V4f quat, V4f* result)
 {
-  const __m128 mask = mask_xyz_();
+  const __m128 mask = quat_axis_mask();
 
   const __m128 xyz = _mm_and_ps(quat, mask);
   const __m128 www = _mm_and_ps(_mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3)), mask);
@@ -341,7 +273,7 @@ void Quat::to_matrix_(__m128 quat, __m128* result)
   const __m128 t1 = _mm_sub_ps(xy_yz_xz, wz_wx_wy);
   const __m128 t2 = _mm_add_ps(xz_xy_yz, wy_wz_wx);
 
-  const __m128 v0001 = Vector4::basis[3].v_;
+  const __m128 v0001 = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
   result[3] = v0001;
 
   const __m128 v1110 = _mm_shuffle_ps(v0001, v0001, _MM_SHUFFLE(0,3,3,3));
@@ -354,16 +286,7 @@ void Quat::to_matrix_(__m128 quat, __m128* result)
   result[2] = _mm_move_ss(_mm_shuffle_ps(c1, c0, _MM_SHUFFLE(3,2,1,0)), c2);
 }
 
-float Quat::angle_(__m128 quat)
-{
-  const __m128 cosine = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3));
-  const __m128 sine   = vector3_mag(quat);
-
-  const float a = std::atan2(_mm_cvtss_f32(sine), _mm_cvtss_f32(cosine));
-  return 2.f * a;
-}
-
-__m128 Quat::mul_(__m128 a, __m128 b)
+V4f Simd::quat_mul(V4f a, V4f b)
 {
   // x = aw * bx + ax * bw + ay * bz - az * by
   // y = aw * by + ay * bw + az * bx - ax * bz
@@ -398,7 +321,3 @@ __m128 Quat::mul_(__m128 a, __m128 b)
 
   return _mm_add_ps(_mm_xor_ps(c12, signbit3), c03);
 }
-
-} // namespace Math
-
-#endif // SOMATO_VECTOR_USE_SSE

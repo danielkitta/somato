@@ -23,6 +23,12 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-warnings=fatal
 
 bin_PROGRAMS = src/somato
 
+if SIMD_SSE
+simd_sources = src/simd_sse.cc src/simd_sse.h
+else
+simd_sources = src/simd_fallback.cc src/simd_fallback.h
+endif
+
 src_somato_SOURCES =		\
 	src/application.cc	\
 	src/application.h	\
@@ -50,13 +56,8 @@ src_somato_SOURCES =		\
 	src/puzzle.cc		\
 	src/puzzle.h		\
 	src/vectormath.cc	\
-	src/vectormath.h
-
-EXTRA_src_somato_SOURCES =	\
-	src/vector_classic.cc	\
-	src/vector_classic.h	\
-	src/vector_sse.cc	\
-	src/vector_sse.h
+	src/vectormath.h	\
+	$(simd_sources)
 
 nodist_src_somato_SOURCES =	\
 	src/resources.cc
