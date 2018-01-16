@@ -38,19 +38,9 @@ inline V4f sub4(V4f a, V4f b)
   return _mm_sub_ps(a, b);
 }
 
-inline V4f mul4(V4f a, V4f b)
-{
-  return _mm_mul_ps(a, b);
-}
-
 inline V4f mul4s(V4f a, float b)
 {
   return _mm_mul_ps(a, _mm_set1_ps(b));
-}
-
-inline V4f div4(V4f a, V4f b)
-{
-  return _mm_div_ps(a, b);
 }
 
 inline V4f div4s(V4f a, float b)
@@ -89,11 +79,6 @@ inline V4f dot4r(V4f a, V4f b)
 inline float dot4s(V4f a, V4f b)
 {
   return _mm_cvtss_f32(dot4r(a, b));
-}
-
-inline V4f mag4r(V4f v)
-{
-  return _mm_sqrt_ps(dot4r(v, v));
 }
 
 inline float mag4s(V4f v)

@@ -37,19 +37,9 @@ inline V4f sub4(const V4f& a, const V4f& b)
   return {a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]};
 }
 
-inline V4f mul4(const V4f& a, const V4f& b)
-{
-  return {a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]};
-}
-
 inline V4f mul4s(const V4f& a, float b)
 {
   return {a[0] * b, a[1] * b, a[2] * b, a[3] * b};
-}
-
-inline V4f div4(const V4f& a, const V4f& b)
-{
-  return {a[0] / b[0], a[1] / b[1], a[2] / b[2], a[3] / b[3]};
 }
 
 inline V4f div4s(const V4f& a, float b)
