@@ -49,7 +49,7 @@ private:
   friend Vector4 operator*(const Matrix4& a, const Vector4& b);
   friend Vector4 operator*(const Vector4& a, const Matrix4& b);
 
-  explicit Vector4(Simd::V4f v) : v_ {v} {}
+  explicit Vector4(const Simd::V4f& v) : v_ {v} {}
 
 public:
   typedef float       value_type;
@@ -125,6 +125,9 @@ private:
 
   enum Uninitialized { uninitialized };
   explicit Matrix4(Uninitialized) {}
+  explicit Matrix4(const Simd::V4f& c0, const Simd::V4f& c1,
+                   const Simd::V4f& c2, const Simd::V4f& c3)
+    : m_ {c0, c1, c2, c3} {}
 
 public:
   typedef Vector4::value_type value_type;
@@ -147,27 +150,15 @@ public:
   friend Vector4 operator*(const Vector4& a, const Matrix4& b)
     { return Vector4(Simd::mat4_mul_vm(a.v_, b.m_)); }
 
-  void scale(float s)
-  {
-    m_[0] = Simd::mul4s(m_[0], s);
-    m_[1] = Simd::mul4s(m_[1], s);
-    m_[2] = Simd::mul4s(m_[2], s);
-  }
-  Matrix4 scaled(float s) const
-  {
-    return {Vector4(Simd::mul4s(m_[0], s)),
-            Vector4(Simd::mul4s(m_[1], s)),
-            Vector4(Simd::mul4s(m_[2], s)),
-            Vector4(m_[3])};
-  }
+  void scale(value_type s)
+    { m_[0] = Simd::mul4s(m_[0], s); m_[1] = Simd::mul4s(m_[1], s); m_[2] = Simd::mul4s(m_[2], s); }
+  Matrix4 scaled(value_type s) const
+    { return Matrix4(Simd::mul4s(m_[0], s), Simd::mul4s(m_[1], s), Simd::mul4s(m_[2], s), m_[3]); }
+
   void translate(const Vector4& t) { m_[3] = Simd::mat4_mul_mv(m_, t.v_); }
   Matrix4 translated(const Vector4& t) const
-  {
-    return {Vector4(m_[0]),
-            Vector4(m_[1]),
-            Vector4(m_[2]),
-            Vector4(Simd::mat4_mul_mv(m_, t.v_))};
-  }
+    { return Matrix4(m_[0], m_[1], m_[2], Simd::mat4_mul_mv(m_, t.v_)); }
+
   void transpose() { Simd::mat4_transpose(m_, m_); }
   Matrix4 transposed() const
     { Matrix4 r (uninitialized); Simd::mat4_transpose(m_, r.m_); return r; }
@@ -184,9 +175,8 @@ class Quat
 private:
   Simd::V4f v_;
 
-  explicit Quat(Simd::V4f v) : v_ {v} {}
+  explicit Quat(const Simd::V4f& v) : v_ {v} {}
 
-  static float angle_(Simd::V4f quat);
   static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
     { return {x * s, y * s, z * s, c}; }
 
@@ -208,7 +198,8 @@ public:
     { Matrix4 r (Matrix4::uninitialized); Simd::quat_to_matrix(quat.v_, r.m_); return r; }
 
   Vector4 axis() const { return Vector4(Simd::quat_axis(v_)); }
-  value_type angle() const { return angle_(v_); }
+  value_type angle() const
+    { return 2.f * std::atan2(Simd::mag3s(v_), Simd::ext4s<3>(v_)); }
 
   Quat& operator*=(const Quat& b)
     { v_ = Simd::quat_mul(v_, b.v_); return *this; }

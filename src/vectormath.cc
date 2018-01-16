@@ -33,16 +33,7 @@ const std::array<Vector4, 4> Vector4::basis =
 
 Matrix4::Matrix4()
 :
-  Matrix4(Vector4::basis[0], Vector4::basis[1], Vector4::basis[2], Vector4::basis[3])
+  Matrix4{Vector4::basis[0], Vector4::basis[1], Vector4::basis[2], Vector4::basis[3]}
 {}
-
-float Quat::angle_(Simd::V4f quat)
-{
-  const float cosine = Simd::ext4s<3>(quat);
-  const float sine   = Simd::mag3s(quat);
-
-  const float a = std::atan2(sine, cosine);
-  return 2.f * a;
-}
 
 } // namespace Math
