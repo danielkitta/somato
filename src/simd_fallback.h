@@ -21,6 +21,7 @@
 #define SOMATO_SIMD_FALLBACK_H_INCLUDED
 
 #include <array>
+#include <glib.h>
 
 namespace Simd
 {
@@ -52,16 +53,16 @@ inline V4f neg4(const V4f& v)
   return {-v[0], -v[1], -v[2], -v[3]};
 }
 
-V4f cross3(const V4f& a, const V4f& b);
+V4f cross3(const V4f& a, const V4f& b) G_GNUC_PURE;
 
 inline float dot4s(const V4f& a, const V4f& b)
 {
   return (a[0] * b[0] + a[2] * b[2]) + (a[1] * b[1] + a[3] * b[3]);
 }
 
-float mag4s(const V4f& v);
-float mag3s(const V4f& v);
-V4f   norm4(const V4f& v);
+float mag4s(const V4f& v) G_GNUC_PURE;
+float mag3s(const V4f& v) G_GNUC_PURE;
+V4f   norm4(const V4f& v) G_GNUC_PURE;
 
 inline bool cmp4eq(const V4f& a, const V4f& b)
 {
@@ -84,8 +85,8 @@ inline const float& ref4s(const V4f& v, std::size_t i)
 }
 
 void mat4_transpose(const V4f* m, V4f* result);
-V4f  mat4_mul_mv(const V4f* a, const V4f& b);
-V4f  mat4_mul_vm(const V4f& a, const V4f* b);
+V4f  mat4_mul_mv(const V4f* a, const V4f& b) G_GNUC_PURE;
+V4f  mat4_mul_vm(const V4f& a, const V4f* b) G_GNUC_PURE;
 void mat4_mul_mm(const V4f* a, const V4f* b, V4f* result);
 
 inline V4f quat_axis(const V4f& quat)
@@ -93,9 +94,9 @@ inline V4f quat_axis(const V4f& quat)
   return {quat[0], quat[1], quat[2], 0.f};
 }
 
-V4f  quat_from_axis(const V4f& a, float phi);
+V4f  quat_from_axis(const V4f& a, float phi) G_GNUC_PURE;
 void quat_to_matrix(const V4f& quat, V4f* result);
-V4f  quat_mul(const V4f& a, const V4f& b);
+V4f  quat_mul(const V4f& a, const V4f& b) G_GNUC_PURE;
 
 } // namespace Simd
 
