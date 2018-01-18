@@ -123,6 +123,17 @@ void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
   }
 }
 
+V4f Simd::quat_from_vectors(const V4f& a, const V4f& b)
+{
+  V4f q = {a[1] * b[2] - a[2] * b[1],
+           a[2] * b[0] - a[0] * b[2],
+           a[0] * b[1] - a[1] * b[0],
+           a[0] * b[0] + a[1] * b[1] + a[2] * b[2]};
+  q[3] += mag4s(q);
+
+  return q;
+}
+
 V4f Simd::quat_from_axis(const V4f& a, float phi)
 {
   const float s = std::sin(phi * 0.5f);

@@ -56,17 +56,12 @@ Math::Quat Math::trackball_motion(float x1, float y1, float x2, float y2, float 
   }
   else
   {
-    using Math::Vector4;
-
     // First, figure out z-coordinates for projection of P1 and P2 to
     // deformed sphere.
-    const Vector4 n1 = project_to_sphere(x1, y1, trackballsize).normalized();
-    const Vector4 n2 = project_to_sphere(x2, y2, trackballsize).normalized();
+    const Math::Vector4 a = project_to_sphere(x1, y1, trackballsize);
+    const Math::Vector4 b = project_to_sphere(x2, y2, trackballsize);
 
     // Determine axis of rotation and cosine of angle.
-    const Vector4 axis = n1 % n2;
-    const float cosa = n1 * n2;
-
-    return {axis.x(), axis.y(), axis.z(), cosa};
+    return Math::Quat::from_vectors(a, b);
   }
 }

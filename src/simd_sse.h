@@ -146,6 +146,7 @@ inline V4f quat_axis(V4f quat)
   return _mm_and_ps(quat, quat_axis_mask());
 }
 
+V4f  quat_from_vectors(V4f a, V4f b) G_GNUC_CONST;
 V4f  quat_from_axis(const V4f& a, float phi) G_GNUC_PURE;
 void quat_to_matrix(V4f quat, V4f* result);
 V4f  quat_mul(V4f a, V4f b) G_GNUC_CONST;

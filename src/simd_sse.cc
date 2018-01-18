@@ -238,6 +238,17 @@ void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
   }
 }
 
+V4f Simd::quat_from_vectors(V4f a, V4f b)
+{
+  const __m128 c = cross3(a, b);
+  const __m128 d = dot4r(a, b);
+
+  const __m128 q = _mm_shuffle_ps(c, _mm_movehl_ps(d, c), _MM_SHUFFLE(3,0,1,0));
+  const __m128 n = _mm_sqrt_ps(dot4r(q, q));
+
+  return _mm_add_ps(_mm_andnot_ps(quat_axis_mask(), n), q);
+}
+
 V4f Simd::quat_from_axis(const V4f& a, float phi)
 {
   const float phi_2  = 0.5f * phi;
@@ -255,6 +266,10 @@ V4f Simd::quat_from_axis(const V4f& a, float phi)
 
 void Simd::quat_to_matrix(V4f quat, V4f* result)
 {
+  // 1 - 2 * (y*y + z*z) |     2 * (x*y - z*w) |     2 * (x*z + y*w)
+  //     2 * (x*y + z*w) | 1 - 2 * (x*x + z*z) |     2 * (y*z - x*w)
+  //     2 * (x*z - y*w) |     2 * (y*z + x*w) | 1 - 2 * (x*x + y*y)
+
   const __m128 mask = quat_axis_mask();
 
   const __m128 xyz = _mm_and_ps(quat, mask);

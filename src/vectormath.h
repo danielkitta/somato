@@ -167,8 +167,8 @@ public:
   const value_type* operator[](size_type i) const { return &Simd::ref4s(m_[i], 0); }
 };
 
-/* Math::Quat represents a unit quaternion. The interface provides
- * a subset of quaternion operations useful for rotation in 3-D space.
+/* Math::Quat represents a quaternion. The interface provides a subset
+ * of quaternion operations useful for rotation in 3-D space.
  */
 class Quat
 {
@@ -193,6 +193,10 @@ public:
 
   static Quat from_axis(const Vector4& a, value_type phi)
     { return Quat(Simd::quat_from_axis(a.v_, phi)); }
+
+  // Note: Result is not normalized even if a and b are.
+  static Quat from_vectors(const Vector4& a, const Vector4& b)
+    { return Quat(Simd::quat_from_vectors(a.v_, b.v_)); }
 
   static Matrix4 to_matrix(const Quat& quat)
     { Matrix4 r (Matrix4::uninitialized); Simd::quat_to_matrix(quat.v_, r.m_); return r; }

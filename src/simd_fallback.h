@@ -94,6 +94,7 @@ inline V4f quat_axis(const V4f& quat)
   return {quat[0], quat[1], quat[2], 0.f};
 }
 
+V4f  quat_from_vectors(const V4f& a, const V4f& b) G_GNUC_PURE;
 V4f  quat_from_axis(const V4f& a, float phi) G_GNUC_PURE;
 void quat_to_matrix(const V4f& quat, V4f* result);
 V4f  quat_mul(const V4f& a, const V4f& b) G_GNUC_PURE;
