@@ -1176,15 +1176,10 @@ void CubeScene::process_track_motion(int x, int y)
     // In order to compute an appropriate trackball size, calculate the radius
     // of a sphere which roughly approximates the dimensions of the Soma cube.
     // As there is no single definite solution to this problem, the choice of
-    // the "right" size is of course somewhat subjective.  I went for the radius
-    // of a sphere which is inscribed into the cube, as that "feels" good to me.
-    //
-    // Ideally, the trackball should itself be a cube, but to do that the code
-    // would have to take the current rotation into account.  More effort than
-    // it is worth, if you ask me.
-
-    const float cube_radius    = SomaCube::N * 0.5f * grid_cell_size;
-    const float trackball_size = (1. + G_SQRT2) / -view_z_offset * cube_radius;
+    // the "right" size is somewhat subjective. The radius used here corresponds
+    // to a sphere which touches the cube's edges.
+    const float edge_length    = SomaCube::N * grid_cell_size;
+    const float trackball_size = (0.5 * G_SQRT2 + 1.) / -view_z_offset * edge_length;
 
     const int   width  = std::max(1, get_allocated_width());
     const int   height = std::max(1, get_allocated_height());
