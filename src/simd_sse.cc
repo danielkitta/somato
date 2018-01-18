@@ -238,15 +238,29 @@ void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
   }
 }
 
+float Simd::quat_angle(V4f quat)
+{
+  const __m128 d = _mm_mul_ps(quat, quat);
+  const __m128 e = _mm_add_ps(_mm_unpackhi_ps(_mm_setzero_ps(), d), d);
+  const __m128 f = _mm_add_ps(_mm_movehl_ps(d, d), e);
+  const __m128 s = _mm_sqrt_ss(_mm_shuffle_ps(f, f, _MM_SHUFFLE(1,1,1,1)));
+
+  return 2.f * std::atan2(_mm_cvtss_f32(s), _mm_cvtss_f32(quat));
+}
+
 V4f Simd::quat_from_vectors(V4f a, V4f b)
 {
-  const __m128 c = cross3(a, b);
-  const __m128 d = dot4r(a, b);
+  const __m128 a_yzxw = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3,0,2,1));
+  const __m128 b_yzxw = _mm_shuffle_ps(b, b, _MM_SHUFFLE(3,0,2,1));
+  const __m128 c_zxy0 = _mm_sub_ps(_mm_mul_ps(a, b_yzxw), _mm_mul_ps(a_yzxw, b));
+  const __m128 c_0xyz = _mm_shuffle_ps(c_zxy0, c_zxy0, _MM_SHUFFLE(0,2,1,3));
 
-  const __m128 q = _mm_shuffle_ps(c, _mm_movehl_ps(d, c), _MM_SHUFFLE(3,0,1,0));
-  const __m128 n = _mm_sqrt_ps(dot4r(q, q));
+  // q = (dot(a, b), cross(a, b))
+  const __m128 q = _mm_move_ss(c_0xyz, dot4r(a, b));
+  const __m128 n = _mm_sqrt_ss(dot4r(q, q));
 
-  return _mm_add_ps(_mm_andnot_ps(quat_axis_mask(), n), q);
+  // Average with scaled identity to half the rotation angle.
+  return _mm_add_ss(q, n); // (q.r + mag(q), q.xyz)
 }
 
 V4f Simd::quat_from_axis(const V4f& a, float phi)
@@ -255,67 +269,65 @@ V4f Simd::quat_from_axis(const V4f& a, float phi)
   const float sine   = std::sin(phi_2);
   const float cosine = std::cos(phi_2);
 
-  __m128 s = _mm_set_ss(sine);
-  __m128 c = _mm_set_ss(cosine);
+  const __m128 s = _mm_set1_ps(sine);
+  const __m128 c = _mm_set_ss(cosine);
 
-  s = _mm_shuffle_ps(s, s, _MM_SHUFFLE(1,0,0,0));
-  c = _mm_shuffle_ps(c, c, _MM_SHUFFLE(0,1,1,1));
-
-  return _mm_or_ps(_mm_mul_ps(s, a), c);
+  return _mm_move_ss(_mm_mul_ps(s, a), c);
 }
 
 void Simd::quat_to_matrix(V4f quat, V4f* result)
 {
-  // 1 - 2 * (y*y + z*z) |     2 * (x*y - z*w) |     2 * (x*z + y*w)
-  //     2 * (x*y + z*w) | 1 - 2 * (x*x + z*z) |     2 * (y*z - x*w)
-  //     2 * (x*z - y*w) |     2 * (y*z + x*w) | 1 - 2 * (x*x + y*y)
+  // 1 - 2 * (y*y + z*z) |     2 * (x*y - z*r) |     2 * (x*z + y*r)
+  //     2 * (x*y + z*r) | 1 - 2 * (x*x + z*z) |     2 * (y*z - x*r)
+  //     2 * (x*z - y*r) |     2 * (y*z + x*r) | 1 - 2 * (x*x + y*y)
 
-  const __m128 mask = quat_axis_mask();
+  const __m128 oxyz = _mm_move_ss(quat, _mm_setzero_ps());
+  const __m128 rrrr = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(0,0,0,0));
+  const __m128 oyzx = _mm_shuffle_ps(oxyz, oxyz, _MM_SHUFFLE(1,3,2,0));
 
-  const __m128 xyz = _mm_and_ps(quat, mask);
-  const __m128 www = _mm_and_ps(_mm_shuffle_ps(quat, quat, _MM_SHUFFLE(3,3,3,3)), mask);
-  const __m128 yzx = _mm_shuffle_ps(xyz, xyz, _MM_SHUFFLE(3,0,2,1));
+  const __m128 oo_xy_yz_xz = _mm_mul_ps(oxyz, oyzx);
+  const __m128 oo_ry_rz_rx = _mm_mul_ps(rrrr, oyzx);
+  const __m128 oo_yy_zz_xx = _mm_mul_ps(oyzx, oyzx);
 
-  const __m128 xy_yz_xz = _mm_mul_ps(xyz, yzx);
-  const __m128 wy_wz_wx = _mm_mul_ps(www, yzx);
-  const __m128 yy_zz_xx = _mm_mul_ps(yzx, yzx);
+  const __m128 oo_xz_xy_yz = _mm_shuffle_ps(oo_xy_yz_xz, oo_xy_yz_xz, _MM_SHUFFLE(2,1,3,0));
+  const __m128 oo_zz_xx_yy = _mm_shuffle_ps(oo_yy_zz_xx, oo_yy_zz_xx, _MM_SHUFFLE(1,3,2,0));
+  const __m128 oo_rz_rx_ry = _mm_shuffle_ps(oo_ry_rz_rx, oo_ry_rz_rx, _MM_SHUFFLE(1,3,2,0));
 
-  const __m128 xz_xy_yz = _mm_shuffle_ps(xy_yz_xz, xy_yz_xz, _MM_SHUFFLE(3,1,0,2));
-  const __m128 zz_xx_yy = _mm_shuffle_ps(yy_zz_xx, yy_zz_xx, _MM_SHUFFLE(3,0,2,1));
-  const __m128 wz_wx_wy = _mm_shuffle_ps(wy_wz_wx, wy_wz_wx, _MM_SHUFFLE(3,0,2,1));
-
-  const __m128 t0 = _mm_add_ps(yy_zz_xx, zz_xx_yy);
-  const __m128 t1 = _mm_sub_ps(xy_yz_xz, wz_wx_wy);
-  const __m128 t2 = _mm_add_ps(xz_xy_yz, wy_wz_wx);
+  const __m128 t0 = _mm_add_ps(oo_yy_zz_xx, oo_zz_xx_yy);
+  const __m128 t1 = _mm_sub_ps(oo_xy_yz_xz, oo_rz_rx_ry);
+  const __m128 t2 = _mm_add_ps(oo_xz_xy_yz, oo_ry_rz_rx);
 
   const __m128 v0001 = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
   result[3] = v0001;
 
-  const __m128 v1110 = _mm_shuffle_ps(v0001, v0001, _MM_SHUFFLE(0,3,3,3));
-  const __m128 c0 = _mm_sub_ps(v1110, _mm_add_ps(t0, t0));
+  const __m128 v0111 = _mm_shuffle_ps(v0001, v0001, _MM_SHUFFLE(3,3,3,0));
+  const __m128 c0 = _mm_sub_ps(v0111, _mm_add_ps(t0, t0));
   const __m128 c1 = _mm_add_ps(t1, t1);
   const __m128 c2 = _mm_add_ps(t2, t2);
 
-  result[0] = _mm_move_ss(_mm_shuffle_ps(c2, c1, _MM_SHUFFLE(3,2,1,0)), c0);
-  result[1] = _mm_move_ss(_mm_shuffle_ps(c0, c2, _MM_SHUFFLE(3,2,1,0)), c1);
-  result[2] = _mm_move_ss(_mm_shuffle_ps(c1, c0, _MM_SHUFFLE(3,2,1,0)), c2);
+  const __m128 x0_y0_x2_y2 = _mm_shuffle_ps(c0, c2, _MM_SHUFFLE(2,1,2,1));
+  const __m128 x1_y1_x2_y0 = _mm_shuffle_ps(c1, x0_y0_x2_y2, _MM_SHUFFLE(1,2,2,1));
+
+  result[0] = _mm_shuffle_ps(x0_y0_x2_y2, c1, _MM_SHUFFLE(0,3,3,0)); // x0,y2,z1,0
+  result[1] = _mm_shuffle_ps(x1_y1_x2_y0, c2, _MM_SHUFFLE(0,3,3,0)); // x1,y0,z2,0
+  result[2] = _mm_shuffle_ps(x1_y1_x2_y0, c0, _MM_SHUFFLE(0,3,1,2)); // x2,y1,z0,0
 }
 
 V4f Simd::quat_mul(V4f a, V4f b)
 {
-  // x = aw * bx + ax * bw + ay * bz - az * by
-  // y = aw * by + ay * bw + az * bx - ax * bz
-  // z = aw * bz + az * bw + ax * by - ay * bx
-  // w = aw * bw - ax * bx - ay * by - az * bz
+  // r = ar * br - ax * bx - ay * by - az * bz
+  // x = ar * bx + ax * br + ay * bz - az * by
+  // y = ar * by + ay * br + az * bx - ax * bz
+  // z = ar * bz + az * br + ax * by - ay * bx
 
-  const __m128 a0 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3,3,3,3));
-  const __m128 a1 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(0,2,1,0));
-  const __m128 a2 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(1,0,2,1));
-  const __m128 a3 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(2,1,0,2));
+  const __m128 a0 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(0,0,0,0));
+  const __m128 a1 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3,2,1,1));
+  const __m128 a2 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(1,3,2,2));
+  const __m128 a3 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(2,1,3,3));
 
-  const __m128 b1 = _mm_shuffle_ps(b, b, _MM_SHUFFLE(0,3,3,3));
-  const __m128 b2 = _mm_shuffle_ps(b, b, _MM_SHUFFLE(1,1,0,2));
-  const __m128 b3 = _mm_shuffle_ps(b, b, _MM_SHUFFLE(2,0,2,1));
+  const __m128 b1 = _mm_shuffle_ps(b, b, _MM_SHUFFLE(0,0,0,1));
+  const __m128 b2 = _mm_shuffle_ps(b, b, _MM_SHUFFLE(2,1,3,2));
+  const __m128 b3 = _mm_shuffle_ps(b, b, _MM_SHUFFLE(1,3,2,3));
 
   const __m128 c0 = _mm_mul_ps(a0, b);
   const __m128 c1 = _mm_mul_ps(a1, b1);
@@ -323,16 +335,16 @@ V4f Simd::quat_mul(V4f a, V4f b)
   const __m128 c3 = _mm_mul_ps(a3, b3);
 
   // Just invert the sign of one intermediate sum in order to
-  // compute w along with x, y, z using only vertical operations:
+  // compute r along with x, y, z using only vertical operations:
   //
-  // w = aw * bw + (-(ax * bx + ay * by)) - az * bz
+  // r = ar * br + (-(ax * bx + ay * by)) - az * bz
   //
-  // result = ((c1 + c2) ^ signbit3) + (c0 - c3)
+  // result = ((c1 + c2) ^ signbit0) + (c0 - c3)
 
-  const __m128 signbit3 = _mm_setr_ps(0.f, 0.f, 0.f, -0.f);
+  const __m128 signbit0 = _mm_set_ss(-0.f);
 
   const __m128 c12 = _mm_add_ps(c1, c2);
   const __m128 c03 = _mm_sub_ps(c0, c3);
 
-  return _mm_add_ps(_mm_xor_ps(c12, signbit3), c03);
+  return _mm_add_ps(_mm_xor_ps(c12, signbit0), c03);
 }

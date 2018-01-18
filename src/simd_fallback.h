@@ -61,7 +61,6 @@ inline float dot4s(const V4f& a, const V4f& b)
 }
 
 float mag4s(const V4f& v) G_GNUC_PURE;
-float mag3s(const V4f& v) G_GNUC_PURE;
 V4f   norm4(const V4f& v) G_GNUC_PURE;
 
 inline bool cmp4eq(const V4f& a, const V4f& b)
@@ -89,15 +88,16 @@ V4f  mat4_mul_mv(const V4f* a, const V4f& b) G_GNUC_PURE;
 V4f  mat4_mul_vm(const V4f& a, const V4f* b) G_GNUC_PURE;
 void mat4_mul_mm(const V4f* a, const V4f* b, V4f* result);
 
-inline V4f quat_axis(const V4f& quat)
+inline V4f quat_axis(const V4f& q)
 {
-  return {quat[0], quat[1], quat[2], 0.f};
+  return {q[1], q[2], q[3], 0.f};
 }
 
-V4f  quat_from_vectors(const V4f& a, const V4f& b) G_GNUC_PURE;
-V4f  quat_from_axis(const V4f& a, float phi) G_GNUC_PURE;
-void quat_to_matrix(const V4f& quat, V4f* result);
-V4f  quat_mul(const V4f& a, const V4f& b) G_GNUC_PURE;
+float quat_angle(const V4f& q) G_GNUC_PURE;
+V4f   quat_from_vectors(const V4f& a, const V4f& b) G_GNUC_PURE;
+V4f   quat_from_axis(const V4f& a, float phi) G_GNUC_PURE;
+void  quat_to_matrix(const V4f& quat, V4f* result);
+V4f   quat_mul(const V4f& a, const V4f& b) G_GNUC_PURE;
 
 } // namespace Simd
 

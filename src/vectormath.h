@@ -167,8 +167,7 @@ public:
   const value_type* operator[](size_type i) const { return &Simd::ref4s(m_[i], 0); }
 };
 
-/* Math::Quat represents a quaternion. The interface provides a subset
- * of quaternion operations useful for rotation in 3-D space.
+/* Math::Quat represents a quaternion r + xi + yj + zk as vector (r, x, y, z).
  */
 class Quat
 {
@@ -178,47 +177,50 @@ private:
   explicit Quat(const Simd::V4f& v) : v_ {v} {}
 
   static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
-    { return {x * s, y * s, z * s, c}; }
+    { return {c, x * s, y * s, z * s}; }
 
 public:
   typedef Vector4::value_type value_type;
   typedef Vector4::size_type  size_type;
 
-  constexpr Quat() : v_ {0.f, 0.f, 0.f, 1.f} {}
-  constexpr Quat(value_type x_, value_type y_, value_type z_, value_type w_)
-    : v_ {x_, y_, z_, w_} {}
+  constexpr Quat() : v_ {1.f, 0.f, 0.f, 0.f} {}
+  constexpr Quat(value_type r_, value_type x_, value_type y_, value_type z_)
+    : v_ {r_, x_, y_, z_} {}
 
+  // Note: Result is a unit quaternion only if (x,y,z) is a unit vector.
   static constexpr Quat from_axis(value_type x, value_type y, value_type z, value_type phi)
     { return from_axis_(x, y, z, std::sin(0.5f * phi), std::cos(0.5f * phi)); }
 
+  // Note: Result is a unit quaternion only if the axis is a unit vector.
   static Quat from_axis(const Vector4& a, value_type phi)
     { return Quat(Simd::quat_from_axis(a.v_, phi)); }
 
-  // Note: Result is not normalized even if a and b are.
+  // Note: Result is not normalized even if a and b are unit vectors.
   static Quat from_vectors(const Vector4& a, const Vector4& b)
     { return Quat(Simd::quat_from_vectors(a.v_, b.v_)); }
 
+  // Note: Conversion to rotation matrix only valid for unit quaternions.
   static Matrix4 to_matrix(const Quat& quat)
     { Matrix4 r (Matrix4::uninitialized); Simd::quat_to_matrix(quat.v_, r.m_); return r; }
 
-  Vector4 axis() const { return Vector4(Simd::quat_axis(v_)); }
-  value_type angle() const
-    { return 2.f * std::atan2(Simd::mag3s(v_), Simd::ext4s<3>(v_)); }
+  Vector4 axis() const { return Vector4(Simd::quat_axis(v_)); } // not normalized
+  value_type angle() const { return Simd::quat_angle(v_); }
 
   Quat& operator*=(const Quat& b)
     { v_ = Simd::quat_mul(v_, b.v_); return *this; }
   friend Quat operator*(const Quat& a, const Quat& b)
     { return Quat(Simd::quat_mul(a.v_, b.v_)); }
 
-  Quat renormalized() const { return Quat(Simd::norm4(v_)); }
+  void normalize() { v_ = Simd::norm4(v_); }
+  Quat normalized() const { return Quat(Simd::norm4(v_)); }
 
   value_type&       operator[](size_type i)       { return Simd::ref4s(v_, i); }
   const value_type& operator[](size_type i) const { return Simd::ref4s(v_, i); }
 
-  value_type x() const { return Simd::ext4s<0>(v_); }
-  value_type y() const { return Simd::ext4s<1>(v_); }
-  value_type z() const { return Simd::ext4s<2>(v_); }
-  value_type w() const { return Simd::ext4s<3>(v_); }
+  value_type r() const { return Simd::ext4s<0>(v_); }
+  value_type x() const { return Simd::ext4s<1>(v_); }
+  value_type y() const { return Simd::ext4s<2>(v_); }
+  value_type z() const { return Simd::ext4s<3>(v_); }
 };
 
 } // namespace Math

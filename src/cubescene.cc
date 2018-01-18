@@ -281,7 +281,7 @@ float CubeScene::get_zoom() const
 
 void CubeScene::set_rotation(const Math::Quat& rotation)
 {
-  rotation_ = rotation.renormalized();
+  rotation_ = rotation.normalized();
   depth_order_changed_ = true;
 
   if (!animation_data_.empty())
