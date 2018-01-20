@@ -199,7 +199,7 @@ public:
   static Quat from_vectors(const Vector4& a, const Vector4& b)
     { return Quat(Simd::quat_from_vectors(a.v_, b.v_)); }
 
-  // Note: Conversion to rotation matrix only valid for unit quaternions.
+  // Note: Result will be scaled if the input is not a unit quaternion.
   static Matrix4 to_matrix(const Quat& quat)
     { Matrix4 r (Matrix4::uninitialized); Simd::quat_to_matrix(quat.v_, r.m_); return r; }
 

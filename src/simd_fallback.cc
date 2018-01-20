@@ -150,19 +150,19 @@ void Simd::quat_to_matrix(const V4f& quat, V4f* result)
   const float y = quat[2];
   const float z = quat[3];
 
-  result[0][0] = 1.f - 2.f * (y * y + z * z);
-  result[0][1] =       2.f * (x * y + z * r);
-  result[0][2] =       2.f * (z * x - y * r);
+  result[0][0] = r*r + x*x - y*y - z*z;
+  result[0][1] = 2.f * (x*y + r*z);
+  result[0][2] = 2.f * (x*z - r*y);
   result[0][3] = 0.f;
 
-  result[1][0] =       2.f * (x * y - z * r);
-  result[1][1] = 1.f - 2.f * (z * z + x * x);
-  result[1][2] =       2.f * (y * z + x * r);
+  result[1][0] = 2.f * (x*y - r*z);
+  result[1][1] = r*r - x*x + y*y - z*z;
+  result[1][2] = 2.f * (y*z + r*x);
   result[1][3] = 0.f;
 
-  result[2][0] =       2.f * (z * x + y * r);
-  result[2][1] =       2.f * (y * z - x * r);
-  result[2][2] = 1.f - 2.f * (y * y + x * x);
+  result[2][0] = 2.f * (x*z + r*y);
+  result[2][1] = 2.f * (y*z - r*x);
+  result[2][2] = r*r - x*x - y*y + z*z;
   result[2][3] = 0.f;
 
   result[3][0] = 0.f;

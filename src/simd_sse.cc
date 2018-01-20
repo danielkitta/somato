@@ -275,51 +275,58 @@ V4f Simd::quat_from_axis(const V4f& a, float phi)
   return _mm_move_ss(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2,1,0,3)), r);
 }
 
+/* Homogeneous expression for the rotation matrix from a quaternion:
+ * [ rr + xx - yy - zz | 2 * (xy - rz)     | 2 * (xz + ry)     ]
+ * [ 2 * (xy + rz)     | rr - xx + yy - zz | 2 * (yz - rx)     ]
+ * [ 2 * (xz - ry)     | 2 * (yz + rx)     | rr - xx - yy + zz ]
+ *
+ * Matrix elements rearranged to facilitate vectorization:
+ * [oo] (rr + rr) - (rr + rr) | [oo] 2*rr - 2*rr | [nn] 2*rr + 2*rr
+ * [a0] (rr + xx) - (yy + zz) | [a1] 2*xy - 2*rz | [b0] 2*xy + 2*rz
+ * [b1] (rr + yy) - (zz + xx) | [b2] 2*yz - 2*rx | [c1] 2*yz + 2*rx
+ * [c2] (rr + zz) - (xx + yy) | [c0] 2*zx - 2*ry | [a2] 2*zx + 2*ry
+ */
 void Simd::quat_to_matrix(V4f quat, V4f* result)
 {
-  // 1 - 2 * (y*y + z*z) |     2 * (x*y - z*r) |     2 * (x*z + y*r)
-  //     2 * (x*y + z*r) | 1 - 2 * (x*x + z*z) |     2 * (y*z - x*r)
-  //     2 * (x*z - y*r) |     2 * (y*z + x*r) | 1 - 2 * (x*x + y*y)
+  const __m128 rxyz_t2 = _mm_add_ps(quat, quat);
+  const __m128 rxyz_p2 = _mm_mul_ps(quat, quat);
 
-  const __m128 oxyz = _mm_move_ss(quat, _mm_setzero_ps());
-  const __m128 rrrr = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(0,0,0,0));
-  const __m128 oyzx = _mm_shuffle_ps(oxyz, oxyz, _MM_SHUFFLE(1,3,2,0));
+  const __m128 ryzx    = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(1,3,2,0));
+  const __m128 rzxy    = _mm_shuffle_ps(quat, quat, _MM_SHUFFLE(2,1,3,0));
+  const __m128 rrrr_t2 = _mm_shuffle_ps(rxyz_t2, rxyz_t2, _MM_SHUFFLE(0,0,0,0));
 
-  const __m128 oo_xy_yz_xz = _mm_mul_ps(oxyz, oyzx);
-  const __m128 oo_ry_rz_rx = _mm_mul_ps(rrrr, oyzx);
-  const __m128 oo_yy_zz_xx = _mm_mul_ps(oyzx, oyzx);
+  const __m128 r2r_x2y_y2z_z2x = _mm_mul_ps(rxyz_t2, ryzx);
+  const __m128 r2r_r2z_r2x_r2y = _mm_mul_ps(rrrr_t2, rzxy);
 
-  const __m128 oo_xz_xy_yz = _mm_shuffle_ps(oo_xy_yz_xz, oo_xy_yz_xz, _MM_SHUFFLE(2,1,3,0));
-  const __m128 oo_zz_xx_yy = _mm_shuffle_ps(oo_yy_zz_xx, oo_yy_zz_xx, _MM_SHUFFLE(1,3,2,0));
-  const __m128 oo_rz_rx_ry = _mm_shuffle_ps(oo_ry_rz_rx, oo_ry_rz_rx, _MM_SHUFFLE(1,3,2,0));
+  const __m128 rrrr_p2 = _mm_shuffle_ps(rxyz_p2, rxyz_p2, _MM_SHUFFLE(0,0,0,0));
+  const __m128 ryzx_p2 = _mm_shuffle_ps(rxyz_p2, rxyz_p2, _MM_SHUFFLE(1,3,2,0));
+  const __m128 rzxy_p2 = _mm_shuffle_ps(rxyz_p2, rxyz_p2, _MM_SHUFFLE(2,1,3,0));
 
-  const __m128 t0 = _mm_add_ps(oo_yy_zz_xx, oo_zz_xx_yy);
-  const __m128 t1 = _mm_sub_ps(oo_xy_yz_xz, oo_rz_rx_ry);
-  const __m128 t2 = _mm_add_ps(oo_xz_xy_yz, oo_ry_rz_rx);
+  const __m128 rrrr2_rxyz2 = _mm_add_ps(rrrr_p2, rxyz_p2);
+  const __m128 ryzx2_rzxy2 = _mm_add_ps(ryzx_p2, rzxy_p2);
+  const __m128 oo_a1_b2_c0 = _mm_sub_ps(r2r_x2y_y2z_z2x, r2r_r2z_r2x_r2y);
+  const __m128 nn_b0_c1_a2 = _mm_add_ps(r2r_x2y_y2z_z2x, r2r_r2z_r2x_r2y);
+  const __m128 oo_a0_b1_c2 = _mm_sub_ps(rrrr2_rxyz2, ryzx2_rzxy2);
 
-  const __m128 v0001 = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
-  result[3] = v0001;
+  result[3] = _mm_setr_ps(0.f, 0.f, 0.f, 1.f);
 
-  const __m128 v0111 = _mm_shuffle_ps(v0001, v0001, _MM_SHUFFLE(3,3,3,0));
-  const __m128 c0 = _mm_sub_ps(v0111, _mm_add_ps(t0, t0));
-  const __m128 c1 = _mm_add_ps(t1, t1);
-  const __m128 c2 = _mm_add_ps(t2, t2);
+  const __m128 b1_c2_oo_a1 = _mm_shuffle_ps(oo_a0_b1_c2, oo_a1_b2_c0, _MM_SHUFFLE(1,0,3,2));
+  const __m128 b0_c1_oo_a0 = _mm_shuffle_ps(nn_b0_c1_a2, oo_a0_b1_c2, _MM_SHUFFLE(1,0,2,1));
+  const __m128 b2_c0_c1_a2 = _mm_movehl_ps(nn_b0_c1_a2, oo_a1_b2_c0);
 
-  const __m128 x0_y0_x2_y2 = _mm_shuffle_ps(c0, c2, _MM_SHUFFLE(2,1,2,1));
-  const __m128 x1_y1_x2_y0 = _mm_shuffle_ps(c1, x0_y0_x2_y2, _MM_SHUFFLE(1,2,2,1));
-
-  result[0] = _mm_shuffle_ps(x0_y0_x2_y2, c1, _MM_SHUFFLE(0,3,3,0)); // x0,y2,z1,0
-  result[1] = _mm_shuffle_ps(x1_y1_x2_y0, c2, _MM_SHUFFLE(0,3,3,0)); // x1,y0,z2,0
-  result[2] = _mm_shuffle_ps(x1_y1_x2_y0, c0, _MM_SHUFFLE(0,3,1,2)); // x2,y1,z0,0
+  result[1] = _mm_shuffle_ps(b1_c2_oo_a1, b0_c1_oo_a0, _MM_SHUFFLE(2,1,0,3));
+  result[0] = _mm_shuffle_ps(b0_c1_oo_a0, oo_a1_b2_c0, _MM_SHUFFLE(0,3,0,3));
+  result[2] = _mm_shuffle_ps(b2_c0_c1_a2, oo_a0_b1_c2, _MM_SHUFFLE(0,3,0,3));
 }
 
+/* Quaternion multiplication:
+ * r = ar * br - ax * bx - ay * by - az * bz
+ * x = ar * bx + ax * br + ay * bz - az * by
+ * y = ar * by + ay * br + az * bx - ax * bz
+ * z = ar * bz + az * br + ax * by - ay * bx
+ */
 V4f Simd::quat_mul(V4f a, V4f b)
 {
-  // r = ar * br - ax * bx - ay * by - az * bz
-  // x = ar * bx + ax * br + ay * bz - az * by
-  // y = ar * by + ay * br + az * bx - ax * bz
-  // z = ar * bz + az * br + ax * by - ay * bx
-
   const __m128 a0 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(0,0,0,0));
   const __m128 a1 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3,2,1,1));
   const __m128 a2 = _mm_shuffle_ps(a, a, _MM_SHUFFLE(1,3,2,2));
@@ -334,17 +341,13 @@ V4f Simd::quat_mul(V4f a, V4f b)
   const __m128 c2 = _mm_mul_ps(a2, b2);
   const __m128 c3 = _mm_mul_ps(a3, b3);
 
-  // Just invert the sign of one intermediate sum in order to
-  // compute r along with x, y, z using only vertical operations:
-  //
+  // Partially negate intermediate sum in order to compute r
+  // along with x, y, z using only vertical operations:
   // r = ar * br + (-(ax * bx + ay * by)) - az * bz
-  //
-  // result = ((c1 + c2) ^ signbit0) + (c0 - c3)
-
-  const __m128 signbit0 = _mm_set_ss(-0.f);
+  const __m128 rneg = _mm_set_ss(-0.f);
 
   const __m128 c12 = _mm_add_ps(c1, c2);
   const __m128 c03 = _mm_sub_ps(c0, c3);
 
-  return _mm_add_ps(_mm_xor_ps(c12, signbit0), c03);
+  return _mm_add_ps(_mm_xor_ps(c12, rneg), c03);
 }
