@@ -567,7 +567,7 @@ int CubeScene::gl_render()
                                     Math::Vector4::basis[1],
                                     Math::Vector4::basis[2],
                                     {0.f, 0.f, view_z_offset, 1.f}};
-      cube_transform *= Math::Quat::to_matrix(rotation_);
+      cube_transform *= Math::Matrix4::from_quaternion(rotation_);
       cube_transform.scale(zoom_);
 
       if (animation_piece_ > 0 && animation_piece_ <= static_cast<int>(animation_data_.size()))
@@ -979,7 +979,7 @@ void CubeScene::update_animation_order()
  */
 void CubeScene::update_depth_order()
 {
-  const Math::Matrix4 matrix = Math::Quat::to_matrix(rotation_);
+  const auto matrix = Math::Matrix4::from_quaternion(rotation_);
 
   enum { N = SomaCube::N };
 

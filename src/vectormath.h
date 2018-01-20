@@ -33,6 +33,7 @@ namespace Math
 {
 
 class Matrix4;
+class Quat;
 
 /* Math::Vector4 represents a vector of four single-precision floating point
  * scalars. Most of the common vector operations are made available via
@@ -121,9 +122,8 @@ class Matrix4
 private:
   Simd::V4f m_[4];
 
-  friend class Quat;
-
   enum Uninitialized { uninitialized };
+
   explicit Matrix4(Uninitialized) {}
   explicit Matrix4(const Simd::V4f& c0, const Simd::V4f& c1,
                    const Simd::V4f& c2, const Simd::V4f& c3)
@@ -137,6 +137,9 @@ public:
   constexpr Matrix4(const Vector4& c0, const Vector4& c1,
                     const Vector4& c2, const Vector4& c3 = {0.f, 0.f, 0.f, 1.f})
     : m_ {c0.v_, c1.v_, c2.v_, c3.v_} {}
+
+  // Note: Result will be scaled if the input is not a unit quaternion.
+  static inline Matrix4 from_quaternion(const Quat& quat);
 
   Matrix4& operator*=(const Matrix4& b)
     { Simd::mat4_mul_mm(m_, b.m_, m_); return *this; }
@@ -174,6 +177,8 @@ class Quat
 private:
   Simd::V4f v_;
 
+  friend Matrix4 Matrix4::from_quaternion(const Quat &quat);
+
   explicit Quat(const Simd::V4f& v) : v_ {v} {}
 
   static constexpr Quat from_axis_(float x, float y, float z, float s, float c)
@@ -199,10 +204,6 @@ public:
   static Quat from_vectors(const Vector4& a, const Vector4& b)
     { return Quat(Simd::quat_from_vectors(a.v_, b.v_)); }
 
-  // Note: Result will be scaled if the input is not a unit quaternion.
-  static Matrix4 to_matrix(const Quat& quat)
-    { Matrix4 r (Matrix4::uninitialized); Simd::quat_to_matrix(quat.v_, r.m_); return r; }
-
   Vector4 axis() const { return Vector4(Simd::quat_axis(v_)); } // not normalized
   value_type angle() const { return Simd::quat_angle(v_); }
 
@@ -222,6 +223,13 @@ public:
   value_type y() const { return Simd::ext4s<2>(v_); }
   value_type z() const { return Simd::ext4s<3>(v_); }
 };
+
+inline Matrix4 Matrix4::from_quaternion(const Quat& quat)
+{
+  Matrix4 result (uninitialized);
+  Simd::quat_to_matrix(quat.v_, result.m_);
+  return result;
+}
 
 } // namespace Math
 
