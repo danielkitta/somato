@@ -98,7 +98,7 @@ public:
   friend bool operator!=(const Vector4& a, const Vector4& b)
     { return !Simd::cmp4eq(a.v_, b.v_); }
 
-  static value_type mag(const Vector4& v) { return Simd::mag4s(v.v_); }
+  value_type mag() const { return Simd::mag4s(v_); }
 
   void normalize() { v_ = Simd::norm4(v_); }
   Vector4 normalized() const { return Vector4(Simd::norm4(v_)); }
