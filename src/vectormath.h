@@ -234,6 +234,7 @@ public:
 
   friend Quat operator+(const Quat& q) { return q; }
   friend Quat operator-(const Quat& q) { return Quat(Simd::neg4(q.v_)); }
+  friend Quat operator~(const Quat& q) { return Quat(Simd::quat_conj(q.v_)); }
 
   friend bool operator==(const Quat& a, const Quat& b)
     { return Simd::cmp4eq(a.v_, b.v_); }
@@ -241,6 +242,7 @@ public:
   friend bool operator!=(const Quat& a, const Quat& b)
     { return !Simd::cmp4eq(a.v_, b.v_); }
 
+  Quat inv() const { return Quat(Simd::quat_inv(v_)); }
   value_type mag() const { return Simd::mag4s(v_); }
 
   void normalize() { v_ = Simd::norm4(v_); }

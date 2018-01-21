@@ -178,3 +178,9 @@ V4f Simd::quat_mul(const V4f& a, const V4f& b)
           a[0] * b[2] + a[2] * b[0] + a[3] * b[1] - a[1] * b[3],
           a[0] * b[3] + a[3] * b[0] + a[1] * b[2] - a[2] * b[1]};
 }
+
+V4f Simd::quat_inv(const V4f& q)
+{
+  const float d = dot4s(q, q);
+  return {q[0] / d, -q[1] / d, -q[2] / d, -q[3] / d};
+}

@@ -351,3 +351,11 @@ V4f Simd::quat_mul(V4f a, V4f b)
 
   return _mm_add_ps(_mm_xor_ps(c12, rneg), c03);
 }
+
+V4f Simd::quat_inv(V4f quat)
+{
+  const __m128 d = dot4r(quat, quat);
+  const __m128 c = quat_conj(quat);
+
+  return _mm_div_ps(c, d);
+}

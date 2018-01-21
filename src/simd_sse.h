@@ -122,6 +122,11 @@ V4f  mat4_mul_mv(const V4f* a, V4f b) G_GNUC_PURE;
 V4f  mat4_mul_vm(V4f a, const V4f* b) G_GNUC_PURE;
 void mat4_mul_mm(const V4f* a, const V4f* b, V4f* result);
 
+inline V4f quat_conj(V4f quat)
+{
+  return _mm_xor_ps(_mm_setr_ps(0.f, -0.f, -0.f, -0.f), quat);
+}
+
 inline V4f quat_axis(V4f quat)
 {
   const __m128 v = _mm_move_ss(quat, _mm_setzero_ps());
@@ -133,6 +138,7 @@ V4f   quat_from_vectors(V4f a, V4f b) G_GNUC_CONST;
 V4f   quat_from_axis(const V4f& a, float phi) G_GNUC_PURE;
 void  quat_to_matrix(V4f quat, V4f* result);
 V4f   quat_mul(V4f a, V4f b) G_GNUC_CONST;
+V4f   quat_inv(V4f quat) G_GNUC_CONST;
 
 } // namespace Simd
 
