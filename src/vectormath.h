@@ -212,6 +212,37 @@ public:
   friend Quat operator*(const Quat& a, const Quat& b)
     { return Quat(Simd::quat_mul(a.v_, b.v_)); }
 
+  Quat& operator+=(const Quat& b) { v_ = Simd::add4(v_, b.v_); return *this; }
+  Quat& operator-=(const Quat& b) { v_ = Simd::sub4(v_, b.v_); return *this; }
+  Quat& operator*=(value_type b) { v_ = Simd::mul4s(v_, b); return *this; }
+  Quat& operator/=(value_type b) { v_ = Simd::div4s(v_, b); return *this; }
+
+  friend Quat operator+(const Quat& a, const Quat& b)
+    { return Quat(Simd::add4(a.v_, b.v_)); }
+
+  friend Quat operator-(const Quat& a, const Quat& b)
+    { return Quat(Simd::sub4(a.v_, b.v_)); }
+
+  friend Quat operator*(const Quat& a, value_type b)
+    { return Quat(Simd::mul4s(a.v_, b)); }
+
+  friend Quat operator*(value_type a, const Quat& b)
+    { return Quat(Simd::mul4s(b.v_, a)); }
+
+  friend Quat operator/(const Quat& a, value_type b)
+    { return Quat(Simd::div4s(a.v_, b)); }
+
+  friend Quat operator+(const Quat& q) { return q; }
+  friend Quat operator-(const Quat& q) { return Quat(Simd::neg4(q.v_)); }
+
+  friend bool operator==(const Quat& a, const Quat& b)
+    { return Simd::cmp4eq(a.v_, b.v_); }
+
+  friend bool operator!=(const Quat& a, const Quat& b)
+    { return !Simd::cmp4eq(a.v_, b.v_); }
+
+  value_type mag() const { return Simd::mag4s(v_); }
+
   void normalize() { v_ = Simd::norm4(v_); }
   Quat normalized() const { return Quat(Simd::norm4(v_)); }
 
