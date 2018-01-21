@@ -269,10 +269,10 @@ V4f Simd::quat_from_axis(const V4f& a, float phi)
   const float sine   = std::sin(phi_2);
   const float cosine = std::cos(phi_2);
 
-  const __m128 s = _mm_set1_ps(sine);
-  const __m128 c = _mm_set_ss(cosine);
+  const __m128 v = _mm_mul_ps(_mm_set1_ps(sine), a);
+  const __m128 r = _mm_set_ss(cosine);
 
-  return _mm_move_ss(_mm_mul_ps(s, a), c);
+  return _mm_move_ss(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2,1,0,3)), r);
 }
 
 void Simd::quat_to_matrix(V4f quat, V4f* result)
