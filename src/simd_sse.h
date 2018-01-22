@@ -54,12 +54,13 @@ inline V4f neg4(V4f v)
   return _mm_xor_ps(_mm_set1_ps(-0.f), v);
 }
 
+/* x = ay * bz - az * by
+ * y = az * bx - ax * bz
+ * z = ax * by - ay * bx
+ * w = aw * bw - aw * bw = 0 (finite math only)
+ */
 inline V4f cross3(V4f a, V4f b)
 {
-  // x = ay * bz - az * by
-  // y = az * bx - ax * bz
-  // z = ax * by - ay * bx
-  // w = 0
   const __m128 a_yzxw = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3,0,2,1));
   const __m128 b_yzxw = _mm_shuffle_ps(b, b, _MM_SHUFFLE(3,0,2,1));
   const __m128 c_zxy0 = _mm_sub_ps(_mm_mul_ps(a, b_yzxw), _mm_mul_ps(a_yzxw, b));

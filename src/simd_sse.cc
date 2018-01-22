@@ -163,20 +163,20 @@ V4f Simd::norm4(V4f v)
 
 void Simd::mat4_transpose(const V4f* m, V4f* result)
 {
-  const __m128 c0 = m[0];
-  const __m128 c1 = m[1];
-  const __m128 c2 = m[2];
-  const __m128 c3 = m[3];
+  const __m128 c0 = m[0]; // 00, 10, 20, 30
+  const __m128 c1 = m[1]; // 01, 11, 21, 31
+  const __m128 c2 = m[2]; // 02, 12, 22, 32
+  const __m128 c3 = m[3]; // 03, 13, 23, 33
 
-  const __m128 t0 = _mm_unpacklo_ps(c0, c1);
-  const __m128 t1 = _mm_unpacklo_ps(c2, c3);
-  const __m128 t2 = _mm_unpackhi_ps(c0, c1);
-  const __m128 t3 = _mm_unpackhi_ps(c2, c3);
+  const __m128 t0 = _mm_unpacklo_ps(c0, c1); // 00, 01, 10, 11
+  const __m128 t1 = _mm_unpacklo_ps(c2, c3); // 02, 03, 12, 13
+  const __m128 t2 = _mm_unpackhi_ps(c0, c1); // 20, 21, 30, 31
+  const __m128 t3 = _mm_unpackhi_ps(c2, c3); // 22, 23, 32, 33
 
-  result[0] = _mm_movelh_ps(t0, t1);
-  result[1] = _mm_movehl_ps(t1, t0);
-  result[2] = _mm_movelh_ps(t2, t3);
-  result[3] = _mm_movehl_ps(t3, t2);
+  result[0] = _mm_movelh_ps(t0, t1); // 00, 01, 02, 03
+  result[1] = _mm_movehl_ps(t1, t0); // 10, 11, 12, 13
+  result[2] = _mm_movelh_ps(t2, t3); // 20, 21, 22, 23
+  result[3] = _mm_movehl_ps(t3, t2); // 30, 31, 32, 33
 }
 
 V4f Simd::mat4_mul_mv(const V4f* a, V4f b)
@@ -194,10 +194,10 @@ V4f Simd::mat4_mul_mv(const V4f* a, V4f b)
 
 V4f Simd::mat4_mul_vm(V4f a, const V4f* b)
 {
-  const __m128 r0 = _mm_mul_ps(b[0], a);
-  const __m128 r1 = _mm_mul_ps(b[1], a);
-  const __m128 r2 = _mm_mul_ps(b[2], a);
-  const __m128 r3 = _mm_mul_ps(b[3], a);
+  const __m128 r0 = _mm_mul_ps(b[0], a);      // 00, 01, 02, 03
+  const __m128 r1 = _mm_mul_ps(b[1], a);      // 10, 11, 12, 13
+  const __m128 r2 = _mm_mul_ps(b[2], a);      // 20, 21, 22, 23
+  const __m128 r3 = _mm_mul_ps(b[3], a);      // 30, 31, 32, 33
 
   const __m128 t0 = _mm_unpacklo_ps(r0, r1);  // 00, 10, 01, 11
   const __m128 t1 = _mm_unpackhi_ps(r0, r1);  // 02, 12, 03, 13
@@ -285,6 +285,8 @@ V4f Simd::quat_from_axis(const V4f& a, float phi)
  * [a0] (rr + xx) - (yy + zz) | [a1] 2*xy - 2*rz | [b0] 2*xy + 2*rz
  * [b1] (rr + yy) - (zz + xx) | [b2] 2*yz - 2*rx | [c1] 2*yz + 2*rx
  * [c2] (rr + zz) - (xx + yy) | [c0] 2*zx - 2*ry | [a2] 2*zx + 2*ry
+ *
+ * It is assumed that 2*(r*r) is finite.
  */
 void Simd::quat_to_matrix(V4f quat, V4f* result)
 {
