@@ -20,7 +20,6 @@
 #ifndef SOMATO_SIMD_SSE_H_INCLUDED
 #define SOMATO_SIMD_SSE_H_INCLUDED
 
-#include <cmath>
 #include <glib.h>
 #include <xmmintrin.h>
 
