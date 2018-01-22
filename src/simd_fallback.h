@@ -57,7 +57,7 @@ V4f cross3(const V4f& a, const V4f& b) G_GNUC_PURE;
 
 inline float dot4s(const V4f& a, const V4f& b)
 {
-  return (a[0] * b[0] + a[2] * b[2]) + (a[1] * b[1] + a[3] * b[3]);
+  return (a[0] * b[0] + a[1] * b[1]) + (a[2] * b[2] + a[3] * b[3]);
 }
 
 float mag4s(const V4f& v) G_GNUC_PURE;

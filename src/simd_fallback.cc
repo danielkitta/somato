@@ -81,10 +81,10 @@ V4f Simd::mat4_mul_mv(const V4f* a, const V4f& b)
   const float b2 = b[2];
   const float b3 = b[3];
 
-  return {a[0][0] * b0 + a[1][0] * b1 + a[2][0] * b2 + a[3][0] * b3,
-          a[0][1] * b0 + a[1][1] * b1 + a[2][1] * b2 + a[3][1] * b3,
-          a[0][2] * b0 + a[1][2] * b1 + a[2][2] * b2 + a[3][2] * b3,
-          a[0][3] * b0 + a[1][3] * b1 + a[2][3] * b2 + a[3][3] * b3};
+  return {(a[0][0] * b0 + a[1][0] * b1) + (a[2][0] * b2 + a[3][0] * b3),
+          (a[0][1] * b0 + a[1][1] * b1) + (a[2][1] * b2 + a[3][1] * b3),
+          (a[0][2] * b0 + a[1][2] * b1) + (a[2][2] * b2 + a[3][2] * b3),
+          (a[0][3] * b0 + a[1][3] * b1) + (a[2][3] * b2 + a[3][3] * b3)};
 }
 
 V4f Simd::mat4_mul_vm(const V4f& a, const V4f* b)
@@ -111,10 +111,10 @@ void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
     const float bi2 = b[i][2];
     const float bi3 = b[i][3];
 
-    result[i][0] = pa[0][0] * bi0 + pa[1][0] * bi1 + pa[2][0] * bi2 + pa[3][0] * bi3;
-    result[i][1] = pa[0][1] * bi0 + pa[1][1] * bi1 + pa[2][1] * bi2 + pa[3][1] * bi3;
-    result[i][2] = pa[0][2] * bi0 + pa[1][2] * bi1 + pa[2][2] * bi2 + pa[3][2] * bi3;
-    result[i][3] = pa[0][3] * bi0 + pa[1][3] * bi1 + pa[2][3] * bi2 + pa[3][3] * bi3;
+    result[i][0] = (pa[0][0] * bi0 + pa[1][0] * bi1) + (pa[2][0] * bi2 + pa[3][0] * bi3);
+    result[i][1] = (pa[0][1] * bi0 + pa[1][1] * bi1) + (pa[2][1] * bi2 + pa[3][1] * bi3);
+    result[i][2] = (pa[0][2] * bi0 + pa[1][2] * bi1) + (pa[2][2] * bi2 + pa[3][2] * bi3);
+    result[i][3] = (pa[0][3] * bi0 + pa[1][3] * bi1) + (pa[2][3] * bi2 + pa[3][3] * bi3);
   }
 }
 
@@ -150,19 +150,19 @@ void Simd::quat_to_matrix(const V4f& quat, V4f* result)
   const float y = quat[2];
   const float z = quat[3];
 
-  result[0][0] = r*r + x*x - y*y - z*z;
+  result[0][0] = (r*r + x*x) - (y*y + z*z);
   result[0][1] = 2.f * (x*y + r*z);
   result[0][2] = 2.f * (x*z - r*y);
   result[0][3] = 0.f;
 
   result[1][0] = 2.f * (x*y - r*z);
-  result[1][1] = r*r - x*x + y*y - z*z;
+  result[1][1] = (r*r + y*y) - (x*x + z*z);
   result[1][2] = 2.f * (y*z + r*x);
   result[1][3] = 0.f;
 
   result[2][0] = 2.f * (x*z + r*y);
   result[2][1] = 2.f * (y*z - r*x);
-  result[2][2] = r*r - x*x - y*y + z*z;
+  result[2][2] = (r*r + z*z) - (x*x + y*y);
   result[2][3] = 0.f;
 
   result[3][0] = 0.f;
@@ -173,10 +173,10 @@ void Simd::quat_to_matrix(const V4f& quat, V4f* result)
 
 V4f Simd::quat_mul(const V4f& a, const V4f& b)
 {
-  return {a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
-          a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
-          a[0] * b[2] + a[2] * b[0] + a[3] * b[1] - a[1] * b[3],
-          a[0] * b[3] + a[3] * b[0] + a[1] * b[2] - a[2] * b[1]};
+  return {(a[0] * b[0] - a[1] * b[1]) - (a[2] * b[2] + a[3] * b[3]),
+          (a[0] * b[1] + a[1] * b[0]) + (a[2] * b[3] - a[3] * b[2]),
+          (a[0] * b[2] + a[2] * b[0]) + (a[3] * b[1] - a[1] * b[3]),
+          (a[0] * b[3] + a[3] * b[0]) + (a[1] * b[2] - a[2] * b[1])};
 }
 
 V4f Simd::quat_inv(const V4f& q)
