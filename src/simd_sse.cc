@@ -255,8 +255,12 @@ V4f Simd::quat_from_vectors(V4f a, V4f b)
   const __m128 c_zxy0 = _mm_sub_ps(_mm_mul_ps(a, b_yzxw), _mm_mul_ps(a_yzxw, b));
   const __m128 c_0xyz = _mm_shuffle_ps(c_zxy0, c_zxy0, _MM_SHUFFLE(0,2,1,3));
 
+  const __m128 ab = _mm_mul_ps(a, b);
+  const __m128 d2 = _mm_add_ps(_mm_unpacklo_ps(ab, ab), ab); // [2] y+z
+  const __m128 d0 = _mm_add_ps(_mm_movehl_ps(d2, d2), ab);   // [0] x+(y+z)
+
   // q = (dot(a, b), cross(a, b))
-  const __m128 q = _mm_move_ss(c_0xyz, dot4r(a, b));
+  const __m128 q = _mm_move_ss(c_0xyz, d0);
   const __m128 n = _mm_sqrt_ss(dot4r(q, q));
 
   // Average with scaled identity to half the rotation angle.
