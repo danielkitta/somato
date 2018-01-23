@@ -33,6 +33,19 @@ namespace
 
 using Simd::V4f;
 
+/* Half precision reciprocal square root approximation followed by
+ * one Newton-Raphson iteration.
+ */
+inline V4f rsqrt4(V4f a)
+{
+  const __m128 x0    = _mm_rsqrt_ps(a);
+  const __m128 axx   = _mm_mul_ps(_mm_mul_ps(a, x0), x0);
+  const __m128 x0mh  = _mm_mul_ps(x0, _mm_set1_ps(-0.5f));
+  const __m128 m3axx = _mm_add_ps(axx, _mm_set1_ps(-3.f));
+
+  return _mm_mul_ps(x0mh, m3axx);
+}
+
 #if SOMATO_CUSTOM_ALLOC
 
 void* v4_align_alloc(std::size_t size) noexcept G_GNUC_MALLOC;
@@ -158,7 +171,7 @@ void operator delete[](void* p, const std::nothrow_t&) throw()
 V4f Simd::norm4(V4f v)
 {
   const __m128 d = dot4r(v, v);
-  return _mm_div_ps(v, _mm_sqrt_ps(d));
+  return _mm_mul_ps(v, rsqrt4(d));
 }
 
 void Simd::mat4_transpose(const V4f* m, V4f* result)
