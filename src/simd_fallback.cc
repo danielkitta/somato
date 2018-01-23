@@ -92,29 +92,32 @@ V4f Simd::mat4_mul_vm(const V4f& a, const V4f* b)
   return {dot4s(a, b[0]), dot4s(a, b[1]), dot4s(a, b[2]), dot4s(a, b[3])};
 }
 
+/* Either input may alias the result, except that partial overlap is not
+ * allowed. In the rare case of input b aliasing result, an internal copy
+ * will be made. This should only ever be needed when a matrix is squared
+ * in place.
+ */
 void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
 {
   V4f temp[4];
-  const V4f* pa = a;
 
-  if (pa == result)
+  if (b == result)
   {
-    std::memcpy(temp, pa, sizeof temp);
-    pa = temp;
+    std::memcpy(temp, b, sizeof temp);
+    b = temp;
   }
+
   for (int i = 0; i < 4; ++i)
   {
-    // This works only if result[] and b[] are either entirely distinct
-    // locations in memory or alternatively exactly congruent.
-    const float bi0 = b[i][0];
-    const float bi1 = b[i][1];
-    const float bi2 = b[i][2];
-    const float bi3 = b[i][3];
+    const float a0i = a[0][i];
+    const float a1i = a[1][i];
+    const float a2i = a[2][i];
+    const float a3i = a[3][i];
 
-    result[i][0] = (pa[0][0] * bi0 + pa[1][0] * bi1) + (pa[2][0] * bi2 + pa[3][0] * bi3);
-    result[i][1] = (pa[0][1] * bi0 + pa[1][1] * bi1) + (pa[2][1] * bi2 + pa[3][1] * bi3);
-    result[i][2] = (pa[0][2] * bi0 + pa[1][2] * bi1) + (pa[2][2] * bi2 + pa[3][2] * bi3);
-    result[i][3] = (pa[0][3] * bi0 + pa[1][3] * bi1) + (pa[2][3] * bi2 + pa[3][3] * bi3);
+    result[0][i] = (a0i * b[0][0] + a1i * b[0][1]) + (a2i * b[0][2] + a3i * b[0][3]);
+    result[1][i] = (a0i * b[1][0] + a1i * b[1][1]) + (a2i * b[1][2] + a3i * b[1][3]);
+    result[2][i] = (a0i * b[2][0] + a1i * b[2][1]) + (a2i * b[2][2] + a3i * b[2][3]);
+    result[3][i] = (a0i * b[3][0] + a1i * b[3][1]) + (a2i * b[3][2] + a3i * b[3][3]);
   }
 }
 

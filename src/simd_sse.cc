@@ -213,6 +213,9 @@ V4f Simd::mat4_mul_vm(V4f a, const V4f* b)
   return _mm_add_ps(c0, c2);
 }
 
+/* Input a may alias the result without restrictions. Input b may also alias
+ * the result, except that partial overlap is not allowed.
+ */
 void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
 {
   const __m128 a0 = a[0];
@@ -222,8 +225,6 @@ void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
 
   for (int i = 0; i < 4; ++i)
   {
-    // It is assumed that b[] and result[] either refer to the same location
-    // in memory or are completely distinct, i.e. not partially overlapping.
     const __m128 bi = b[i];
 
     const __m128 c0 = _mm_mul_ps(_mm_shuffle_ps(bi, bi, _MM_SHUFFLE(0,0,0,0)), a0);
