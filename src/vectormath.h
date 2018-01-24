@@ -36,9 +36,8 @@ class Matrix4;
 class Quat;
 
 /* Math::Vector4 represents a vector of four single-precision floating point
- * scalars. Most of the common vector operations are made available via
- * operators. If a and b are both vectors, a * b denotes the dot product
- * (scalar product) and a % b denotes the cross product.
+ * scalars. Basic arithmetic is supported via operators. Other functionality
+ * is available via non-member functions.
  */
 class Vector4
 {
@@ -49,6 +48,7 @@ private:
   friend class Quat;
   friend Vector4 operator*(const Matrix4& a, const Vector4& b);
   friend Vector4 operator*(const Vector4& a, const Matrix4& b);
+  friend Matrix4 translate(const Matrix4& m, const Vector4& t);
 
   explicit Vector4(const Simd::V4f& v) : v_ {v} {}
 
@@ -66,7 +66,6 @@ public:
   Vector4& operator-=(const Vector4& b) { v_ = Simd::sub4(v_, b.v_); return *this; }
   Vector4& operator*=(value_type b) { v_ = Simd::mul4s(v_, b); return *this; }
   Vector4& operator/=(value_type b) { v_ = Simd::div4s(v_, b); return *this; }
-  Vector4& operator%=(const Vector4& b) { v_ = Simd::cross3(v_, b.v_); return *this; }
 
   friend Vector4 operator+(const Vector4& a, const Vector4& b)
     { return Vector4(Simd::add4(a.v_, b.v_)); }
@@ -83,12 +82,6 @@ public:
   friend Vector4 operator/(const Vector4& a, value_type b)
     { return Vector4(Simd::div4s(a.v_, b)); }
 
-  friend value_type operator*(const Vector4& a, const Vector4& b)
-    { return Simd::dot4s(a.v_, b.v_); }
-
-  friend Vector4 operator%(const Vector4& a, const Vector4& b)
-    { return Vector4(Simd::cross3(a.v_, b.v_)); }
-
   friend Vector4 operator+(const Vector4& v) { return v; }
   friend Vector4 operator-(const Vector4& v) { return Vector4(Simd::neg4(v.v_)); }
 
@@ -98,10 +91,16 @@ public:
   friend bool operator!=(const Vector4& a, const Vector4& b)
     { return !Simd::cmp4eq(a.v_, b.v_); }
 
-  value_type mag() const { return Simd::mag4s(v_); }
+  friend value_type dot(const Vector4& a, const Vector4& b)
+    { return Simd::dot4s(a.v_, b.v_); }
+
+  friend Vector4 cross(const Vector4& a, const Vector4& b)
+    { return Vector4(Simd::cross3(a.v_, b.v_)); }
+
+  friend value_type magnitude(const Vector4& v) { return Simd::mag4s(v.v_); }
 
   void normalize() { v_ = Simd::norm4(v_); }
-  Vector4 normalized() const { return Vector4(Simd::norm4(v_)); }
+  friend Vector4 normalize(const Vector4& v) { return Vector4(Simd::norm4(v.v_)); }
 
   value_type&       operator[](size_type i)       { return Simd::ref4s(v_, i); }
   const value_type& operator[](size_type i) const { return Simd::ref4s(v_, i); }
@@ -155,16 +154,16 @@ public:
 
   void scale(value_type s)
     { m_[0] = Simd::mul4s(m_[0], s); m_[1] = Simd::mul4s(m_[1], s); m_[2] = Simd::mul4s(m_[2], s); }
-  Matrix4 scaled(value_type s) const
-    { return Matrix4(Simd::mul4s(m_[0], s), Simd::mul4s(m_[1], s), Simd::mul4s(m_[2], s), m_[3]); }
+  friend Matrix4 scale(const Matrix4& m, value_type s)
+    { return Matrix4(Simd::mul4s(m.m_[0], s), Simd::mul4s(m.m_[1], s), Simd::mul4s(m.m_[2], s), m.m_[3]); }
 
   void translate(const Vector4& t) { m_[3] = Simd::mat4_mul_mv(m_, t.v_); }
-  Matrix4 translated(const Vector4& t) const
-    { return Matrix4(m_[0], m_[1], m_[2], Simd::mat4_mul_mv(m_, t.v_)); }
+  friend Matrix4 translate(const Matrix4& m, const Vector4& t)
+    { return Matrix4(m.m_[0], m.m_[1], m.m_[2], Simd::mat4_mul_mv(m.m_, t.v_)); }
 
   void transpose() { Simd::mat4_transpose(m_, m_); }
-  Matrix4 transposed() const
-    { Matrix4 r (uninitialized); Simd::mat4_transpose(m_, r.m_); return r; }
+  friend Matrix4 transpose(const Matrix4& m)
+    { Matrix4 r (uninitialized); Simd::mat4_transpose(m.m_, r.m_); return r; }
 
   value_type*       operator[](size_type i)       { return &Simd::ref4s(m_[i], 0); }
   const value_type* operator[](size_type i) const { return &Simd::ref4s(m_[i], 0); }
@@ -242,11 +241,11 @@ public:
   friend bool operator!=(const Quat& a, const Quat& b)
     { return !Simd::cmp4eq(a.v_, b.v_); }
 
-  Quat inv() const { return Quat(Simd::quat_inv(v_)); }
-  value_type mag() const { return Simd::mag4s(v_); }
+  friend Quat invert(const Quat& q) { return Quat(Simd::quat_inv(q.v_)); }
+  friend value_type magnitude(const Quat& q) { return Simd::mag4s(q.v_); }
 
   void normalize() { v_ = Simd::norm4(v_); }
-  Quat normalized() const { return Quat(Simd::norm4(v_)); }
+  friend Quat normalize(const Quat& q) { return Quat(Simd::norm4(q.v_)); }
 
   value_type&       operator[](size_type i)       { return Simd::ref4s(v_, i); }
   const value_type& operator[](size_type i) const { return Simd::ref4s(v_, i); }

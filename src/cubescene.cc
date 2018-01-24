@@ -281,7 +281,7 @@ float CubeScene::get_zoom() const
 
 void CubeScene::set_rotation(const Math::Quat& rotation)
 {
-  rotation_ = rotation.normalized();
+  rotation_ = normalize(rotation);
   depth_order_changed_ = true;
 
   if (!animation_data_.empty())
@@ -1241,7 +1241,7 @@ void CubeScene::gl_draw_cell_grid(const Math::Matrix4& cube_transform)
       // Shift grid lines slighty to the front to suppress z-fighting.
       gl_set_projection(grid_uf_view_frustum_, 1.f / (1 << 13));
     }
-    const Math::Matrix4 model_view = cube_transform.transposed();
+    const Math::Matrix4 model_view = transpose(cube_transform);
 
     glUniformMatrix3x4fv(grid_uf_model_view_, 1, GL_FALSE, &model_view[0][0]);
 
@@ -1326,7 +1326,7 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
       const float animation_distance = 1.75 * SomaCube::N * grid_cell_size;
       const float d = animation_position_ * animation_distance;
 
-      const auto transform = cube_transform.translated({data.direction[0] * d,
+      const auto transform = translate(cube_transform, {data.direction[0] * d,
                                                         data.direction[1] * d,
                                                         data.direction[2] * d,
                                                         1.f});
