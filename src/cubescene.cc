@@ -34,6 +34,7 @@
 #include <gtkmm/accelgroup.h>
 #include <epoxy/gl.h>
 
+#include <cmath>
 #include <cstddef>
 #include <algorithm>
 #include <functional>
@@ -94,10 +95,10 @@ enum
 };
 
 /*
- * The time span, in seconds, to wait for further user input
+ * The time span in milliseconds to wait for further user input
  * before hiding the mouse cursor while the animation is running.
  */
-const float hide_cursor_delay = 5.;
+const int hide_cursor_delay = 5000;
 
 /*
  * View offset in the direction of the z-axis.
@@ -874,8 +875,7 @@ bool CubeScene::on_animation_tick(gint64 animation_time)
 
   if (!delay_timeout_.connected())
   {
-    const int interval =
-        static_cast<int>(animation_delay_ / pieces_per_sec_ * 1000.f + 0.5f);
+    const int interval = std::lrint(animation_delay_ / pieces_per_sec_ * 1000.f);
 
     delay_timeout_ = Glib::signal_timeout().connect(
         sigc::mem_fun(*this, &CubeScene::on_delay_timeout),
@@ -886,7 +886,7 @@ bool CubeScene::on_animation_tick(gint64 animation_time)
 
 void CubeScene::update_footing()
 {
-  const int percentage = static_cast<int>(100.f * zoom_ + 0.5f);
+  const int percentage = std::lrint(100.f * zoom_);
 
   if (zoom_visible_ && percentage != 100)
     text_layouts()->set_layout_text(FOOTING, Glib::ustring::compose("Zoom %1%%", percentage));
@@ -1119,11 +1119,9 @@ void CubeScene::reset_hide_cursor_timeout()
 
     if (pointer_inside_ && animation_running_)
     {
-      const int interval = static_cast<int>(1000.f * hide_cursor_delay + 0.5f);
-
       hide_cursor_timeout_ = Glib::signal_timeout().connect(
           sigc::mem_fun(*this, &CubeScene::on_hide_cursor_timeout),
-          interval, Glib::PRIORITY_DEFAULT_IDLE);
+          hide_cursor_delay, Glib::PRIORITY_DEFAULT_IDLE);
     }
   }
 }
