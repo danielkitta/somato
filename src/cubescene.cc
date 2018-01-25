@@ -1324,10 +1324,9 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
       const float animation_distance = 1.75 * SomaCube::N * grid_cell_size;
       const float d = animation_position_ * animation_distance;
 
-      const auto transform = translate(cube_transform, {data.direction[0] * d,
-                                                        data.direction[1] * d,
-                                                        data.direction[2] * d,
-                                                        1.f});
+      const auto transform = translate(cube_transform, data.direction[0] * d,
+                                                       data.direction[1] * d,
+                                                       data.direction[2] * d);
       gl_draw_piece_elements(transform, data);
     }
   }

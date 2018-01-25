@@ -28,6 +28,11 @@ namespace Simd
 
 typedef __m128 V4f;
 
+inline V4f set4(float x, float y, float z, float w)
+{
+  return _mm_setr_ps(x, y, z, w);
+}
+
 inline V4f add4(V4f a, V4f b)
 {
   return _mm_add_ps(a, b);

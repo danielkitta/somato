@@ -172,7 +172,7 @@ bool find_piece_translation(SomaCube original, SomaCube piece, Math::Matrix4& tr
       {
         if (piece_x == original)
         {
-          transform.translate(Math::Vector4(x, y, z, 1.f));
+          transform.translate(x, y, z);
           return true;
         }
         ++x;

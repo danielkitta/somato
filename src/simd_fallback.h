@@ -28,6 +28,11 @@ namespace Simd
 
 typedef std::array<float, 4> V4f;
 
+inline V4f set4(float x, float y, float z, float w)
+{
+  return {x, y, z, w};
+}
+
 inline V4f add4(const V4f& a, const V4f& b)
 {
   return {a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]};

@@ -48,7 +48,6 @@ private:
   friend class Quat;
   friend Vector4 operator*(const Matrix4& a, const Vector4& b);
   friend Vector4 operator*(const Vector4& a, const Matrix4& b);
-  friend Matrix4 translate(const Matrix4& m, const Vector4& t);
 
   explicit Vector4(const Simd::V4f& v) : v_ {v} {}
 
@@ -157,9 +156,10 @@ public:
   friend Matrix4 scale(const Matrix4& m, value_type s)
     { return Matrix4(Simd::mul4s(m.m_[0], s), Simd::mul4s(m.m_[1], s), Simd::mul4s(m.m_[2], s), m.m_[3]); }
 
-  void translate(const Vector4& t) { m_[3] = Simd::mat4_mul_mv(m_, t.v_); }
-  friend Matrix4 translate(const Matrix4& m, const Vector4& t)
-    { return Matrix4(m.m_[0], m.m_[1], m.m_[2], Simd::mat4_mul_mv(m.m_, t.v_)); }
+  void translate(value_type x, value_type y, value_type z)
+    { m_[3] = Simd::mat4_mul_mv(m_, Simd::set4(x, y, z, 1.f)); }
+  friend Matrix4 translate(const Matrix4& m, value_type x, value_type y, value_type z)
+    { return Matrix4(m.m_[0], m.m_[1], m.m_[2], Simd::mat4_mul_mv(m.m_, Simd::set4(x, y, z, 1.f))); }
 
   void transpose() { Simd::mat4_transpose(m_, m_); }
   friend Matrix4 transpose(const Matrix4& m)
