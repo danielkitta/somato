@@ -127,6 +127,12 @@ V4f  mat4_mul_mv(const V4f* a, V4f b) G_GNUC_PURE;
 V4f  mat4_mul_vm(V4f a, const V4f* b) G_GNUC_PURE;
 void mat4_mul_mm(const V4f* a, const V4f* b, V4f* result);
 
+inline V4f quat_from_rv(float r, V4f v)
+{
+  const __m128 q = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2,1,0,3));
+  return _mm_move_ss(q, _mm_set_ss(r));
+}
+
 inline V4f quat_conj(V4f quat)
 {
   return _mm_xor_ps(_mm_setr_ps(0.f, -0.f, -0.f, -0.f), quat);

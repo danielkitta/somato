@@ -136,7 +136,8 @@ public:
                     const Vector4& c2, const Vector4& c3 = {0.f, 0.f, 0.f, 1.f})
     : m_ {c0.v_, c1.v_, c2.v_, c3.v_} {}
 
-  // Note: Result will be scaled if the input is not a unit quaternion.
+  // Note: If the argument is not a unit quaternion, the transformation
+  // will include a uniform scale by the quaternion's magnitude squared.
   static inline Matrix4 from_quaternion(const Quat& quat);
 
   Matrix4& operator*=(const Matrix4& b)
@@ -190,6 +191,7 @@ public:
   constexpr Quat() : v_ {1.f, 0.f, 0.f, 0.f} {}
   constexpr Quat(value_type r_, value_type x_, value_type y_, value_type z_)
     : v_ {r_, x_, y_, z_} {}
+  Quat(value_type r, const Vector4& v) : v_ {Simd::quat_from_rv(r, v.v_)} {}
 
   // Note: Result is a unit quaternion only if (x,y,z) is a unit vector.
   static constexpr Quat from_axis(value_type x, value_type y, value_type z, value_type phi)

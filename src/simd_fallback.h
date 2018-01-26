@@ -93,6 +93,11 @@ V4f  mat4_mul_mv(const V4f* a, const V4f& b) G_GNUC_PURE;
 V4f  mat4_mul_vm(const V4f& a, const V4f* b) G_GNUC_PURE;
 void mat4_mul_mm(const V4f* a, const V4f* b, V4f* result);
 
+inline V4f quat_from_rv(float r, const V4f& v)
+{
+  return {r, v[0], v[1], v[2]};
+}
+
 inline V4f quat_conj(const V4f& q)
 {
   return {q[0], -q[1], -q[2], -q[3]};
