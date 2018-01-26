@@ -262,7 +262,22 @@ float Simd::quat_angle(V4f quat)
   return 2.f * std::atan2(_mm_cvtss_f32(s), _mm_cvtss_f32(quat));
 }
 
-V4f Simd::quat_from_vectors(V4f a, V4f b)
+/* The rotation between two vectors is simply the quotient of two imaginary
+ * quaternions:
+ * q = |q| * exp(I(q) * phi) = (0, b) * (0, a)^-1
+ * where phi is the angle between a, b and I(q) is the imaginary axis. To
+ * obtain a quaternion suitable as a conjugation map, the angle phi needs
+ * to be halved:
+ * p = |p| * exp(I(q) * phi / 2) = q ^ (1/2)
+ *
+ * Disregarding any non-unit norms, this can be simplified to:
+ * q' = s * q = (0, b) * (0, -a) = (a * b, a X b)
+ * p' = t * p = (q'r + |q'|, q'v)
+ * where q'r and q'v are the real and vector parts of q'. The scalar factors
+ * s, t can be ignored since any normalization applied later on will cancel
+ * them out.
+ */
+V4f Simd::quat_from_wedge(V4f a, V4f b)
 {
   const __m128 a_yzxw = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3,0,2,1));
   const __m128 b_yzxw = _mm_shuffle_ps(b, b, _MM_SHUFFLE(3,0,2,1));
@@ -273,12 +288,10 @@ V4f Simd::quat_from_vectors(V4f a, V4f b)
   const __m128 d2 = _mm_add_ps(_mm_unpacklo_ps(ab, ab), ab); // [2] y+z
   const __m128 d0 = _mm_add_ps(_mm_movehl_ps(d2, d2), ab);   // [0] x+(y+z)
 
-  // q = (dot(a, b), cross(a, b))
-  const __m128 q = _mm_move_ss(c_0xyz, d0);
-  const __m128 n = _mm_sqrt_ss(dot4r(q, q));
+  const __m128 q = _mm_move_ss(c_0xyz, d0);  // (a * b, a X b)
+  const __m128 n = _mm_sqrt_ss(dot4r(q, q)); // |q'|
 
-  // Average with scaled identity to half the rotation angle.
-  return _mm_add_ss(q, n); // (q.r + mag(q), q.xyz)
+  return _mm_add_ss(q, n); // (q'r + |q'|, q'v)
 }
 
 V4f Simd::quat_from_axis(const V4f& a, float phi)

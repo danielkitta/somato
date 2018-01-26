@@ -47,21 +47,10 @@ Math::Vector4 project_to_sphere(float x, float y, float r)
 
 Math::Quat Math::trackball_motion(float x1, float y1, float x2, float y2, float trackballsize)
 {
-  const float epsilon = std::numeric_limits<float>::epsilon();
+  // Project P1 and P2 onto deformed sphere.
+  const Math::Vector4 a = project_to_sphere(x1, y1, trackballsize);
+  const Math::Vector4 b = project_to_sphere(x2, y2, trackballsize);
 
-  if (std::abs(x2 - x1) < epsilon && std::abs(y2 - y1) < epsilon)
-  {
-    // Zero rotation
-    return {};
-  }
-  else
-  {
-    // First, figure out z-coordinates for projection of P1 and P2 to
-    // deformed sphere.
-    const Math::Vector4 a = project_to_sphere(x1, y1, trackballsize);
-    const Math::Vector4 b = project_to_sphere(x2, y2, trackballsize);
-
-    // Determine axis of rotation and cosine of angle.
-    return Math::Quat::from_vectors(a, b);
-  }
+  // Determine rotation from projected P1 to P2.
+  return Math::Quat::from_wedge(a, b);
 }

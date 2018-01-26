@@ -201,9 +201,10 @@ public:
   static Quat from_axis(const Vector4& a, value_type phi)
     { return Quat(Simd::quat_from_axis(a.v_, phi)); }
 
-  // Note: Result is not normalized even if a and b are unit vectors.
-  static Quat from_vectors(const Vector4& a, const Vector4& b)
-    { return Quat(Simd::quat_from_vectors(a.v_, b.v_)); }
+  // Compute the quaternion that rotates one vector onto another.
+  // Invalid if a = -b. Note: Result is not normalized even if a and b are.
+  static Quat from_wedge(const Vector4& a, const Vector4& b)
+    { return Quat(Simd::quat_from_wedge(a.v_, b.v_)); }
 
   Vector4 axis() const { return Vector4(Simd::quat_axis(v_)); } // not normalized
   value_type angle() const { return Simd::quat_angle(v_); }

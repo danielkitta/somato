@@ -121,7 +121,7 @@ void Simd::mat4_mul_mm(const V4f* a, const V4f* b, V4f* result)
   }
 }
 
-V4f Simd::quat_from_vectors(const V4f& a, const V4f& b)
+V4f Simd::quat_from_wedge(const V4f& a, const V4f& b)
 {
   V4f q = {a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
            a[1] * b[2] - a[2] * b[1],
@@ -184,6 +184,6 @@ V4f Simd::quat_mul(const V4f& a, const V4f& b)
 
 V4f Simd::quat_inv(const V4f& q)
 {
-  const float d = dot4s(q, q);
-  return {q[0] / d, -q[1] / d, -q[2] / d, -q[3] / d};
+  const float d = 1.f / dot4s(q, q);
+  return {q[0] * d, q[1] * -d, q[2] * -d, q[3] * -d};
 }
