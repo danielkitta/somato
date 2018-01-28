@@ -54,7 +54,7 @@ AC_DEFINE([RESOURCE_PREFIX], ["/org/gtk/somato/"],
           [Base path for loading resources.])
 
 AC_LANG([C++])
-DK_PROG_CXX_STD([14])
+DK_PROG_CXX_STD([SOMATO_EXTRA_CXXFLAGS], [14], [17])
 
 AC_MSG_CHECKING([host byte order])
 DK_SH_VAR_PUSH([CPPFLAGS], ["$CPPFLAGS $SOMATO_MODULES_CFLAGS"])
@@ -91,6 +91,7 @@ DK_SH_VAR_PUSH([CXX], [$CXX_FOR_BUILD])
 DK_SH_VAR_PUSH([CXXFLAGS], [$CXXFLAGS_FOR_BUILD])
 DK_SH_VAR_PUSH([LDFLAGS], [$LDFLAGS_FOR_BUILD])
 
+DK_PROG_CXX_STD([TOOL_EXTRA_CXXFLAGS], [14], [17])
 DK_CHECK_COMPILE_FLAGS([TOOL_EXTRA_CXXFLAGS], [math without errno (build)],
                        [-fno-math-errno])
 DK_CHECK_COMPILE_FLAGS([TOOL_EXTRA_CXXFLAGS], [link-time optimization (build)],

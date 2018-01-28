@@ -1,4 +1,4 @@
-## Copyright (c) 2017  Daniel Elstner  <daniel.kitta@gmail.com>
+## Copyright (c) 2018  Daniel Elstner  <daniel.kitta@gmail.com>
 ##
 ## This file is part of danielk's Autostuff.
 ##
@@ -15,52 +15,53 @@
 ## You should have received a copy of the GNU General Public License along
 ## with danielk's Autostuff.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20170916
+#serial 20180128
 
-## _DK_PROG_CXX_STD(std-version, compiler-flags, test-code)
+## _DK_PROG_CXX_STD_TEST(version, flags, [version-2], [flags-2], ...)
 ##
-m4_define([_DK_PROG_CXX_STD],
+m4_define([_DK_PROG_CXX_STD_TEST],
 [dnl
-AC_CACHE_CHECK([for C++$1 support], [dk_cv_cxx_std$1],
-[dnl
-for dk_opt in '' $2
+for dk_flag in '' $2
 do
-{
-  dk_save_CXX=$CXX
-  CXX=$CXX${dk_opt:+' '}$dk_opt
-dnl
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#include <vector>
-]], [[
-  const std::vector<int> v {1, 2, 3};
-  auto a = v[0];
-  decltype(v[0]) b = 1;
-  $3
-  return a + b;
-]])],
-[dk_cv_cxx_std$1=yes], [dk_cv_cxx_std$1=no])
-dnl
-  test "x$dk_cv_cxx_std$1" != xyes || break
-  CXX=$dk_save_CXX
-}
-done])[]dnl
+CXXFLAGS="$dk_save_cxxflags $dk_flag"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#if __cplusplus < 20]$1[00
+# error "version test failed"
+#endif
+]], [])], [dk_cxx_std_flag=$dk_flag; break], [dk_cxx_std_flag=failed])
+done
+AS_IF([test "x$dk_cxx_std_flag" = xfailed],
+      [m4_ifval([$3], [_DK_PROG_CXX_STD_TEST(m4_shift2($@))], [dk_cxx_std_version=no])],
+      [dk_cxx_std_version=C++$1])
 ])
 
-## DK_PROG_CXX_STD(std-version)
+## _DK_PROG_CXX_STD_CLAMP(opt-version, version, flags, [version-2], [flags-2], ...)
+##
+m4_define([_DK_PROG_CXX_STD_CLAMP],
+[dnl
+m4_if([$3],, [m4_fatal([unknown C++ standard version])])[]dnl
+m4_if(m4_eval([$1 < $2]), [1], [_DK_PROG_CXX_STD_CLAMP([$1], m4_shift3($@))], [m4_shift($@)])[]dnl
+])
+
+## DK_PROG_CXX_STD(flags-variable, min-version, [opt-version])
 ##
 ## Check if the C++ compiler supports the desired language standard version.
-## Set the appropriate compiler flags as needed. Currently only implemented
-## for GCC.
 ## The current language must be set to C++ before calling this macro.
 ##
 AC_DEFUN([DK_PROG_CXX_STD],
 [dnl
+m4_assert([$# >= 2])[]dnl
 AC_LANG_ASSERT([C++])[]dnl
-_DK_PROG_CXX_STD([$1],
-  m4_case([$1], [11], [-std=gnu++11 -std=gnu++0x],
-                [14], [-std=gnu++14 -std=gnu++1y],
-                [17], [-std=gnu++17 -std=gnu++1z],
-                      [m4_fatal([unknown standard version])]),
-  m4_case([$1], [14], [a=0b0101'1010'0101;],
-                [17], [if (int c=a; c) b=c;]))[]dnl
+AC_MSG_CHECKING([for C++ standard version])
+dk_save_cxxflags=$CXXFLAGS
+_DK_PROG_CXX_STD_TEST(_DK_PROG_CXX_STD_CLAMP(m4_default_quoted([$3], [$2]),
+                                             [17], [-std=gnu++17 -std=gnu++1z],
+                                             [14], [-std=gnu++14 -std=gnu++1y],
+                                             [11], [-std=gnu++11 -std=gnu++0x]))
+CXXFLAGS=$dk_save_cxxflags
+AC_MSG_RESULT([$dk_cxx_std_version])
+AS_IF([test "x$dk_cxx_std_version" = xno],
+      [AC_MSG_ERROR([Support for C++$2 is required to compile this program.])])
+AS_CASE([$dk_cxx_std_flag], [""|failed],,
+        [$1=[$]$1[$]{$1:+' '}$dk_cxx_std_flag])
 ])
