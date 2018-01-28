@@ -15,7 +15,7 @@
 ## You should have received a copy of the GNU General Public License
 ## along with Somato.  If not, see <http://www.gnu.org/licenses/>.
 
-#serial 20180113
+#serial 20180128
 
 ## SOMATO_ARG_ENABLE_VECTOR_SIMD()
 ##
@@ -25,7 +25,7 @@
 AC_DEFUN([SOMATO_ARG_ENABLE_VECTOR_SIMD],
 [dnl
 AC_CACHE_CHECK([for SSE support], [somato_cv_simd_sse_support],
-               [AC_LINK_IFELSE([AC_LANG_PROGRAM(
+               [AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 [[
 #include <xmmintrin.h>
 ]], [[
@@ -38,33 +38,6 @@ b = _mm_mul_ps(a, a);
   [somato_cv_simd_sse_support=yes],
   [somato_cv_simd_sse_support=no])
 ])
-AC_CHECK_ALIGNOF([max_align_t])
-AS_IF([test "$ac_cv_alignof_max_align_t" -ge 16],
-      [somato_align_sufficient=yes], [somato_align_sufficient=no])
-
-DK_CHECK_FEATURE([_mm_malloc], [AC_LANG_PROGRAM(
-[[
-#include <xmmintrin.h>
-]], [[
-void* p;
-p = _mm_malloc(128, sizeof(__m128));
-_mm_free(p);
-]])
-])
-DK_CHECK_FEATURE([posix_memalign], [AC_LANG_PROGRAM(
-[[
-#ifdef __cplusplus
-# include <cstdlib>
-using namespace std;
-#else
-# include <stdlib.h>
-#endif
-]], [[
-void* p = 0;
-if (posix_memalign(&p, 16, 128) == 0)
-  free(p);
-]])
-])
 AC_ARG_ENABLE([vector-simd], [AS_HELP_STRING(
   [--enable-vector-simd=@<:@auto|sse|no@:>@],
   [use SIMD instructions for vector arithmetic @<:@auto@:>@])],
@@ -74,9 +47,9 @@ AC_ARG_ENABLE([vector-simd], [AS_HELP_STRING(
 AC_MSG_CHECKING([which SIMD vector implementation to use])
 somato_result=none
 
-AS_CASE([$somato_cv_simd_sse_support.$somato_align_sufficient.$SOMATO_FEATURE__MM_MALLOC.$SOMATO_FEATURE_POSIX_MEMALIGN],
-        [yes.*yes*], [AS_CASE([$somato_enable_vector_simd],
-                              [sse|auto|yes], [somato_result=sse])])
+AS_IF([test "x$somato_cv_simd_sse_support" = xyes],
+      [AS_CASE([$somato_enable_vector_simd],
+               [sse|auto|yes], [somato_result=sse])])
 AM_CONDITIONAL([SIMD_SSE], [test "x$somato_result" = xsse])
 AM_COND_IF([SIMD_SSE], [AC_DEFINE([SOMATO_VECTOR_USE_SSE], [1],
                                   [Define to 1 to enable the SSE vector code.])])

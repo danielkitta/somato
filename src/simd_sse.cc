@@ -21,17 +21,22 @@
 #include "simd_sse.h"
 
 #include <cmath>
-#include <cstdlib>
-#include <new>
-
-#if (ALIGNOF_MAX_ALIGN_T < 16)
-# define SOMATO_CUSTOM_ALLOC 1
-#endif
+#include <cstddef>
 
 namespace
 {
 
 using Simd::V4f;
+
+/* C++17 automatically invokes the aligned new operator for objects with
+ * extended alignment requirements, provided the implementation supports
+ * the extended alignment. Otherwise, insist that the standard alignment
+ * is sufficient for the SIMD vector type.
+ */
+#ifndef __cpp_aligned_new
+static_assert(alignof(V4f) <= alignof(std::max_align_t),
+              "Memory allocation alignment not sufficient");
+#endif
 
 /* Half precision reciprocal square root approximation followed by
  * one Newton-Raphson iteration.
@@ -46,127 +51,7 @@ inline V4f rsqrt4(V4f a)
   return _mm_mul_ps(x0mh, m3axx);
 }
 
-#if SOMATO_CUSTOM_ALLOC
-
-void* v4_align_alloc(std::size_t size) noexcept G_GNUC_MALLOC;
-
-# if SOMATO_HAVE_POSIX_MEMALIGN
-
-void* v4_align_alloc(std::size_t size) noexcept
-{
-  if (size == 0)
-    return std::malloc(1);
-
-  // According to the language rules, using the sizeof operator on an
-  // aggregate type always returns a multiple of the largest alignment
-  // requirement of any aggregate member.  In other words, if the size
-  // of an allocation request is not a multiple of 16, it cannot have
-  // an alignment requirement of 16 bytes.  Checking for this catches
-  // the majority of cases where the special alignment is unnecessary.
-
-  if (size % sizeof(__m128) != 0)
-    return std::malloc(size);
-
-  void* p = 0;
-
-  if (posix_memalign(&p, sizeof(__m128), size) == 0)
-    return p;
-
-  return 0;
-}
-
-inline void v4_align_free(void* p) noexcept
-{
-  std::free(p);
-}
-
-# else /* !SOMATO_HAVE_POSIX_MEMALIGN */
-
-void* v4_align_alloc(std::size_t size) noexcept
-{
-  if (size == 0)
-    size = 1;
-
-  const std::size_t alignment = (size % sizeof(__m128) == 0) ? sizeof(__m128) : sizeof(__m64);
-
-  return _mm_malloc(size, alignment);
-}
-
-inline void v4_align_free(void* p) noexcept
-{
-  _mm_free(p);
-}
-
-# endif /* !SOMATO_HAVE_POSIX_MEMALIGN */
-#endif /* SOMATO_CUSTOM_ALLOC */
-
 } // anonymous namespace
-
-/* Replace the global new and delete operators to ensure that dynamically
- * allocated memory meets the SSE alignment requirements. This is of course
- * a somewhat heavy-handed approach, but if not done globally, every class
- * or struct that has a data member of type Vector4/Matrix4/Quat would have
- * to provide its own memory allocation operators. Worse yet, this applies
- * even to indirectly contained data members, and inheritance as a possible
- * solution does not apply there!
- *
- * Obviously this is all too easy to get wrong, thus I opted for the global
- * solution. This implies that the current SSE vector implementation should
- * not be included in a library.
- *
- * Note that the GNU C library already uses a minimum alignment of 16 bytes
- * on 64-bit systems, thus the explicit alignment is actually not necessary
- * on these systems.
- */
-#if SOMATO_CUSTOM_ALLOC
-
-void* operator new(std::size_t size)
-{
-  if (void *const p = v4_align_alloc(size))
-    return p;
-  else
-    throw std::bad_alloc();
-}
-
-void* operator new[](std::size_t size)
-{
-  if (void *const p = v4_align_alloc(size))
-    return p;
-  else
-    throw std::bad_alloc();
-}
-
-void operator delete(void* p) throw()
-{
-  v4_align_free(p);
-}
-
-void operator delete[](void* p) throw()
-{
-  v4_align_free(p);
-}
-
-void* operator new(std::size_t size, const std::nothrow_t&) throw()
-{
-  return v4_align_alloc(size);
-}
-
-void* operator new[](std::size_t size, const std::nothrow_t&) throw()
-{
-  return v4_align_alloc(size);
-}
-
-void operator delete(void* p, const std::nothrow_t&) throw()
-{
-  v4_align_free(p);
-}
-
-void operator delete[](void* p, const std::nothrow_t&) throw()
-{
-  v4_align_free(p);
-}
-
-#endif /* SOMATO_CUSTOM_ALLOC */
 
 V4f Simd::norm4(V4f v)
 {
