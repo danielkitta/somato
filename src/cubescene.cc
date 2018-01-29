@@ -38,6 +38,7 @@
 #include <cstddef>
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <utility>
 
 namespace
@@ -231,7 +232,7 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
 {
   try
   {
-    cube_pieces_   .assign(cube_pieces.begin(), cube_pieces.end());
+    cube_pieces_   .assign(cbegin(cube_pieces), cend(cube_pieces));
     animation_data_.assign(cube_pieces.size(), AnimationData{});
     depth_order_   .assign(cube_pieces.size(), 0);
 
@@ -939,11 +940,11 @@ void CubeScene::update_animation_order()
     // 3) If not processed yet, generate and store a new animation data element.
     // 4) Write the piece's animation index to the piece cells vector.
 
-    const auto pcube = std::find_if(cube_pieces_.cbegin(), cube_pieces_.cend(),
+    const auto pcube = std::find_if(cbegin(cube_pieces_), cend(cube_pieces_),
                                     [cell](SomaCube c) { return (c & cell); });
-    if (pcube != cube_pieces_.cend())
+    if (pcube != cend(cube_pieces_))
     {
-      const unsigned int cube_index = pcube - cube_pieces_.cbegin();
+      const unsigned int cube_index = pcube - cbegin(cube_pieces_);
       unsigned int       anim_index = 0;
 
       while (anim_index < count && animation_data_[anim_index].cube_index != cube_index)

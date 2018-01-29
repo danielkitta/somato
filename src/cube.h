@@ -44,7 +44,7 @@ public:
 
   constexpr Cube() : data_ {0} {}
   constexpr Cube(std::initializer_list<bool> bits)
-    : data_ {init_bits(0, bits.begin(), bits.end())} {}
+    : data_ {init_bits(0, begin(bits), end(bits))} {}
 
   void clear() { data_ = 0; }
   bool empty() const { return (data_ == 0); }
