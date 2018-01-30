@@ -33,31 +33,33 @@ template <int N> inline int shift_by_axis(int axis);
 template <> inline int shift_by_axis<3>(int axis) { return ((2-axis) << (2-axis)) + 1; }
 template <> inline int shift_by_axis<4>(int axis) { return 16u >> (2 * axis); }
 
+/* Map coordinates after rotation to index before rotation.
+ */
 template <int A> constexpr
 unsigned char make_rotation_index(int n, int x, int y, int z);
 
 template <> constexpr
 unsigned char make_rotation_index<AXIS_X>(int n, int x, int y, int z)
 {
-  return n*n*(n-1-x) + n*z + (n-1-y);
+  return n*n*x + n*z + (n-1-y);
 }
 
 template <> constexpr
 unsigned char make_rotation_index<AXIS_Y>(int n, int x, int y, int z)
 {
-  return n*n*z + n*(n-1-y) + (n-1-x);
+  return n*n*z + n*y + (n-1-x);
 }
 
 template <> constexpr
 unsigned char make_rotation_index<AXIS_Z>(int n, int x, int y, int z)
 {
-  return n*n*y + n*(n-1-x) + (n-1-z);
+  return n*n*(n-1-y) + n*x + z;
 }
 
 template <int N, int A, int... I> constexpr
 std::array<unsigned char, N*N*N> make_rotation_indices_(std::integer_sequence<int, I...>)
 {
-  return {make_rotation_index<A>(N, I / (N*N), (I % (N*N)) / N, I % N)...};
+  return {make_rotation_index<A>(N, (N*N*N-1-I) / (N*N), ((N*N*N-1-I) % (N*N)) / N, (N*N*N-1-I) % N)...};
 }
 
 template <int N, int A> constexpr

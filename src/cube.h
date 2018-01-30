@@ -58,7 +58,7 @@ public:
   bool get(int x, int y, int z) const
     { return ((data_ >> (N*N*x + N*y + z)) & Bits{1}); }
 
-  Cube& rotate(int axis) // clockwise
+  Cube& rotate(int axis) // counterclockwise
     { data_ = rotate_(data_, axis); return *this; }
 
   Cube& shift(int axis, ClipMode clip = ClipMode::CULL) // rightward

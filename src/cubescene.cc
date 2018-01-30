@@ -115,8 +115,8 @@ const float rotation_step = G_PI / 60.;
  */
 const GLfloat texture_shear[2][4] =
 {
-  {0.474773,    0.0146367, -0.0012365, 0.74},
-  {0.00168634, -0.0145917,  0.474773,  0.26}
+  {0.474773,    0.0146367, -0.0012365, 0.738764},
+  {0.00168634, -0.0145917,  0.474773,  0.734773}
 };
 
 /* The color of each cube piece. Indices into the colors array match
@@ -163,10 +163,10 @@ void find_animation_axis(SomaCube cube, SomaCube piece, float* direction)
   static const std::array<MovementData, 6> movement_data
   {{
     { AXIS_Y, false,  0.,  1.,  0. }, // top->down
-    { AXIS_Z, true,   0.,  0.,  1. }, // front->back
+    { AXIS_Z, false,  0.,  0.,  1. }, // front->back
     { AXIS_X, true,  -1.,  0.,  0. }, // left->right
     { AXIS_X, false,  1.,  0.,  0. }, // right->left
-    { AXIS_Z, false,  0.,  0., -1. }, // back->front
+    { AXIS_Z, true,   0.,  0., -1. }, // back->front
     { AXIS_Y, true,   0., -1.,  0. }  // bottom->up
   }};
 
@@ -914,10 +914,10 @@ void CubeScene::update_animation_order()
 
   static const std::array<unsigned char[3], N*N*N> cell_order
   {{
-    {2,0,2}, {1,0,2}, {2,0,1}, {1,0,1}, {1,1,1}, {2,1,2}, {1,1,2},
-    {2,1,1}, {0,0,2}, {2,0,0}, {2,2,2}, {0,0,1}, {1,0,0}, {0,1,2},
-    {2,1,0}, {1,2,2}, {2,2,1}, {0,1,1}, {1,1,0}, {1,2,1}, {0,0,0},
-    {0,2,2}, {2,2,0}, {0,1,0}, {0,2,1}, {1,2,0}, {0,2,0}
+    {1,0,0}, {1,0,1}, {1,1,1}, {1,1,0}, {2,0,0}, {2,0,1}, {2,1,0},
+    {2,1,1}, {0,0,0}, {2,0,2}, {2,2,0}, {0,0,1}, {1,0,2}, {0,1,0},
+    {2,1,2}, {1,2,0}, {2,2,1}, {0,1,1}, {1,1,2}, {1,2,1}, {0,0,2},
+    {0,2,0}, {2,2,2}, {0,1,2}, {0,2,1}, {1,2,2}, {0,2,2}
   }};
 
   unsigned int count = 0;
@@ -989,7 +989,7 @@ void CubeScene::update_depth_order()
 
   for (int x = 1 - N; x < N; x += 2)
     for (int y = 1 - N; y < N; y += 2)
-      for (int z = N - 1; z > -N; z -= 2)
+      for (int z = 1 - N; z < N; z += 2)
       {
         const Math::Vector4 coords = matrix * Math::Vector4(x, y, z);
 
