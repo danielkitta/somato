@@ -58,8 +58,12 @@ public:
   bool get(int x, int y, int z) const
     { return ((data_ >> (N*N*x + N*y + z)) & Bits{1}); }
 
-  Cube& rotate(int axis) // counterclockwise
-    { data_ = rotate_(data_, axis); return *this; }
+  Cube& rotate_x() // counterclockwise
+    { data_ = rotate_x_(data_); return *this; }
+  Cube& rotate_y() // counterclockwise
+    { data_ = rotate_y_(data_); return *this; }
+  Cube& rotate_z() // counterclockwise
+    { data_ = rotate_z_(data_); return *this; }
 
   Cube& shift(int axis, ClipMode clip = ClipMode::CULL) // rightward
     { data_ = shift_(data_, axis, clip); return *this; }
@@ -88,7 +92,9 @@ private:
   {
     return (pos == start) ? data : init_bits((data << 1) | pos[-1], start, pos - 1);
   }
-  static Bits rotate_(Bits data, int axis);
+  static Bits rotate_x_(Bits data);
+  static Bits rotate_y_(Bits data);
+  static Bits rotate_z_(Bits data);
   static Bits shift_(Bits data, int axis, ClipMode clip);
   static Bits shift_rev_(Bits data, int axis, ClipMode clip);
 

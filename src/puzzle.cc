@@ -107,16 +107,19 @@ void compute_rotations(SomaCube cube, PieceStore& store)
 
     // Add the 4 possible orientations of each cube side.
     store.push_back(temp);
-    store.push_back(temp.rotate(AXIS_Z));
-    store.push_back(temp.rotate(AXIS_Z));
-    store.push_back(temp.rotate(AXIS_Z));
+    store.push_back(temp.rotate_z());
+    store.push_back(temp.rotate_z());
+    store.push_back(temp.rotate_z());
 
     if (i == 5)
       break;
 
     // Due to the zigzagging performed here, only 5 rotations are
     // necessary to move each of the 6 cube sides in turn to the front.
-    cube.rotate(AXIS_X + i % 2);
+    if ((i % 2) == 0)
+      cube.rotate_x();
+    else
+      cube.rotate_y();
   }
 }
 
@@ -298,13 +301,17 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaCube piece)
       if (find_piece_translation(original, piece, transform))
         return transform;
 
-      piece.rotate(AXIS_Z);
+      piece.rotate_z();
       transform *= rotate90[AXIS_Z];
     }
 
     // Due to the zigzagging performed here, only 5 rotations are
     // necessary to move each of the 6 cube sides in turn to the front.
-    piece.rotate(i % 2);
+    if ((i % 2) == 0)
+      piece.rotate_x();
+    else
+      piece.rotate_y();
+
     transform *= rotate90[i % 2];
   }
 

@@ -20,9 +20,6 @@
 #include <config.h>
 #include "cube.h"
 
-#include <array>
-#include <utility>
-
 namespace
 {
 
@@ -33,39 +30,83 @@ template <int N> inline int shift_by_axis(int axis);
 template <> inline int shift_by_axis<3>(int axis) { return ((2-axis) << (2-axis)) + 1; }
 template <> inline int shift_by_axis<4>(int axis) { return 16u >> (2 * axis); }
 
-/* Map coordinates after rotation to index before rotation.
+template <int N>
+inline CubeBits<N> cube_rotate_x(CubeBits<N> data)
+{
+  CubeBits<N> r = 0;
+
+  for (int x = N-1; x >= 0; --x)
+    for (int y = N-1; y >= 0; --y)
+      for (int z = N-1; z >= 0; --z)
+        r = (r << 1) | ((data >> (N*N*x + N*z + (N-1-y))) & CubeBits<N>{1});
+
+  return r;
+}
+
+template <int N>
+inline CubeBits<N> cube_rotate_y(CubeBits<N> data)
+{
+  CubeBits<N> r = 0;
+
+  for (int x = N-1; x >= 0; --x)
+    for (int y = N-1; y >= 0; --y)
+      for (int z = N-1; z >= 0; --z)
+        r = (r << 1) | ((data >> (N*N*z + N*y + (N-1-x))) & CubeBits<N>{1});
+
+  return r;
+}
+
+template <int N>
+inline CubeBits<N> cube_rotate_z(CubeBits<N> data)
+{
+  CubeBits<N> r = 0;
+
+  for (int x = N-1; x >= 0; --x)
+    for (int y = N-1; y >= 0; --y)
+      for (int z = N-1; z >= 0; --z)
+        r = (r << 1) | ((data >> (N*N*(N-1-y) + N*x + z)) & CubeBits<N>{1});
+
+  return r;
+}
+
+/* Optimized specializations for a 3x3x3 cube.
  */
-template <int A> constexpr
-unsigned char make_rotation_index(int n, int x, int y, int z);
-
-template <> constexpr
-unsigned char make_rotation_index<AXIS_X>(int n, int x, int y, int z)
+template <>
+inline CubeBits<3> cube_rotate_x<3>(CubeBits<3> data)
 {
-  return n*n*x + n*z + (n-1-y);
+  return (data & 0020020020)
+      | ((data & 0102102102) << 2)
+      | ((data & 0204204204) >> 2)
+      | ((data & 0010010010) << 4)
+      | ((data & 0040040040) >> 4)
+      | ((data & 0001001001) << 6)
+      | ((data & 0400400400) >> 6);
 }
 
-template <> constexpr
-unsigned char make_rotation_index<AXIS_Y>(int n, int x, int y, int z)
+template <>
+inline CubeBits<3> cube_rotate_y<3>(CubeBits<3> data)
 {
-  return n*n*z + n*y + (n-1-x);
+  return (data & 0000222000)
+      | ((data & 0111000000) << 2)
+      | ((data & 0000000444) >> 2)
+      | ((data & 0000000222) << 8)
+      | ((data & 0222000000) >> 8)
+      | ((data & 0000111000) << 10)
+      | ((data & 0000444000) >> 10)
+      | ((data & 0000000111) << 18)
+      | ((data & 0444000000) >> 18);
 }
 
-template <> constexpr
-unsigned char make_rotation_index<AXIS_Z>(int n, int x, int y, int z)
+template <>
+inline CubeBits<3> cube_rotate_z<3>(CubeBits<3> data)
 {
-  return n*n*(n-1-y) + n*x + z;
-}
-
-template <int N, int A, int... I> constexpr
-std::array<unsigned char, N*N*N> make_rotation_indices_(std::integer_sequence<int, I...>)
-{
-  return {make_rotation_index<A>(N, (N*N*N-1-I) / (N*N), ((N*N*N-1-I) % (N*N)) / N, (N*N*N-1-I) % N)...};
-}
-
-template <int N, int A> constexpr
-std::array<unsigned char, N*N*N> make_rotation_indices()
-{
-  return make_rotation_indices_<N, A>(std::make_integer_sequence<int, N*N*N>{});
+  return (data & 0000070000)
+      | ((data & 0000700007) << 6)
+      | ((data & 0700007000) >> 6)
+      | ((data & 0000000070) << 12)
+      | ((data & 0070000000) >> 12)
+      | ((data & 0000000700) << 18)
+      | ((data & 0007000000) >> 18);
 }
 
 } // anonymous namespace
@@ -74,20 +115,21 @@ namespace Somato
 {
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::rotate_(Bits data, int axis)
+typename Cube<N_>::Bits Cube<N_>::rotate_x_(Bits data)
 {
-  static const std::array<unsigned char, N*N*N> shuffle_order[3] =
-  {
-    make_rotation_indices<N, AXIS_X>(),
-    make_rotation_indices<N, AXIS_Y>(),
-    make_rotation_indices<N, AXIS_Z>()
-  };
-  Bits result = 0;
+  return cube_rotate_x<N_>(data);
+}
 
-  for (int i = 0; i < N*N*N; ++i)
-    result = (result << 1) | ((data >> shuffle_order[axis][i]) & Bits{1});
+template <int N_>
+typename Cube<N_>::Bits Cube<N_>::rotate_y_(Bits data)
+{
+  return cube_rotate_y<N_>(data);
+}
 
-  return result;
+template <int N_>
+typename Cube<N_>::Bits Cube<N_>::rotate_z_(Bits data)
+{
+  return cube_rotate_z<N_>(data);
 }
 
 template <int N_>
