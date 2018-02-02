@@ -25,20 +25,40 @@ namespace
 
 using namespace Somato;
 
-template <int N> inline int shift_by_axis(int axis);
+/* Generate a right-aligned mask of consecutive 1-bits.
+ */
+template <int N>
+constexpr CubeBits<N> one_mask(int count)
+{
+  return (count > 0) ? ~(~CubeBits<N>{1} << (count - 1)) : CubeBits<N>{0};
+}
 
-template <> inline int shift_by_axis<3>(int axis) { return ((2-axis) << (2-axis)) + 1; }
-template <> inline int shift_by_axis<4>(int axis) { return 16u >> (2 * axis); }
+/* Generate a sparse bit mask of count 1-bits at stride intervals.
+ */
+template <int N>
+constexpr CubeBits<N> repeat_mask(CubeBits<N> pattern, int count, int stride)
+{
+  return one_mask<N>(count * stride) / one_mask<N>(stride) * pattern;
+}
 
+/* Derive stride from axis index (x: N*N, y: N, z: 1).
+ */
+template <int N> inline int axis_stride(int axis);
+
+template <> inline int axis_stride<3>(int axis) { return ((2-axis) << (2-axis)) + 1; }
+template <> inline int axis_stride<4>(int axis) { return 16u >> (2 * axis); }
+
+/* Rotate cube cells by 90 degrees counterclockwise.
+ */
 template <int N>
 inline CubeBits<N> cube_rotate_x(CubeBits<N> data)
 {
+  const CubeBits<N> mask = repeat_mask<N>(1, N, N*N);
   CubeBits<N> r = 0;
 
-  for (int x = N-1; x >= 0; --x)
-    for (int y = N-1; y >= 0; --y)
-      for (int z = N-1; z >= 0; --z)
-        r = (r << 1) | ((data >> (N*N*x + N*z + (N-1-y))) & CubeBits<N>{1});
+  for (int y = 0; y < N; ++y)
+    for (int z = N-1; z >= 0; --z)
+      r = (r << 1) | ((data >> (N*z + y)) & mask);
 
   return r;
 }
@@ -46,25 +66,28 @@ inline CubeBits<N> cube_rotate_x(CubeBits<N> data)
 template <int N>
 inline CubeBits<N> cube_rotate_y(CubeBits<N> data)
 {
+  const CubeBits<N> mask = repeat_mask<N>(1, N, N);
   CubeBits<N> r = 0;
 
-  for (int x = N-1; x >= 0; --x)
-    for (int y = N-1; y >= 0; --y)
-      for (int z = N-1; z >= 0; --z)
-        r = (r << 1) | ((data >> (N*N*z + N*y + (N-1-x))) & CubeBits<N>{1});
+  for (int x = 0; x < N; ++x)
+  {
+    r <<= N*(N-1);
 
+    for (int z = N-1; z >= 0; --z)
+      r = (r << 1) | ((data >> (N*N*z + x)) & mask);
+  }
   return r;
 }
 
 template <int N>
 inline CubeBits<N> cube_rotate_z(CubeBits<N> data)
 {
+  const CubeBits<N> mask = one_mask<N>(N);
   CubeBits<N> r = 0;
 
   for (int x = N-1; x >= 0; --x)
-    for (int y = N-1; y >= 0; --y)
-      for (int z = N-1; z >= 0; --z)
-        r = (r << 1) | ((data >> (N*N*(N-1-y) + N*x + z)) & CubeBits<N>{1});
+    for (int y = 0; y < N; ++y)
+        r = (r << N) | ((data >> (N*N*y + N*x)) & mask);
 
   return r;
 }
@@ -202,14 +225,14 @@ typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, int axis, ClipMode clip)
 {
   static const Bits shift_mask[3] =
   {
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * ~(~Bits{0} << (N-1)*N*N),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * ~(~Bits{0} << (N-1)*N),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * ~(~Bits{0} << (N-1))
+    one_mask<N>((N-1)*N*N),
+    repeat_mask<N>(one_mask<N>((N-1)*N), N, N*N),
+    repeat_mask<N>(one_mask<N>((N-1)),   N*N, N)
   };
   const Bits mask = shift_mask[axis];
   const Bits clip_mask = (data & ~mask) ? mask & static_cast<Bits>(clip) : mask;
 
-  return (data & clip_mask) << shift_by_axis<N>(axis);
+  return (data & clip_mask) << axis_stride<N>(axis);
 }
 
 template <int N_>
@@ -217,14 +240,14 @@ typename Cube<N_>::Bits Cube<N_>::shift_rev_(Bits data, int axis, ClipMode clip)
 {
   static const Bits shift_mask[3] =
   {
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N*N - 1)) * (~(~Bits{0} << (N-1)*N*N) << (N*N)),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N*N   - 1)) * (~(~Bits{0} << (N-1)*N)   << N),
-    ~(~Bits{1} << (N*N*N - 1)) / ~(~Bits{1} << (N     - 1)) * (~(~Bits{0} << (N-1))     << 1)
+    one_mask<N>((N-1)*N*N) << N*N,
+    repeat_mask<N>(one_mask<N>((N-1)*N) << N, N, N*N),
+    repeat_mask<N>(one_mask<N>((N-1))   << 1, N*N, N)
   };
   const Bits mask = shift_mask[axis];
   const Bits clip_mask = (data & ~mask) ? mask & static_cast<Bits>(clip) : mask;
 
-  return (data & clip_mask) >> shift_by_axis<N>(axis);
+  return (data & clip_mask) >> axis_stride<N>(axis);
 }
 
 template class Cube<3>;
