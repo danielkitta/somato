@@ -43,10 +43,17 @@ constexpr CubeBits<N> repeat_mask(CubeBits<N> pattern, int count, int stride)
 
 /* Derive stride from axis index (x: N*N, y: N, z: 1).
  */
-template <int N> inline int axis_stride(int axis);
+template <int N> inline int axis_stride(unsigned int axis);
 
-template <> inline int axis_stride<3>(int axis) { return ((2-axis) << (2-axis)) + 1; }
-template <> inline int axis_stride<4>(int axis) { return 16u >> (2 * axis); }
+template <> inline int axis_stride<3>(unsigned int axis)
+{
+  return ((2 - axis) << (2 - axis)) + 1;
+}
+
+template <> inline int axis_stride<4>(unsigned int axis)
+{
+  return 16u >> (2 * axis);
+}
 
 /* Rotate cube cells by 90 degrees counterclockwise.
  */
@@ -221,7 +228,7 @@ typename Cube<N_>::Bits Cube<N_>::rotate_z_(Bits data)
 }
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, int axis, ClipMode clip)
+typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, std::size_t axis, ClipMode clip)
 {
   static const Bits shift_mask[3] =
   {
@@ -236,7 +243,7 @@ typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, int axis, ClipMode clip)
 }
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::shift_rev_(Bits data, int axis, ClipMode clip)
+typename Cube<N_>::Bits Cube<N_>::shift_rev_(Bits data, std::size_t axis, ClipMode clip)
 {
   static const Bits shift_mask[3] =
   {

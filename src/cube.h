@@ -21,6 +21,7 @@
 #define SOMATO_CUBE_H_INCLUDED
 
 #include <initializer_list>
+#include <cstddef>
 #include <cstdint>
 
 namespace Somato
@@ -95,8 +96,8 @@ private:
   static Bits rotate_x_(Bits data);
   static Bits rotate_y_(Bits data);
   static Bits rotate_z_(Bits data);
-  static Bits shift_(Bits data, int axis, ClipMode clip);
-  static Bits shift_rev_(Bits data, int axis, ClipMode clip);
+  static Bits shift_(Bits data, std::size_t axis, ClipMode clip);
+  static Bits shift_rev_(Bits data, std::size_t axis, ClipMode clip);
 
   Bits data_;
 };
