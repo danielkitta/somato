@@ -45,8 +45,8 @@ public:
   struct SortPredicate;
 
   constexpr Cube() : data_ {0} {}
-  constexpr Cube(std::initializer_list<bool> bits)
-    : data_ {init_bits(0, begin(bits), end(bits))} {}
+  constexpr Cube(std::initializer_list<Index> cells)
+    : data_ {init_cells(0, begin(cells), end(cells))} {}
 
   void clear() { data_ = 0; }
   bool empty() const { return (data_ == 0); }
@@ -93,11 +93,11 @@ private:
 
   explicit Cube(Bits data) : data_ {data} {}
 
-  static constexpr Bits init_bits(Bits data,
-                                  std::initializer_list<bool>::const_iterator start,
-                                  std::initializer_list<bool>::const_iterator pos)
+  static constexpr Bits init_cells(Bits data,
+                                   typename std::initializer_list<Index>::const_iterator pos,
+                                   typename std::initializer_list<Index>::const_iterator pend)
   {
-    return (pos == start) ? data : init_bits((data << 1) | pos[-1], start, pos - 1);
+    return (pos == pend) ? data : init_cells(data | (Bits{1} << *pos), pos + 1, pend);
   }
   static Bits rotate_x_(Bits data);
   static Bits rotate_y_(Bits data);
