@@ -41,6 +41,7 @@ class Cube
 {
 public:
   enum : int { N = N_ };
+  class  Index;
   struct SortPredicate;
 
   constexpr Cube() : data_ {0} {}
@@ -56,8 +57,13 @@ public:
     const int index = N*N*x + N*y + z;
     data_ = (data_ & ~(Bits{1} << index)) | (Bits{value} << index);
   }
+  void put(Index i, bool value)
+    { data_ = (data_ & ~(Bits{1} << i)) | (Bits{value} << i); }
+
   bool get(int x, int y, int z) const
     { return ((data_ >> (N*N*x + N*y + z)) & Bits{1}); }
+  bool get(Index i) const
+    { return ((data_ >> i) & Bits{1}); }
 
   Cube& rotate_x() // counterclockwise
     { data_ = rotate_x_(data_); return *this; }
@@ -100,6 +106,18 @@ private:
   static Bits shift_rev_(Bits data, std::size_t axis, ClipMode clip);
 
   Bits data_;
+};
+
+template <int N_>
+class Cube<N_>::Index
+{
+private:
+  unsigned char idx_;
+
+public:
+  constexpr Index() : idx_ {0} {}
+  constexpr Index(int x, int y, int z) : idx_ (N_*N_*x + N_*y + z) {}
+  constexpr operator unsigned int() const { return idx_; }
 };
 
 template <int N_>

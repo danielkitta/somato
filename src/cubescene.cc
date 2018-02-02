@@ -912,7 +912,7 @@ void CubeScene::update_animation_order()
 {
   enum { N = SomaCube::N };
 
-  static const std::array<unsigned char[3], N*N*N> cell_order
+  static const std::array<SomaCube::Index, N*N*N> cell_order
   {{
     {1,0,0}, {1,0,1}, {1,1,1}, {1,1,0}, {2,0,0}, {2,0,1}, {2,1,0},
     {2,1,1}, {0,0,0}, {2,0,2}, {2,2,0}, {0,0,1}, {1,0,2}, {0,1,0},
@@ -920,20 +920,15 @@ void CubeScene::update_animation_order()
     {0,2,0}, {2,2,2}, {0,1,2}, {0,2,1}, {1,2,2}, {0,2,2}
   }};
 
+  g_return_if_fail(piece_cells_.size() == N*N*N);
+
   unsigned int count = 0;
   SomaCube     cube;
 
-  for (const auto& order : cell_order)
+  for (const SomaCube::Index cell : cell_order)
   {
-    const unsigned int cell_index = N*N * order[0] + N * order[1] + order[2];
-
-    SomaCube cell;
-    cell.put(order[0], order[1], order[2], true);
-
-    g_return_if_fail(cell_index < piece_cells_.size());
-
-    piece_cells_[cell_index].piece = G_MAXUINT;
-    piece_cells_[cell_index].cell  = cell_index;
+    piece_cells_[cell].piece = G_MAXUINT;
+    piece_cells_[cell].cell  = cell;
 
     // 1) Find the cube piece which occupies this cell.
     // 2) Look it up in the already processed range of the animation data.
@@ -941,7 +936,7 @@ void CubeScene::update_animation_order()
     // 4) Write the piece's animation index to the piece cells vector.
 
     const auto pcube = std::find_if(cbegin(cube_pieces_), cend(cube_pieces_),
-                                    [cell](SomaCube c) { return (c & cell); });
+                                    [cell](SomaCube c) { return c.get(cell); });
     if (pcube != cend(cube_pieces_))
     {
       const unsigned int cube_index = pcube - cbegin(cube_pieces_);
@@ -964,7 +959,7 @@ void CubeScene::update_animation_order()
         cube |= *pcube;
         ++count;
       }
-      piece_cells_[cell_index].piece = anim_index;
+      piece_cells_[cell].piece = anim_index;
     }
   }
   g_return_if_fail(count == animation_data_.size()); // invalid input
