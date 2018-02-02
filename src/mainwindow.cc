@@ -21,7 +21,7 @@
 
 #include "mainwindow.h"
 #include "asynctask.h"
-#include "cube.h"
+#include "bitcube.h"
 #include "cubescene.h"
 #include "mathutils.h"
 #include "vectormath.h"

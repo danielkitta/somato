@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2018  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -18,7 +18,7 @@
  */
 
 #include <config.h>
-#include "cube.h"
+#include "bitcube.h"
 
 namespace
 {
@@ -210,25 +210,25 @@ namespace Somato
 {
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::rotate_x_(Bits data)
+typename BitCube<N_>::Bits BitCube<N_>::rotate_x_(Bits data)
 {
   return cube_rotate_x<N_>(data);
 }
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::rotate_y_(Bits data)
+typename BitCube<N_>::Bits BitCube<N_>::rotate_y_(Bits data)
 {
   return cube_rotate_y<N_>(data);
 }
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::rotate_z_(Bits data)
+typename BitCube<N_>::Bits BitCube<N_>::rotate_z_(Bits data)
 {
   return cube_rotate_z<N_>(data);
 }
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, std::size_t axis, ClipMode clip)
+typename BitCube<N_>::Bits BitCube<N_>::shift_(Bits data, std::size_t axis, ClipMode clip)
 {
   static const Bits shift_mask[3] =
   {
@@ -243,7 +243,7 @@ typename Cube<N_>::Bits Cube<N_>::shift_(Bits data, std::size_t axis, ClipMode c
 }
 
 template <int N_>
-typename Cube<N_>::Bits Cube<N_>::shift_rev_(Bits data, std::size_t axis, ClipMode clip)
+typename BitCube<N_>::Bits BitCube<N_>::shift_rev_(Bits data, std::size_t axis, ClipMode clip)
 {
   static const Bits shift_mask[3] =
   {
@@ -257,6 +257,6 @@ typename Cube<N_>::Bits Cube<N_>::shift_rev_(Bits data, std::size_t axis, ClipMo
   return (data & clip_mask) >> axis_stride<N>(axis);
 }
 
-template class Cube<3>;
+template class BitCube<3>;
 
 } // namespace Somato

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2017  Daniel Elstner  <daniel.kitta@gmail.com>
+ * Copyright (c) 2004-2018  Daniel Elstner  <daniel.kitta@gmail.com>
  *
  * This file is part of Somato.
  *
@@ -17,8 +17,8 @@
  * along with Somato.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SOMATO_CUBE_H_INCLUDED
-#define SOMATO_CUBE_H_INCLUDED
+#ifndef SOMATO_BITCUBE_H_INCLUDED
+#define SOMATO_BITCUBE_H_INCLUDED
 
 #include <initializer_list>
 #include <cstddef>
@@ -30,22 +30,22 @@ namespace Somato
 enum class ClipMode : int { CULL = 0, SLICE = -1 };
 enum Axis : int { AXIS_X, AXIS_Y, AXIS_Z };
 
-template <int N> struct CubeTraits {};
-template <> struct CubeTraits<3> { using BitsType = uint32_t; };
-template <> struct CubeTraits<4> { using BitsType = uint64_t; };
+template <int N> struct BitCubeTraits {};
+template <> struct BitCubeTraits<3> { using BitsType = uint32_t; };
+template <> struct BitCubeTraits<4> { using BitsType = uint64_t; };
 
-template <int N> using CubeBits = typename CubeTraits<N>::BitsType;
+template <int N> using CubeBits = typename BitCubeTraits<N>::BitsType;
 
 template <int N_>
-class Cube
+class BitCube
 {
 public:
   enum : int { N = N_ };
   class  Index;
   struct SortPredicate;
 
-  constexpr Cube() : data_ {0} {}
-  constexpr Cube(std::initializer_list<Index> cells)
+  constexpr BitCube() : data_ {0} {}
+  constexpr BitCube(std::initializer_list<Index> cells)
     : data_ {init_cells(0, begin(cells), end(cells))} {}
 
   void clear() { data_ = 0; }
@@ -65,33 +65,33 @@ public:
   bool get(Index i) const
     { return ((data_ >> i) & Bits{1}); }
 
-  Cube& rotate_x() // counterclockwise
+  BitCube& rotate_x() // counterclockwise
     { data_ = rotate_x_(data_); return *this; }
-  Cube& rotate_y() // counterclockwise
+  BitCube& rotate_y() // counterclockwise
     { data_ = rotate_y_(data_); return *this; }
-  Cube& rotate_z() // counterclockwise
+  BitCube& rotate_z() // counterclockwise
     { data_ = rotate_z_(data_); return *this; }
 
-  Cube& shift(int axis, ClipMode clip = ClipMode::CULL) // rightward
+  BitCube& shift(int axis, ClipMode clip = ClipMode::CULL) // rightward
     { data_ = shift_(data_, axis, clip); return *this; }
 
-  Cube& shift_rev(int axis, ClipMode clip = ClipMode::CULL) // leftward
+  BitCube& shift_rev(int axis, ClipMode clip = ClipMode::CULL) // leftward
     { data_ = shift_rev_(data_, axis, clip); return *this; }
 
-  Cube& operator&=(Cube other) { data_ &= other.data_; return *this; }
-  Cube& operator|=(Cube other) { data_ |= other.data_; return *this; }
-  Cube operator~() const { return Cube(data_ ^ ~(~Bits{1} << (N*N*N - 1))); }
+  BitCube& operator&=(BitCube other) { data_ &= other.data_; return *this; }
+  BitCube& operator|=(BitCube other) { data_ |= other.data_; return *this; }
+  BitCube operator~() const { return BitCube{data_ ^ ~(~Bits{1} << (N*N*N - 1))}; }
 
-  friend Cube operator&(Cube a, Cube b) { return Cube(a.data_ & b.data_); }
-  friend Cube operator|(Cube a, Cube b) { return Cube(a.data_ | b.data_); }
+  friend BitCube operator&(BitCube a, BitCube b) { return BitCube{a.data_ & b.data_}; }
+  friend BitCube operator|(BitCube a, BitCube b) { return BitCube{a.data_ | b.data_}; }
 
-  friend bool operator==(Cube a, Cube b) { return (a.data_ == b.data_); }
-  friend bool operator!=(Cube a, Cube b) { return (a.data_ != b.data_); }
+  friend bool operator==(BitCube a, BitCube b) { return (a.data_ == b.data_); }
+  friend bool operator!=(BitCube a, BitCube b) { return (a.data_ != b.data_); }
 
 private:
   typedef CubeBits<N> Bits;
 
-  explicit Cube(Bits data) : data_ {data} {}
+  explicit BitCube(Bits data) : data_ {data} {}
 
   static constexpr Bits init_cells(Bits data,
                                    typename std::initializer_list<Index>::const_iterator pos,
@@ -109,7 +109,7 @@ private:
 };
 
 template <int N_>
-class Cube<N_>::Index
+class BitCube<N_>::Index
 {
 private:
   unsigned char idx_;
@@ -121,15 +121,15 @@ public:
 };
 
 template <int N_>
-struct Cube<N_>::SortPredicate
+struct BitCube<N_>::SortPredicate
 {
-  bool operator()(Cube<N_> a, Cube<N_> b) const { return (a.data_ < b.data_); }
+  bool operator()(BitCube<N_> a, BitCube<N_> b) const { return (a.data_ < b.data_); }
 };
 
-extern template class Cube<3>;
+extern template class BitCube<3>;
 
-using SomaCube = Cube<3>;
+using SomaBitCube = BitCube<3>;
 
 } // namespace Somato
 
-#endif // !SOMATO_CUBE_H_INCLUDED
+#endif // !SOMATO_BITCUBE_H_INCLUDED

@@ -140,7 +140,7 @@ const std::array<GLfloat[4], 8> piece_colors
  * its desired position, without colliding with any other piece
  * already in place (think Tetris).
  */
-void find_animation_axis(SomaCube cube, SomaCube piece, float* direction)
+void find_animation_axis(SomaBitCube cube, SomaBitCube piece, float* direction)
 {
   struct MovementData
   {
@@ -173,8 +173,8 @@ void find_animation_axis(SomaCube cube, SomaCube piece, float* direction)
   for (const auto& movement : movement_data)
   {
     // Swap fixed and moving pieces if backward shifting is indicated.
-    const SomaCube fixed  = (movement.backward) ? piece : cube;
-    SomaCube       moving = (movement.backward) ? cube : piece;
+    const SomaBitCube fixed  = (movement.backward) ? piece : cube;
+    SomaBitCube       moving = (movement.backward) ? cube : piece;
 
     // Now do the shifting until the moving piece has either
     // vanished from view or collided with the fixed piece.
@@ -204,7 +204,7 @@ namespace Somato
 CubeScene::CubeScene(BaseObjectType* obj, const Glib::RefPtr<Gtk::Builder>&)
 :
   GL::Scene    {obj},
-  piece_cells_ (SomaCube::N * SomaCube::N * SomaCube::N)
+  piece_cells_ (SomaBitCube::N * SomaBitCube::N * SomaBitCube::N)
 {
   text_layouts()->set_layout_count(NUM_TEXT_LAYOUTS);
   text_layouts()->set_layout_color(HEADING, GL::pack_4u8_norm(0.4, 0.4, 0.4, 1.));
@@ -910,9 +910,9 @@ void CubeScene::update_footing()
  */
 void CubeScene::update_animation_order()
 {
-  enum { N = SomaCube::N };
+  enum { N = SomaBitCube::N };
 
-  static const std::array<SomaCube::Index, N*N*N> cell_order
+  static const std::array<SomaBitCube::Index, N*N*N> cell_order
   {{
     {1,0,0}, {1,0,1}, {1,1,1}, {1,1,0}, {2,0,0}, {2,0,1}, {2,1,0},
     {2,1,1}, {0,0,0}, {2,0,2}, {2,2,0}, {0,0,1}, {1,0,2}, {0,1,0},
@@ -923,9 +923,9 @@ void CubeScene::update_animation_order()
   g_return_if_fail(piece_cells_.size() == N*N*N);
 
   unsigned int count = 0;
-  SomaCube     cube;
+  SomaBitCube  cube;
 
-  for (const SomaCube::Index cell : cell_order)
+  for (const SomaBitCube::Index cell : cell_order)
   {
     piece_cells_[cell].piece = G_MAXUINT;
     piece_cells_[cell].cell  = cell;
@@ -936,7 +936,7 @@ void CubeScene::update_animation_order()
     // 4) Write the piece's animation index to the piece cells vector.
 
     const auto pcube = std::find_if(cbegin(cube_pieces_), cend(cube_pieces_),
-                                    [cell](SomaCube c) { return c.get(cell); });
+                                    [cell](SomaBitCube c) { return c.get(cell); });
     if (pcube != cend(cube_pieces_))
     {
       const unsigned int cube_index = pcube - cbegin(cube_pieces_);
@@ -977,7 +977,7 @@ void CubeScene::update_depth_order()
 {
   const auto matrix = Math::Matrix4::from_quaternion(rotation_);
 
-  enum { N = SomaCube::N };
+  enum { N = SomaBitCube::N };
 
   std::array<float, N*N*N> zcoords;
   auto pcell = begin(zcoords);
@@ -995,7 +995,7 @@ void CubeScene::update_depth_order()
             [&zcoords](const PieceCell& a, const PieceCell& b)
             { return (zcoords[a.cell] > zcoords[b.cell]); });
 
-  SomaCube cube;
+  SomaBitCube cube;
   auto pdepth = begin(depth_order_);
 
   g_return_if_fail(pdepth != end(depth_order_));
@@ -1172,7 +1172,7 @@ void CubeScene::process_track_motion(int x, int y)
     // As there is no single definite solution to this problem, the choice of
     // the "right" size is somewhat subjective. The radius used here corresponds
     // to a sphere which touches the cube's edges.
-    const float edge_length    = SomaCube::N * grid_cell_size;
+    const float edge_length    = SomaBitCube::N * grid_cell_size;
     const float trackball_size = (0.5 * G_SQRT2 + 1.) / -view_z_offset * edge_length;
 
     const int   width  = std::max(1, get_allocated_width());
@@ -1317,7 +1317,7 @@ int CubeScene::gl_draw_pieces_range(const Math::Matrix4& cube_transform,
       triangle_count += mesh.triangle_count;
 
       // Distance in model units an animated cube piece has to travel.
-      const float animation_distance = 1.75 * SomaCube::N * grid_cell_size;
+      const float animation_distance = 1.75 * SomaBitCube::N * grid_cell_size;
       const float d = animation_position_ * animation_distance;
 
       const auto transform = translate(cube_transform, data.direction[0] * d,

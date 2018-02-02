@@ -21,7 +21,7 @@
 #define SOMATO_PUZZLE_H_INCLUDED
 
 #include "asynctask.h"
-#include "cube.h"
+#include "bitcube.h"
 #include "vectormath.h"
 
 #include <array>
@@ -31,7 +31,7 @@ namespace Somato
 {
 
 enum { CUBE_PIECE_COUNT = 7 };
-typedef std::array<SomaCube, CUBE_PIECE_COUNT> Solution;
+typedef std::array<SomaBitCube, CUBE_PIECE_COUNT> Solution;
 
 class PuzzleThread : public Async::Task
 {
@@ -47,7 +47,7 @@ private:
   std::vector<Solution> solutions_;
 };
 
-Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaCube piece);
+Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaBitCube piece);
 
 } // namespace Somato
 

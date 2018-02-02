@@ -32,7 +32,7 @@ namespace
 
 using namespace Somato;
 
-typedef std::vector<SomaCube> PieceStore;
+typedef std::vector<SomaBitCube> PieceStore;
 typedef std::array<PieceStore, Somato::CUBE_PIECE_COUNT> ColumnStore;
 
 class PuzzleSolver
@@ -49,7 +49,7 @@ private:
   std::vector<Solution> solutions_;
   Solution              state_;
 
-  void recurse(int col, SomaCube cube);
+  void recurse(int col, SomaBitCube cube);
 };
 
 /*
@@ -57,7 +57,7 @@ private:
  * faster than with the original order from the project description.
  * The cube piece at index 0 should be suitable for use as the anchor.
  */
-const std::array<SomaCube, Somato::CUBE_PIECE_COUNT> cube_piece_data
+const std::array<SomaBitCube, Somato::CUBE_PIECE_COUNT> cube_piece_data
 {{
   {{0,0,0}, {0,0,1}, {1,0,0}, {1,1,0}}, // orange
   {{0,0,0}, {0,0,1}, {0,1,0}, {1,0,0}}, // green
@@ -71,11 +71,11 @@ const std::array<SomaCube, Somato::CUBE_PIECE_COUNT> cube_piece_data
 /*
  * Rotate the cube.  This takes care of all orientations possible.
  */
-void compute_rotations(SomaCube cube, PieceStore& store)
+void compute_rotations(SomaBitCube cube, PieceStore& store)
 {
   for (unsigned int i = 0;; ++i)
   {
-    SomaCube temp = cube;
+    SomaBitCube temp = cube;
 
     // Add the 4 possible orientations of each cube side.
     store.push_back(temp);
@@ -100,14 +100,14 @@ void compute_rotations(SomaCube cube, PieceStore& store)
  * imaginable.  Note that the block is assumed to be positioned initially
  * in the (0, 0, 0) corner of the cube.
  */
-void shuffle_cube_piece(SomaCube cube, PieceStore& store)
+void shuffle_cube_piece(SomaBitCube cube, PieceStore& store)
 {
   // Make sure the piece is positioned where we expect it to be.
   g_return_if_fail(cube.get(0, 0, 0));
 
-  for (SomaCube z = cube; z; z.shift(AXIS_Z))
-    for (SomaCube y = z; y; y.shift(AXIS_Y))
-      for (SomaCube x = y; x; x.shift(AXIS_X))
+  for (SomaBitCube z = cube; z; z.shift(AXIS_Z))
+    for (SomaBitCube y = z; y; y.shift(AXIS_Y))
+      for (SomaBitCube x = y; x; x.shift(AXIS_X))
       {
         compute_rotations(x, store);
       }
@@ -126,24 +126,24 @@ void filter_rotations(PieceStore& store)
   auto pdest = begin(store);
 
   for (auto p = cbegin(store); p != cend(store); p += 24)
-    *pdest++ = *std::min_element(p, p + 24, SomaCube::SortPredicate{});
+    *pdest++ = *std::min_element(p, p + 24, SomaBitCube::SortPredicate{});
 
   store.erase(pdest, end(store));
 }
 
-bool find_piece_translation(SomaCube original, SomaCube piece, Math::Matrix4& transform)
+bool find_piece_translation(SomaBitCube original, SomaBitCube piece, Math::Matrix4& transform)
 {
   int z = 0;
 
-  for (SomaCube piece_z = piece; piece_z; piece_z.shift_rev(AXIS_Z))
+  for (SomaBitCube piece_z = piece; piece_z; piece_z.shift_rev(AXIS_Z))
   {
     int y = 0;
 
-    for (SomaCube piece_y = piece_z; piece_y; piece_y.shift_rev(AXIS_Y))
+    for (SomaBitCube piece_y = piece_z; piece_y; piece_y.shift_rev(AXIS_Y))
     {
       int x = 0;
 
-      for (SomaCube piece_x = piece_y; piece_x; piece_x.shift_rev(AXIS_X))
+      for (SomaBitCube piece_x = piece_y; piece_x; piece_x.shift_rev(AXIS_X))
       {
         if (piece_x == original)
         {
@@ -173,17 +173,17 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
     if (i == 0)
       filter_rotations(store);
 
-    std::sort(begin(store), end(store), SomaCube::SortPredicate{});
+    std::sort(begin(store), end(store), SomaBitCube::SortPredicate{});
     store.erase(std::unique(begin(store), end(store)), end(store));
   }
 
-  const SomaCube common = std::accumulate(cbegin(columns_[0]), cend(columns_[0]),
-                                          ~SomaCube{}, std::bit_and<SomaCube>{});
+  const SomaBitCube common = std::accumulate(cbegin(columns_[0]), cend(columns_[0]),
+                                             ~SomaBitCube{}, std::bit_and<SomaBitCube>{});
   if (common)
     for (auto pcol = begin(columns_) + 1; pcol != end(columns_); ++pcol)
     {
       const auto pend = std::remove_if(begin(*pcol), end(*pcol),
-                                       [common](SomaCube c) { return (c & common); });
+                                       [common](SomaBitCube c) { return (c & common); });
       pcol->erase(pend, end(*pcol));
     }
 
@@ -196,13 +196,13 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
   return std::move(solutions_);
 }
 
-void PuzzleSolver::recurse(int col, SomaCube cube)
+void PuzzleSolver::recurse(int col, SomaBitCube cube)
 {
   auto row = cbegin(columns_[col]);
 
   for (;;)
   {
-    const SomaCube piece = *row++;
+    const SomaBitCube piece = *row++;
 
     if (!(piece & cube))
     {
@@ -251,7 +251,7 @@ void PuzzleThread::execute()
   g_info("Puzzle solve time: %0.1f ms", elapsed.count());
 }
 
-Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaCube piece)
+Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaBitCube piece)
 {
   static const Math::Matrix4 rotate90[3] =
   {
@@ -263,7 +263,7 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaCube piece)
 
   g_return_val_if_fail(piece_idx >= 0 && piece_idx < CUBE_PIECE_COUNT, transform);
 
-  const SomaCube original = cube_piece_data[piece_idx];
+  const SomaBitCube original = cube_piece_data[piece_idx];
 
   for (size_t i = 0; i < 6; ++i)
   {

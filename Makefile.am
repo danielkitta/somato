@@ -34,8 +34,8 @@ src_somato_SOURCES =		\
 	src/application.h	\
 	src/asynctask.cc	\
 	src/asynctask.h		\
-	src/cube.cc		\
-	src/cube.h		\
+	src/bitcube.cc		\
+	src/bitcube.h		\
 	src/cubescene.cc	\
 	src/cubescene.h		\
 	src/glscene.cc		\
