@@ -18,13 +18,13 @@
  */
 
 #include <config.h>
-
 #include "puzzle.h"
 
 #include <glib.h>
 #include <algorithm>
 #include <chrono>
 #include <functional>
+#include <iterator>
 #include <numeric>
 
 namespace
@@ -33,7 +33,6 @@ namespace
 using namespace Somato;
 
 typedef std::vector<SomaBitCube> PieceStore;
-typedef std::array<PieceStore, Somato::CUBE_PIECE_COUNT> ColumnStore;
 
 class PuzzleSolver
 {
@@ -45,11 +44,11 @@ public:
   PuzzleSolver& operator=(const PuzzleSolver&) = delete;
 
 private:
-  ColumnStore           columns_;
-  std::vector<Solution> solutions_;
-  Solution              state_;
+  std::array<SomaBitCube, CUBE_PIECE_COUNT> state_;
+  std::array<PieceStore, CUBE_PIECE_COUNT>  columns_;
+  std::vector<Solution>                     solutions_;
 
-  void recurse(int col, SomaBitCube cube);
+  void recurse(std::size_t col, SomaBitCube cube);
 };
 
 /*
@@ -159,7 +158,7 @@ bool find_piece_translation(SomaBitCube original, SomaBitCube piece, Math::Matri
   return false;
 }
 
-std::vector<Somato::Solution> PuzzleSolver::execute()
+std::vector<Solution> PuzzleSolver::execute()
 {
   solutions_.reserve(480);
 
@@ -196,26 +195,29 @@ std::vector<Somato::Solution> PuzzleSolver::execute()
   return std::move(solutions_);
 }
 
-void PuzzleSolver::recurse(int col, SomaBitCube cube)
+void PuzzleSolver::recurse(std::size_t col, SomaBitCube cube)
 {
   auto row = cbegin(columns_[col]);
 
   for (;;)
   {
-    const SomaBitCube piece = *row++;
-
-    if (!(piece & cube))
+    SomaBitCube piece;
+    do
     {
-      if (!piece)
-        break;
-
-      state_[col] = piece;
-
-      if (col < Somato::CUBE_PIECE_COUNT - 1)
-        recurse(col + 1, cube | piece);
-      else
-        solutions_.push_back(state_);
+      piece = *row;
+      ++row;
     }
+    while (piece & cube);
+
+    if (!piece)
+      break;
+
+    state_[col] = piece;
+
+    if (col < CUBE_PIECE_COUNT - 1)
+      recurse(col + 1, cube | piece);
+    else
+      solutions_.emplace_back(state_);
   }
 }
 

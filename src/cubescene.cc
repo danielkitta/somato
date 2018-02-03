@@ -232,7 +232,7 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
 {
   try
   {
-    cube_pieces_   .assign(cbegin(cube_pieces), cend(cube_pieces));
+    cube_pieces_ = cube_pieces;
     animation_data_.assign(cube_pieces.size(), AnimationData{});
     depth_order_   .assign(cube_pieces.size(), 0);
 
@@ -248,7 +248,6 @@ void CubeScene::set_cube_pieces(const Solution& cube_pieces)
 
     depth_order_   .clear();
     animation_data_.clear();
-    cube_pieces_   .clear();
 
     throw;
   }
@@ -923,7 +922,7 @@ void CubeScene::update_animation_order()
   g_return_if_fail(piece_cells_.size() == N*N*N);
 
   unsigned int count = 0;
-  SomaBitCube  cube;
+  SomaBitCube  cube_mask;
 
   for (const SomaBitCube::Index cell : cell_order)
   {
@@ -935,28 +934,29 @@ void CubeScene::update_animation_order()
     // 3) If not processed yet, generate and store a new animation data element.
     // 4) Write the piece's animation index to the piece cells vector.
 
-    const auto pcube = std::find_if(cbegin(cube_pieces_), cend(cube_pieces_),
-                                    [cell](SomaBitCube c) { return c.get(cell); });
-    if (pcube != cend(cube_pieces_))
-    {
-      const unsigned int cube_index = pcube - cbegin(cube_pieces_);
-      unsigned int       anim_index = 0;
+    const auto piece_index = cube_pieces_.piece_at_cell(cell);
 
-      while (anim_index < count && animation_data_[anim_index].cube_index != cube_index)
+    if (piece_index != Solution::npos)
+    {
+      unsigned int anim_index = 0;
+
+      while (anim_index < count && animation_data_[anim_index].cube_index != piece_index)
         ++anim_index;
 
       if (anim_index == count)
       {
-        g_return_if_fail(!(cube & *pcube));                    // collision
+        const auto piece = cube_pieces_[piece_index];
+
+        g_return_if_fail(!(cube_mask & piece));                // collision
         g_return_if_fail(anim_index < animation_data_.size()); // invalid input
 
         auto& anim = animation_data_[anim_index];
 
-        anim.cube_index = cube_index;
-        anim.transform = find_puzzle_piece_orientation(cube_index, *pcube);
-        find_animation_axis(cube, *pcube, anim.direction);
+        anim.cube_index = piece_index;
+        anim.transform = find_puzzle_piece_orientation(piece_index, piece);
+        find_animation_axis(cube_mask, piece, anim.direction);
 
-        cube |= *pcube;
+        cube_mask |= piece;
         ++count;
       }
       piece_cells_[cell].piece = anim_index;
@@ -995,7 +995,7 @@ void CubeScene::update_depth_order()
             [&zcoords](const PieceCell& a, const PieceCell& b)
             { return (zcoords[a.cell] > zcoords[b.cell]); });
 
-  SomaBitCube cube;
+  SomaBitCube cube_mask;
   auto pdepth = begin(depth_order_);
 
   g_return_if_fail(pdepth != end(depth_order_));
@@ -1005,12 +1005,11 @@ void CubeScene::update_depth_order()
     if (pc.piece < animation_data_.size())
     {
       const unsigned int index = animation_data_[pc.piece].cube_index;
+      const SomaBitCube piece_mask = cube_pieces_[index];
 
-      g_return_if_fail(index < cube_pieces_.size());
-
-      if (!(cube & cube_pieces_[index]))
+      if (!(cube_mask & piece_mask))
       {
-        cube |= cube_pieces_[index];
+        cube_mask |= piece_mask;
         *pdepth = pc.piece;
 
         if (++pdepth == end(depth_order_))

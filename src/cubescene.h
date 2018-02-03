@@ -123,7 +123,7 @@ private:
 
   Glib::RefPtr<const Glib::Bytes> mesh_desc_;
 
-  std::vector<SomaBitCube>    cube_pieces_;
+  Solution                    cube_pieces_;
   std::vector<AnimationData>  animation_data_;
   PieceCellVector             piece_cells_;
   std::vector<int>            depth_order_;

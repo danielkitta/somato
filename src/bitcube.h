@@ -27,6 +27,8 @@
 namespace Somato
 {
 
+template <int, int> class PuzzleCube;
+
 enum class ClipMode : int { CULL = 0, SLICE = -1 };
 enum Axis : int { AXIS_X, AXIS_Y, AXIS_Z };
 
@@ -89,6 +91,7 @@ public:
   friend bool operator!=(BitCube a, BitCube b) { return (a.data_ != b.data_); }
 
 private:
+  template <int, int> friend class PuzzleCube;
   typedef CubeBits<N> Bits;
 
   explicit BitCube(Bits data) : data_ {data} {}

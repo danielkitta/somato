@@ -22,6 +22,7 @@
 
 #include "asynctask.h"
 #include "bitcube.h"
+#include "puzzlecube.h"
 #include "vectormath.h"
 
 #include <array>
@@ -31,7 +32,7 @@ namespace Somato
 {
 
 enum { CUBE_PIECE_COUNT = 7 };
-typedef std::array<SomaBitCube, CUBE_PIECE_COUNT> Solution;
+typedef PuzzleCube<3, CUBE_PIECE_COUNT> Solution;
 
 class PuzzleThread : public Async::Task
 {

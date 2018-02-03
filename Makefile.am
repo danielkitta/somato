@@ -55,6 +55,7 @@ src_somato_SOURCES =		\
 	src/meshtypes.h		\
 	src/puzzle.cc		\
 	src/puzzle.h		\
+	src/puzzlecube.h	\
 	src/vectormath.cc	\
 	src/vectormath.h	\
 	$(simd_sources)
