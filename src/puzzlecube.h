@@ -30,6 +30,11 @@
 namespace Somato
 {
 
+constexpr int ilog2p1_(unsigned int a, int i = 0)
+{
+  return (a == 0) ? i : ilog2p1_(a >> 1, i + 1);
+}
+
 /* Compact container for an arrangement of puzzle pieces within a cube.
  */
 template <int N_, int C>
@@ -42,7 +47,7 @@ public:
   typedef BitCube<N_> value_type;
   typedef iterator    const_iterator;
 
-  enum { N = N_, P = (C < 2) ? 1 : (C < 4) ? 2 : (C < 8) ? 3 : (C < 16) ? 4 : -1 };
+  enum { N = N_, P = ilog2p1_(C) };
   static constexpr size_type npos = size_type{0} - 1;
 
   constexpr PuzzleCube() : planes_ {0,} {}
