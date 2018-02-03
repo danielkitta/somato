@@ -82,10 +82,12 @@ public:
 
   BitCube& operator&=(BitCube other) { data_ &= other.data_; return *this; }
   BitCube& operator|=(BitCube other) { data_ |= other.data_; return *this; }
+  BitCube& operator^=(BitCube other) { data_ ^= other.data_; return *this; }
   BitCube operator~() const { return BitCube{data_ ^ ~(~Bits{1} << (N*N*N - 1))}; }
 
   friend BitCube operator&(BitCube a, BitCube b) { return BitCube{a.data_ & b.data_}; }
   friend BitCube operator|(BitCube a, BitCube b) { return BitCube{a.data_ | b.data_}; }
+  friend BitCube operator^(BitCube a, BitCube b) { return BitCube{a.data_ ^ b.data_}; }
 
   friend bool operator==(BitCube a, BitCube b) { return (a.data_ == b.data_); }
   friend bool operator!=(BitCube a, BitCube b) { return (a.data_ != b.data_); }
