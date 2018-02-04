@@ -61,7 +61,7 @@ public:
   sigc::signal<void>& signal_cycle_finished() { return signal_cycle_finished_; }
 
   void set_heading(Glib::ustring heading);
-  void set_cube_pieces(const Solution& cube_pieces);
+  void set_cube_pieces(const SomaCube& cube_pieces);
 
   void  set_zoom(float zoom);
   float get_zoom() const;
@@ -123,7 +123,7 @@ private:
 
   Glib::RefPtr<const Glib::Bytes> mesh_desc_;
 
-  Solution                    cube_pieces_;
+  SomaCube                    cube_pieces_;
   std::vector<AnimationData>  animation_data_;
   PieceCellVector             piece_cells_;
   std::vector<int>            depth_order_;

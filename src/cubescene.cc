@@ -228,7 +228,7 @@ void CubeScene::set_heading(Glib::ustring heading)
     queue_static_draw();
 }
 
-void CubeScene::set_cube_pieces(const Solution& cube_pieces)
+void CubeScene::set_cube_pieces(const SomaCube& cube_pieces)
 {
   try
   {
@@ -936,7 +936,7 @@ void CubeScene::update_animation_order()
 
     const auto piece_index = cube_pieces_.piece_at_cell(cell);
 
-    if (piece_index != Solution::npos)
+    if (piece_index != SomaCube::npos)
     {
       unsigned int anim_index = 0;
 

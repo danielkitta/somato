@@ -133,8 +133,6 @@ struct BitCube<N_>::SortPredicate
 
 extern template class BitCube<3>;
 
-using SomaBitCube = BitCube<3>;
-
 } // namespace Somato
 
 #endif // !SOMATO_BITCUBE_H_INCLUDED

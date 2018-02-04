@@ -37,24 +37,25 @@ constexpr int ilog2p1_(unsigned int a, int i = 0)
 
 /* Compact container for an arrangement of puzzle pieces within a cube.
  */
-template <int N_, int C>
+template <int N, int C>
 class PuzzleCube
 {
 public:
   class iterator;
 
   typedef std::size_t size_type;
-  typedef BitCube<N_> value_type;
+  typedef BitCube<N>  value_type;
   typedef iterator    const_iterator;
 
-  enum { N = N_, P = ilog2p1_(C) };
+  enum { COUNT = C, DEPTH = ilog2p1_(C) };
+
   static constexpr size_type npos = size_type{0} - 1;
 
   constexpr PuzzleCube() : planes_ {0,} {}
 
   // Construct from an array of one-hot puzzle piece bit masks.
   template <typename A> PuzzleCube(const A& pieces)
-    : PuzzleCube{pieces, std::make_index_sequence<P>{}} {}
+    : PuzzleCube{pieces, std::make_index_sequence<DEPTH>{}} {}
 
   // Extract the cell mask of a single puzzle piece.
   value_type operator[](size_type i) const { return begin()[i]; }
@@ -63,7 +64,7 @@ public:
   size_type piece_at_cell(typename value_type::Index c) const
   {
     size_type piece = 0;
-    for (int i = P-1; i >= 0; --i)
+    for (int i = DEPTH-1; i >= 0; --i)
       piece = (piece << 1) | ((planes_[i] >> c) & 1);
     return piece - 1;
   }
@@ -90,13 +91,13 @@ private:
     return r;
   }
   // Store the piece index at each cell in an array of bit planes.
-  CubeBits<N> planes_[P];
+  CubeBits<N> planes_[DEPTH];
 };
 
 /* Iterator over puzzle pieces within a cube.
  */
-template <int N_, int C>
-class PuzzleCube<N_, C>::iterator
+template <int N, int C>
+class PuzzleCube<N, C>::iterator
 {
 public:
   typedef std::random_access_iterator_tag iterator_category;
@@ -112,7 +113,7 @@ public:
     value_type  r = ~value_type{};
     CubeBits<N> i = index_ + d + 1;
 
-    for (int p = 0; p < P; ++p)
+    for (int p = 0; p < DEPTH; ++p)
     {
       r &= value_type{((i & 1) - 1) ^ planes_[p]};
       i >>= 1;

@@ -38,15 +38,15 @@ class PuzzleSolver
 {
 public:
   PuzzleSolver() = default;
-  std::vector<Solution> execute();
+  std::vector<SomaCube> execute();
 
   PuzzleSolver(const PuzzleSolver&) = delete;
   PuzzleSolver& operator=(const PuzzleSolver&) = delete;
 
 private:
-  std::array<SomaBitCube, CUBE_PIECE_COUNT> state_;
-  std::array<PieceStore, CUBE_PIECE_COUNT>  columns_;
-  std::vector<Solution>                     solutions_;
+  std::array<SomaBitCube, SomaCube::COUNT> state_;
+  std::array<PieceStore,  SomaCube::COUNT> columns_;
+  std::vector<SomaCube>                    solutions_;
 
   void recurse(std::size_t col, SomaBitCube cube);
 };
@@ -56,7 +56,7 @@ private:
  * faster than with the original order from the project description.
  * The cube piece at index 0 should be suitable for use as the anchor.
  */
-const std::array<SomaBitCube, Somato::CUBE_PIECE_COUNT> cube_piece_data
+const std::array<SomaBitCube, SomaCube::COUNT> cube_piece_data
 {{
   {{0,0,0}, {0,0,1}, {1,0,0}, {1,1,0}}, // orange
   {{0,0,0}, {0,0,1}, {0,1,0}, {1,0,0}}, // green
@@ -158,11 +158,11 @@ bool find_piece_translation(SomaBitCube original, SomaBitCube piece, Math::Matri
   return false;
 }
 
-std::vector<Solution> PuzzleSolver::execute()
+std::vector<SomaCube> PuzzleSolver::execute()
 {
   solutions_.reserve(480);
 
-  for (size_t i = 0; i < Somato::CUBE_PIECE_COUNT; ++i)
+  for (size_t i = 0; i < SomaCube::COUNT; ++i)
   {
     PieceStore& store = columns_[i];
 
@@ -214,7 +214,7 @@ void PuzzleSolver::recurse(std::size_t col, SomaBitCube cube)
 
     state_[col] = piece;
 
-    if (col < CUBE_PIECE_COUNT - 1)
+    if (col < SomaCube::COUNT - 1)
       recurse(col + 1, cube | piece);
     else
       solutions_.emplace_back(state_);
@@ -234,7 +234,7 @@ PuzzleThread::~PuzzleThread()
   wait_finish();
 }
 
-std::vector<Solution> PuzzleThread::acquire_results()
+std::vector<SomaCube> PuzzleThread::acquire_results()
 {
   rethrow_any_error();
   return std::move(solutions_);
@@ -263,7 +263,7 @@ Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaBitCube piece)
   };
   Math::Matrix4 transform;
 
-  g_return_val_if_fail(piece_idx >= 0 && piece_idx < CUBE_PIECE_COUNT, transform);
+  g_return_val_if_fail(piece_idx >= 0 && piece_idx < SomaCube::COUNT, transform);
 
   const SomaBitCube original = cube_piece_data[piece_idx];
 

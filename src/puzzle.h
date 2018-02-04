@@ -31,8 +31,8 @@
 namespace Somato
 {
 
-enum { CUBE_PIECE_COUNT = 7 };
-typedef PuzzleCube<3, CUBE_PIECE_COUNT> Solution;
+typedef BitCube<3>       SomaBitCube;
+typedef PuzzleCube<3, 7> SomaCube;
 
 class PuzzleThread : public Async::Task
 {
@@ -40,12 +40,12 @@ public:
   PuzzleThread();
   virtual ~PuzzleThread();
 
-  std::vector<Solution> acquire_results();
+  std::vector<SomaCube> acquire_results();
 
 private:
   void execute() override;
 
-  std::vector<Solution> solutions_;
+  std::vector<SomaCube> solutions_;
 };
 
 Math::Matrix4 find_puzzle_piece_orientation(int piece_idx, SomaBitCube piece);

@@ -82,7 +82,7 @@ private:
   double                          gesture_start_zoom_ = 0.;
 
   CubeScene*                      cube_scene_  = nullptr;
-  std::vector<Solution>           solutions_;
+  std::vector<SomaCube>           solutions_;
   std::unique_ptr<PuzzleThread>   puzzle_thread_;
   sigc::connection                conn_cycle_;
   int                             cube_index_    = -1;
