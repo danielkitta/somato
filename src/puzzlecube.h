@@ -78,14 +78,14 @@ public:
 private:
   template <typename A, std::size_t... I>
   explicit PuzzleCube(const A& pieces, std::index_sequence<I...>)
-    : planes_ {gather_bitplane<I>(pieces, std::make_index_sequence<C>{})...}
+    : planes_ {gather_bitplane<1u << I>(pieces, std::make_index_sequence<C>{})...}
   {}
-  template <std::size_t Ip, typename A, std::size_t... Ia>
-  static CubeBits<N> gather_bitplane(const A& pieces, std::index_sequence<Ia...>)
+  template <std::size_t M, typename A, std::size_t... I>
+  static CubeBits<N> gather_bitplane(const A& pieces, std::index_sequence<I...>)
   {
     CubeBits<N> r = 0;
     // Fold all puzzle piece masks whose indices match the bit plane index.
-    const CubeBits<N> dummy[] = {(((Ia + 1) & (1u << Ip)) ? (r |= pieces[Ia].data_) : r)...};
+    const CubeBits<N> dummy[] = {((M & (I + 1)) ? r |= pieces[I].data_ : r)...};
     static_cast<void>(dummy);
     return r;
   }
