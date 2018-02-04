@@ -62,12 +62,8 @@ public:
 
   // Extract the index of the puzzle piece occupying a cell, or npos for none.
   size_type piece_at_cell(typename value_type::Index c) const
-  {
-    size_type piece = 0;
-    for (int i = DEPTH-1; i >= 0; --i)
-      piece = (piece << 1) | ((planes_[i] >> c) & 1);
-    return piece - 1;
-  }
+    { return combine_cell_bits(c, std::make_index_sequence<DEPTH>{}); }
+
   constexpr size_type size() const { return C; }
   constexpr bool empty() const { return (C == 0); }
 
@@ -90,6 +86,15 @@ private:
     static_cast<void>(dummy);
     return r;
   }
+  template <std::size_t... I>
+  size_type combine_cell_bits(std::size_t s, std::index_sequence<I...>) const
+  {
+    size_type p = 0;
+    // Combine bit planes matching a cell index to a piece index.
+    const size_type dummy[] = {(p = 2*p + ((planes_[DEPTH-1-I] >> s) & 1))...};
+    static_cast<void>(dummy);
+    return p - 1;
+  }
   // Store the piece index at each cell in an array of bit planes.
   CubeBits<N> planes_[DEPTH];
 };
@@ -109,17 +114,8 @@ public:
   constexpr iterator() : planes_ {nullptr}, index_ {0} {}
 
   value_type operator[](difference_type d) const
-  {
-    value_type  r = ~value_type{};
-    CubeBits<N> i = index_ + d + 1;
+    { return extract_piece_mask(index_ + d + 1, std::make_index_sequence<DEPTH>{}); }
 
-    for (int p = 0; p < DEPTH; ++p)
-    {
-      r &= value_type{((i & 1) - 1) ^ planes_[p]};
-      i >>= 1;
-    }
-    return r;
-  }
   value_type operator*() const { return (*this)[0]; }
 
   iterator& operator++()    { ++index_; return *this; }
@@ -146,6 +142,16 @@ private:
   friend class PuzzleCube<N, C>;
 
   explicit iterator(const CubeBits<N>* p, difference_type i) : planes_ {p}, index_ {i} {}
+
+  template <std::size_t... I>
+  value_type extract_piece_mask(CubeBits<N> b, std::index_sequence<I...>) const
+  {
+    value_type r = ~value_type{};
+    // Combine bit planes to isolate the bit mask of a single puzzle piece.
+    const BitCube<N> dummy[] = {(r &= value_type{(((b >> I) & 1) - 1) ^ planes_[I]})...};
+    static_cast<void>(dummy);
+    return r;
+  }
 
   const CubeBits<N>* planes_;
   difference_type    index_;
